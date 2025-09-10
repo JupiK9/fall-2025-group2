@@ -4,34 +4,28 @@ Note: Use Markdown Cheat Sheet download in the directory as needed.
   - https://github.com/im-luka/markdown-cheatsheet
 
 ---
-## Date: Week 1 - Month Day Year 
+## Date: Week 1 - August 27, 2025
 - Topics of discussion
-    - Item1
-    - Item2
-    - Item3
+    - which proposal to choose
 
 - Action Items:
 
-* [ ] Action Item 1
-* [ ] Action Item 2
-* [ ] Action Item 3
-* [ ] Action Item 4
-* [ ] Action Item 5
+* [x] creation of github repository
 ---
 
-## Date: Week 2 - Month Day Year 
+## Date: Week 2 - September 3, 2025
 - Topics of discussion
-    - Item1
-    - Item2
-    - Item3
+    - confirm proposal choice
+    - discuss project outline
 
 - Action Items:
 
-* [ ] Action Item 1
-* [ ] Action Item 2
-* [ ] Action Item 3
-* [ ] Action Item 4
-* [ ] Action Item 5
+* [x] clean up github into correct structure
+* [ ] Alonso: look into creating a website (html, c++)
+* [ ] Alonso: look into UI platforms
+* [ ] Crystal: check data and do simple EDA
+* [ ] Crystal: look up resources on food waste
+* [ ] Jupiter: research timeseries and compare different models
 ---
 ## Date: Week 3 - Month Day Year 
 - Topics of discussion
