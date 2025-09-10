@@ -27,19 +27,19 @@ Note: Use Markdown Cheat Sheet download in the directory as needed.
 * [ ] Crystal: look up resources on food waste
 * [ ] Jupiter: research timeseries and compare different models
 ---
-## Date: Week 3 - Month Day Year 
+## Date: Week 3 - September 10, 2025 
 - Topics of discussion
-    - Item1
-    - Item2
-    - Item3
+    - timeseries model and date range
+    - preprocessing code
+    - popularity of items
+    - maybe create a regression to create a budget
+    - list of additional questions for the client
 
 - Action Items:
 
-* [ ] Action Item 1
-* [ ] Action Item 2
-* [ ] Action Item 3
-* [ ] Action Item 4
-* [ ] Action Item 5
+* [ ] Crystal: run the preprocessing code for pdf and html conversion
+* [ ] Alonso: look into GLM for creating a budget
+* [ ] Jupiter: decide on timeseries models to run on the data
 ---
 ## Date: Week 4 - Month Day Year 
 - Topics of discussion
