@@ -74,21 +74,21 @@ Natural Grape Jam (Packet),0.0
 "Carrots, IW,   Super Snack (2 each)",0.0
 Yellow Peach (Each),0.0
 Assorted Cereal (Cereal Cup),0.0
-Bagel (Bagel),0.0
-"Canned Pineapple, Tidbits (1/2 cup (drained))",0.0
-Blueberry Chex Cereal (Each),0.0
-"Bar, Lemon Blueberry (Each)",0.0
-Assorted Craisins (Packet),0.0
 Black Bean and Corn Salad (1/2 cup),0.0
+Biscuit (Biscuit),0.0
+"Bread, English Muffin, WG (Each)",0.0
+Carrot and Celery Sticks (1/4 cup),0.0
+"Bar, Lemon Blueberry (Each)",0.0
+Bagel (Bagel),0.0
+Assorted Whole Fruit (Piece of Fruit),0.0
+Assorted Craisins (Packet),0.0
 "Applesauce, IW, Cinnamon. Unsweetened, Shelf-Stable (SUB) (Each)",0.0
 Applesauce (3/4 cup),0.0
-Carrot and Celery Sticks (1/4 cup),0.0
-"Bread, English Muffin, WG (Each)",0.0
-Biscuit (Biscuit),0.0
-"CLPP, Grape Tomatoes (1/2 cup)",0.0
-Assorted Whole Fruit (Piece of Fruit),0.0
 "CLPP, Broccoli Crowns (1/2 cup)",0.0
 "CLPP, Cucumbers (1 cup)",0.0
+Blueberry Chex Cereal (Each),0.0
+"CLPP, Grape Tomatoes (1/2 cup)",0.0
+"Canned Pineapple, Tidbits (1/2 cup (drained))",0.0
 Maple Belgian Waffle (Waffle),0.1
 Apple Cinnamon Bread (Grain for entree) (1 square),0.29
 Flour Tortilla (Tortilla),0.36
@@ -110,8 +110,8 @@ Bean Salad (SUMMER) (1 cup),2.5
 Sweet N' Salty Popcorn (Bag),2.59
 Kellogg’s W/G Rice Krispies Treats (Each),2.62
 Broccoli Florets (Cup),2.78
-"Beef, Meatballs, Pre-Cooked (5 meatballs)",2.86
 "Chicken, Shredded, Fully Cooked (1/2 cup)",2.86
+"Beef, Meatballs, Pre-Cooked (5 meatballs)",2.86
 "Nutri-Grain, Apple Cinnamon (each)",2.94
 Strawberry Parfait Power Pack w/Egg (Power Pack),2.94
 WG Chocolate Chip Rice Krispy Treats (Each),3.09
@@ -141,6 +141,8 @@ Shredded Chicken Wrap (Wrap),12.5
 Sweet Thai Chili Chicken Bites (4 Bites w/ 1oz sauce),12.59
 Watermelon Flavored Dried Cranberries (2 Eaches),12.629999999999999
 Pineapple Pepper Fruit Salsa (1 TBSP),13.0
+Corn (1/4 cup (cooked)),13.06
+"Chicken, Bites, Breaded (4 Bites)",13.53
 "Tomato, Large, whole, Plum (1/4 cup sliced)",14.11
 "Lettuce, Green Salad Mix (1 cup)",14.59
 "Calzone, Cheese (Each)",15.04
@@ -148,26 +150,24 @@ Tikka Masala Sauce (ounce),15.09
 Chilled Peaches (1/2 cup),15.28
 Applesauce (1/4 cup),15.29
 Fresh Whole Pear (Each),15.67
-Corn (1/4 cup (cooked)),16.19
 Potato Wedges (4 pieces),16.75
-"Chicken, Bites, Breaded (4 Bites)",17.55
+Chicken Tenders Sub (Sandwich),17.509999999999998
 Grape Tomatoes (6 Tomatoes per 1/2 cup),17.72
 Beef Meatballs (Serving),17.79
 Korean BBQ Chickenless Bites (4 bites),18.07
+1% Unflavored Shelf-Stable Milk (Each),18.759999999999998
 Cheddar Chex Mix (Package),19.720000000000002
-"Turkey,  Breast, Pre-Sliced, Oven Roasted (6 Slices)",20.0
 "Tacos, Taco Meat, Flour Tortilla (2 Tacos)",20.0
+"Turkey,  Breast, Pre-Sliced, Oven Roasted (6 Slices)",20.0
 Egg and American Cheese on Bagel (Sandwich),20.0
 "Frozen Berry, Triple Berry Blend (1/4 cup (thawed))",20.1
-Chicken Tenders Sub (Sandwich),20.37
 Cool Ranch Reduced Fat Doritos (Each),20.4
-1% Unflavored Shelf-Stable Milk (Each),21.43
 Tex Mex Corn (1/4 cup),22.5
 "Salsa, Mild Canned (1/4 cup)",22.5
+Chicken Alfredo Pasta (heaping 1 cup ( #4 scoop)),24.0
 Carrot and Celery Sticks (1/2 cup),24.310000000000002
-Apple Slices (6 Slices per 1/2 cup),25.03
+Apple Slices (6 Slices per 1/2 cup),24.57
 Fish Filet Potato Encrusted (each),25.09
-Chicken Alfredo Pasta (heaping 1 cup ( #4 scoop)),25.9
 "Pasta, Baked Penne (1 cup)",26.48
 "Beef, Taco Meat, Pre-Cooked (1/2 cup (#8 scoop))",26.5
 Lay's RF Kettle Original Chips (Each),27.54
@@ -196,27 +196,28 @@ Kettle Cooked Smoky BBQ Chips (Each),48.5
 "Bread, Hamburger Bun (Bun)",50.0
 Mayonnaise Packet (Packet),51.83
 Korean Chicken Drumstick (Drumstick),51.97
+Potato Wedges (7 pieces),54.88
+"Taco, Turkey Barbacoa, Loco Bread (2 Tacos)",55.43
 "Quesadilla, Chicken & Cheese (Shred Chicken) 6 in Tortilla (Quesadilla)",55.58
+"Chicken, Bites (4 Bites)",55.63
 Applesauce (1/2 Cup),55.81
 "Peppers, Green, Whole (1/2 cup)",56.19
 "Frozen Berry, Triple Berry Blend (1/2 cup (thawed))",56.84
-"Chicken, Bites (4 Bites)",56.93
-Potato Wedges (7 pieces),57.32
 "Chicken, Drumstick, Roasted (Each Drumstick)",57.5
+IW Applesauce Cup (Each),58.07
 Nachos w/Shredded Chicken and Cheese Sauce (Serving Size),58.52
 Mandarin Orange Parfait (Parfait),62.42
 "Pasta, Lasagna Roll-Up, Cheese (Each)",62.54
 Tomato Soup (8 oz Ladle),65.0
 "Apple Slices (3 slices, 1/4 cup)",65.16
+"Cheese, Shredded, Mozzarella (1/4 cup)",65.82
 "Frozen, Blueberries (1/2 cup)",66.03999999999999
-IW Applesauce Cup (Each),66.07
-"Cheese, Shredded, Mozzarella (1/4 cup)",67.38
 Nachos with Taco Meat and Cheese Sauce (Serving Size),68.16
 "Cheese Sauce, Frozen, Nacho (1/2 cup)",68.59
-Blueberry Bread (1 square),69.82000000000001
+"Patty, Chicken, Breaded, WG (2 strips)",68.8
+Blueberry Bread (1 square),68.91
 Blueberry Parfait (Parfait),70.0
 "Patty, Chicken, Spicy, Breaded (2 strips)",72.31
-"Patty, Chicken, Breaded, WG (2 strips)",72.34
 Strawberry Flavored Dried Cranberries (Each),73.28
 Fat Free Unflavored Shelf-Stable Milk (Each),73.51
 Mustard Packet (Packet),75.11
@@ -224,174 +225,173 @@ Chicken and Cheese Quesadilla (Quesadilla),75.88
 Marinara Sauce (1/4 Cup),78.72
 WG Baked Funyuns (Each),80.02000000000001
 RF Kettle Chips Sea Salt & Vinegar Chips (Each),81.65
+Roasted Plantains (3 Slices),81.66
 "Carrots, Shredded (Cup)",82.72999999999999
-Roasted Plantains (3 Slices),83.14
 BBQ Sandwich (Sandwich),87.88
 Doritos Flamas (Each),88.32
 "Peppers, Red, Whole (1/4 cup)",92.54
-"Taco, Turkey Barbacoa, Loco Bread (2 Tacos)",94.43
 "Quesadilla, Cheese w/ 6 Inch Tortillas (Quesadilla)",94.45
 "Fruit Snacks, Welch's Mixed (Each)",96.73
+"Parfait, Triple Berry (Parfait)",97.85
 SS Baked Cheetos Flaming Hot (Each),99.0
+Golden Delicious Apple (Each),99.21
 Turkey Breast Steak (2 Slices),100.0
 "Milk, Soy, Plain, Bulk (12/32 oz) (1 cup)",100.0
-"Parfait, Triple Berry (Parfait)",101.42
 Cucumber Slices (3/4 cup),103.26
 Watermelon Flavored Dried Cranberries (Each),103.67
 "Apple, Slices, IW - ER Supper Only (Each)",104.17
-Golden Delicious Apple (Each),105.61
-Chilled Peaches (1/4 cup (drained)),109.75
+Gala Apple (Each),104.46
+Chilled Peaches (1/4 cup (drained)),105.58
 "Lactose Free, White Milk (Each)",111.08
 Potato Encrusted Breaded Pollock (Fillet),112.05
-Gala Apple (Each),112.78999999999999
 Turkey & Cheese on Sub Roll (sandwich),115.74000000000001
 BBQ Vegan Burger (Sandwich),117.9
+"Peppers, Green, Whole (1/4 cup)",119.83
+Whole Wheat Dinner Roll (Each),121.06
 SS Baked Cheetos Flaming Limon (Each),121.50000000000001
-"Peppers, Green, Whole (1/4 cup)",122.69
+"Chicken, Wings, Pre-Cooked (3 Wings)",122.65
 "Sauce, BBQ, HFCS-Free, Bulk, Low-Sodium (2 TBSP)",124.31
 "Bread, Loco (flatbread)",125.23
 Celery Sticks (1/4 cup),126.32000000000001
 Assorted  4 oz Yogurt (Container),126.59
 Chicken Eggroll (2 Egg Rolls),128.17
-Whole Wheat Dinner Roll (Each),129.37
+Orange Slices (6 Slices per 1/2 cup),130.64
 Chilled Peaches (1/2 cup (drained)),132.53
 Graham Crackers (Package),133.28
 Strawberry Chex Mix (Package),134.46
 Black Beans (1/2 cup),135.23
 Steamed Baby Carrots (1/2 cup),138.55
-Orange Slices (6 Slices per 1/2 cup),139.22
-Hamburger (Sandwich),144.89000000000001
+Hamburger (Sandwich),144.27
 Cherry Flavored Dried Cranberries (Each),147.74
 Strawberry Parfait (Parfait),148.99
-"Chicken, Wings, Pre-Cooked (3 Wings)",153.79
+"Sandwich, Turkey & Cheese (sandwich)",154.25
 "Onions, Red, Whole (1/4 cup (sliced))",161.07999999999998
+Red Delicious Apple (Each - serving),163.94
 "Pizza, Turkey Pepperoni, Slice (Slice)",164.15
-Red Delicious Apple (Each - serving),166.16
 Broccoli Alfredo Pasta (1 cup),167.33
-"Sandwich, Turkey & Cheese (sandwich)",173.09
 "Peppers, red, pre-sliced (1/4 cup sliced)",174.07999999999998
 "Green Beans, Frozen (1/2 cup)",184.54
+"Peppers, green, pre-sliced (1/4 cup sliced)",196.04
 Spicy Breaded Chicken Patty on Bun (Sandwich),196.91
-"Peppers, green, pre-sliced (1/4 cup sliced)",198.9
 BBQ Chicken Drumstick (Drumstick),207.79
 Manager's Vegetable Choice (1/2 cup),213.69
 Grape Tomatoes (1/4 cup),213.9
 Smartfood RF White Cheddar Popcorn (Each),214.85999999999999
 Whole Strawberries (1/2 cup thawed),221.73
+Chilled Mandarin Oranges (1/4 cup (drained)),226.26
 Apple Juice (Each),226.42000000000002
+Strawberry & Banana Yogurt Power Pack (Power Packs),227.11
+Roasted Plantains (6 Slices),227.75
 "Peppers, Red, Whole (2 Tablespoons)",228.85
-Roasted Plantains (6 Slices),229.9
-Chilled Mandarin Oranges (1/4 cup (drained)),230.43
+Arepa w/Taco Beef (1 Aprea + #8 scoop of beef),233.45
+"Bread, Loco (1/2 piece)",237.83
 Turkey Pepperoni Pizza (1.37 oz),239.69
 Sweet Thai Chili Chicken Wings (3 Wings),243.25
 Tomato & Basil Lasagna (Each),244.58999999999997
-Strawberry & Banana Yogurt Power Pack (Power Packs),245.4
 Cucumbers (1/2 cup sliced),253.9
+Red Seedless Grapes (8 grapes per 1/4 cup),261.52
 Cherry Vanilla Yogurt Power Pack (Power Packs),264.48
-Arepa w/Taco Beef (1 Aprea + #8 scoop of beef),270.95
-"Bread, Loco (1/2 piece)",271.97
-Red Seedless Grapes (8 grapes per 1/4 cup),276.03
 Lettuce Blend Salad Mix (1 cup),276.43
-Orange Chicken (4 Bites w/ 1oz sauce),287.01
-Chicken Quesadilla (quesadilla),288.26
+Orange Chicken (4 Bites w/ 1oz sauce),283.02
+Chicken Quesadilla (quesadilla),286.98
 Pasta with Meat Sauce (serving),288.57
 Chicken Philly Sandwich (each),301.49
+Fat Free Chocolate Milk (Each),308.26
+Baby Carrots (6 Baby Carrots per 1/2 cup),312.41
 RF Kettle Chips Jalapeno & Cheddar Chips (Each),312.79
-Baby Carrots (6 Baby Carrots per 1/2 cup),321.24
 "Milk, Lactose Free,  Fat Free, Shelf-Stable (Each)",322.19
-Fat Free Chocolate Milk (Each),325.35
 Cheez-Its Crackers (Package),331.36
-Corn (1/2 cup (cooked)),337.53000000000003
+Corn (1/2 cup (cooked)),333.36
 Orange Tangerine Juice (Each),349.24
 Creamy Cabbage Slaw (1/4 cup),349.65
+Red Seedless Grapes (16 grapes per 1/2 cup),356.09
 Fish  Sandwich (Sandwich),356.56
 Black Beans (2 Tablespoons),357.53
-Cheeseburger (Sandwich),364.04
-Chicken Tikka Masala (1/2 cup),368.74
-Red Seedless Grapes (16 grapes per 1/2 cup),370.68
+Cheeseburger (Sandwich),361.88
+Chicken Tikka Masala (1/2 cup),363.15
 Chilled Mandarin Oranges (1/2 cup (drained)),380.11
+Whole Wheat Dinner Roll (2 rolls),381.26
 "WG 10"" Flour Tortilla (Tortilla)",382.18
-PB&J Power Pack (Power Packs),390.45
-Whole Wheat Dinner Roll (2 rolls),411.85
-Marinara Sauce (1/2 cup),423.17
-"Penne Pasta with Marinara and Beef Meatballs (cup cooked pasta, 1/2c sauce, 5 meatballs)",427.81
-Corn (1/4 cup (thawed)),432.87
-Doritos Wild White Nacho Flavored Tortilla Chips (Bag),450.12
-Tex Mex Corn (1/2 cup),470.68
+PB&J Power Pack (Power Packs),382.64
+Marinara Sauce (1/2 cup),413.9
+Corn (1/4 cup (thawed)),417.8
+"Penne Pasta with Marinara and Beef Meatballs (cup cooked pasta, 1/2c sauce, 5 meatballs)",421.07
+Doritos Wild White Nacho Flavored Tortilla Chips (Bag),440.12
+Apple Slices (3 slices per 1/4 cup),454.71
+Tex Mex Corn (1/2 cup),463.63
 Broccoli Florets (6 Pieces per 1/2 cup),475.99
-Peach Yogurt Power Pack (Power Packs),487.84000000000003
-Hot Turkey & Cheese (sandwich),491.57
+Orange Chickenless Bites (4 bites),477.2
+Hot Turkey & Cheese (sandwich),482.2
+Peach Yogurt Power Pack (Power Packs),484.14
+Nachos with Cheese Sauce (Serving),490.29
+Chicken Masala Drumstick (Drumstick),492.26
 Sweet Thai Chili Sauce (ounce),493.05
-Apple Slices (3 slices per 1/4 cup),497.53
-Nachos with Cheese Sauce (Serving),497.98
-Orange Chickenless Bites (4 bites),499.21
-Chicken Masala Drumstick (Drumstick),505.04
+Steamed Broccoli (1/2 cup),517.52
 Chickpeas (2 Tablespoons),518.47
 Chocolate Chip Cookie (Cookie),520.96
-Steamed Broccoli (1/2 cup),530.89
-Strawberry Parfait Power Pack (Power Pack),548.2
+Strawberry Parfait Power Pack (Power Pack),539.87
+Orange Slices (3 slices per 1/4 cup),541.07
+Banana (Each),547.19
 Orange (1/4 cup),558.13
 Cucumber Slices (6 Slices per 1/2 cup),558.31
-Chocolate Chip Cookie (1/2 Cookie),579.06
-Orange Slices (3 slices per 1/4 cup),591.02
-Bottled Water (Bottle),592.86
-Sub Roll (Sub Roll),598.82
-Banana (Each),607.08
-Cooked  Brown Rice (1/2 cup cooked),608.51
-Chicken Tenders (3 tenders),635.88
+Bottled Water (Bottle),572.86
+Chocolate Chip Cookie (1/2 Cookie),577.46
+Cooked  Brown Rice (1/2 cup cooked),587.67
+Chicken Tenders (3 tenders),596.98
+Sub Roll (Sub Roll),597.86
 Cucumber Slices (2 Tablespoon),685.23
-Bean and Cheese Pupusa (Pupusa),690.12
+Bean and Cheese Pupusa (Pupusa),686.33
+"Quesadilla, Turkey Barbacoa and Cheese (Quesadilla)",702.07
 BBQ Chicken Sandwich (Sandwich),734.05
-"Quesadilla, Turkey Barbacoa and Cheese (Quesadilla)",743.86
+Cheese Quesadilla (Quesadilla),783.82
+Baked Cheese Sticks (2 Cheese Sticks),785.26
 "Peppers, Green, Whole (2 Tablespoon)",796.82
+Celery Sticks (1/2 cup),797.13
 "Onions, Red, Whole (2 Tablespoons (sliced))",806.27
-Celery Sticks (1/2 cup),809.63
-Cheese Quesadilla (Quesadilla),814.76
+Nachos with Turkey Barbacoa and Cheese Sauce (Serving),818.13
 Potstickers (6 Potstickers),819.87
-Nachos with Turkey Barbacoa and Cheese Sauce (Serving),828.64
-Baked Cheese Sticks (2 Cheese Sticks),846.06
 "Sauce, Spicy Mayo (tbsp)",864.86
-"Cheese, Shredded, Cheddar (1/4 cup)",883.26
-Cherry Tomatoes (1/4 cup),911.1
+Cherry Tomatoes (1/4 cup),879.53
+"Cheese, Shredded, Cheddar (1/4 cup)",881.7
+Baby Carrots (3 baby carrots per 1/4 cup),917.96
 "Peppers, green, pre-sliced (1/2 cup sliced)",921.03
-Baby Carrots (3 baby carrots per 1/4 cup),924.63
 Corn (2 Tablespoons (thawed)),928.0
+Beef Meatball Sub Sandwich (Sandwich),966.26
 Chickpeas (1/2 cup),969.27
-Beef Meatball Sub Sandwich (Sandwich),973.21
 Sour Cream (2 Tablespoons),1015.6
-"Peppers, red, pre-sliced (1/2 cup sliced)",1027.03
-Fish Tacos (2 Tacos),1047.3600000000001
-Chickenless Bites (4 Bites),1083.28
-Turkey Barbacoa Arepa (1 Arepa + #10 scoop of turkey barbacoa),1129.12
-Mandarin Orange Pepper Fruit Salsa (1 TBSP),1136.18
-Asian Veggie Sub (sandwich),1165.64
-"Salsa, Mild Canned (1.5 oz)",1301.37
+"Peppers, red, pre-sliced (1/2 cup sliced)",1019.89
+Fish Tacos (2 Tacos),1027.32
+Chickenless Bites (4 Bites),1038.36
+Mandarin Orange Pepper Fruit Salsa (1 TBSP),1089.51
+Turkey Barbacoa Arepa (1 Arepa + #10 scoop of turkey barbacoa),1128.1299999999999
+Asian Veggie Sub (sandwich),1153.11
+"Salsa, Mild Canned (1.5 oz)",1273.01
 "Turkey,  Breast, Pre-Sliced, Oven Roasted (3 Slices)",1304.77
-Broccoli Florets (1/4 cup),1396.3799999999999
-Grilled Cheese Sandwich (Sandwich),1548.57
-Turkey Pepperoni Pizza (Slice),1655.53
-Chicken & Vegetable Dumplings (6 dumplings),1659.55
-Chickenless Bites (2 Bites),1753.97
-Cheese Pizza (Slice),1882.96
-Cooked  Brown Rice (1 cup cooked),1888.43
-1% White Milk (Each),1954.62
-Spicy Chicken Wrap (Wrap),2103.7
-Manager's Vegetable Choice (1/4 cup),2334.5
-Cucumber Slices (1/4 cup),2404.92
-Ranch Dressing (1 ounce),2469.25
-Orange Sauce (ounce),2584.75
-Asian Meatball Sub (sandwich),2605.35
-Nachos with Black Beans and Cheese Sauce (Serving),2627.55
-Black Beans (1/4 Cup),2825.83
-Vegetable Dumpling (6 dumplings),2851.58
-Fat Free White Milk (Each),2911.54
-Black Beans (1/2 Cup),3158.28
-Vegan Burger (Sandwich),3629.75
-Alfredo & Basil Lasagna (Each),3701.81
-Chana Masala (1/2 cup),4355.3
+Broccoli Florets (1/4 cup),1374.8899999999999
+Grilled Cheese Sandwich (Sandwich),1534.73
+Turkey Pepperoni Pizza (Slice),1604.08
+Chicken & Vegetable Dumplings (6 dumplings),1619.55
+Chickenless Bites (2 Bites),1715.17
+Cheese Pizza (Slice),1815.97
+Cooked  Brown Rice (1 cup cooked),1850.48
+1% White Milk (Each),1943.11
+Spicy Chicken Wrap (Wrap),2092.59
+Manager's Vegetable Choice (1/4 cup),2243.05
+Cucumber Slices (1/4 cup),2389.69
+Ranch Dressing (1 ounce),2461.01
+Orange Sauce (ounce),2531.33
+Nachos with Black Beans and Cheese Sauce (Serving),2587.55
+Asian Meatball Sub (sandwich),2592.0099999999998
+Black Beans (1/4 Cup),2783.32
+Vegetable Dumpling (6 dumplings),2843.26
+Fat Free White Milk (Each),2909.54
+Black Beans (1/2 Cup),3139.15
+Vegan Burger (Sandwich),3529.08
+Alfredo & Basil Lasagna (Each),3635.8
+Chana Masala (1/2 cup),4247.12
 Italian Dressing (1 ounce),4411.2300000000005
-Lettuce Blend Salad Mix (1/2 cup),6554.04
+Lettuce Blend Salad Mix (1/2 cup),6414.94
 Black Beans - salad bar entree (1/2 cup),6608.54
-Chickpeas (1/4 cup),9674.16
-Soft Pretzel (1 pretzel),9832.97
+Chickpeas (1/4 cup),9551.36
+Soft Pretzel (1 pretzel),9777.27
 Chickpeas - salad bar entree (1/2 cup),11573.55
