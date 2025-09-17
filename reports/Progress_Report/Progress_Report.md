@@ -37,9 +37,10 @@ Note: Use Markdown Cheat Sheet download in the directory as needed.
 
 - Action Items:
 
-* [ ] Crystal: run the preprocessing code for pdf and html conversion
-* [ ] Alonso: look into GLM for creating a budget
+* [ ] All: run the preprocessing code for pdf and html conversion
+* [ ] Crystal: look into GLM for creating a budget
 * [ ] Jupiter: decide on timeseries models to run on the data
+* [ ] Alonso: start EDA on popularity of foods
 ---
 ## Date: Week 4 - Month Day Year 
 - Topics of discussion
