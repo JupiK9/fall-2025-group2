@@ -42,19 +42,19 @@ Note: Use Markdown Cheat Sheet download in the directory as needed.
 * [ ] Jupiter: decide on timeseries models to run on the data
 * [ ] Alonso: start EDA on popularity of foods
 ---
-## Date: Week 4 - Month Day Year 
+## Date: Week 4 - September 17, 2025
 - Topics of discussion
-    - Item1
-    - Item2
-    - Item3
+    - Optimization analysis
+    - Timeseries analysis refinement
+    - project management formatting
+    - understanding of data columns
 
 - Action Items:
 
-* [ ] Action Item 1
-* [ ] Action Item 2
-* [ ] Action Item 3
-* [ ] Action Item 4
-* [ ] Action Item 5
+* [ ] Jupiter: continue refining timeseries analysis
+* [ ] Alonso: look at additional views of popularity data and how it connects to optimization
+* [ ] Crystal: research optimization method to create better use of the budget
+* [ ] Email professor for optimization code
 ---
 ## Date: Week 5 - Month Day Year 
 - Topics of discussion
