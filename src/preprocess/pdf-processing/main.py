@@ -7,7 +7,7 @@ from tqdm import tqdm
 from PyPDF2 import PdfReader
 import pdfplumber
 
-os.chdir('../../data')
+os.chdir('../src/data')
 
 pdf_folder = "FairfaxCounty/Item Sales Reports - Mar May 2025/Item Sales Reports - Mar May 2025"
 

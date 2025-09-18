@@ -47,8 +47,8 @@ def combine_csvs_from_folder(input_dir, output_file, sort_columns=None):
 # ============
 # Breakfast
 # ============
-input_dir = '../../preprocess/html-processing/preprocessed-data/Breakfast production'
-output_file = '../../preprocess/html-processing/preprocessed-data/Breakfast production/breakfast_combined.csv'
+input_dir = '../src/data/preprocessed-data/Breakfast production'
+output_file = '../src/data/preprocessed-data/breakfast_combined.csv'
 sort_columns = ['School_Name', 'Date', 'Identifier']
 
 combine_csvs_from_folder(input_dir, output_file, sort_columns)
@@ -57,8 +57,8 @@ combine_csvs_from_folder(input_dir, output_file, sort_columns)
 # ============
 # Lunch
 # ============
-input_dir = '../../preprocess/html-processing/preprocessed-data/Lunch production'
-output_file = '../../preprocess/html-processing/preprocessed-data/Lunch production/lunch_combined.csv'
+input_dir = '../src/data/preprocessed-data/Lunch production'
+output_file = '../src/data/preprocessed-data/lunch_combined.csv'
 sort_columns = ['School_Name', 'Date', 'Identifier']
 
 combine_csvs_from_folder(input_dir, output_file, sort_columns)
