@@ -18,8 +18,8 @@ st.title("📊 Sales EDA")
 st.markdown("Exploratory Data Analysis of FCPS meal sales data.")
 
 # Build the absolute path based on script location
-current_dir = Path(__file__).parent
-sales_path = current_dir.parent.parent / "data" / "preprocessed-data" / "sales.csv"
+current_dir = Path.cwd().parent.parent
+sales_path = current_dir / "src" / "data" / "preprocessed-data" / "sales.csv"
 
 # Load the data
 df = pd.read_csv(sales_path)

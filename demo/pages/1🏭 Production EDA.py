@@ -35,7 +35,7 @@ meal_type = st.sidebar.radio(
 @st.cache_data
 def load_data(meal_program):
     # Get the absolute path to the current script
-    current_dir = Path(__file__).parent
+    current_dir = Path.cwd().parent.parent
 
     # Determine file path based on meal type
     file_names = {
@@ -44,7 +44,7 @@ def load_data(meal_program):
     }
 
     # Construct the full path
-    file_path = current_dir.parent.parent / "data" / "preprocessed-data" / file_names[meal_program]
+    file_path = current_dir / "src" / "data" / "preprocessed-data" / file_names[meal_program]
 
     try:
         df = pd.read_csv(file_path, low_memory=False)

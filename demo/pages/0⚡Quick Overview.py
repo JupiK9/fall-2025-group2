@@ -4,7 +4,7 @@ from pathlib import Path
 
 def img(filename):
     # Go up 1 level: pages -> demo, then into images/
-    return str(Path(__file__).parent.parent / "images" / filename)
+    return str(Path.cwd().parent / "images" / filename)
 
 
 # Set page config
