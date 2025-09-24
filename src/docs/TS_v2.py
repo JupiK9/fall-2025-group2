@@ -53,12 +53,12 @@ plt.tight_layout()
 plt.show()
 
 
-# # ACF/PACF
-# fig, axes = plt.subplots(2, 1, figsize=(16, 5))
-# plot_acf(df[target_variable], lags=20, ax=axes[0], title=f'ACF of {target_variable}')
-# plot_pacf(df[target_variable], lags=20, ax=axes[1], title=f'PACF of {target_variable}')
-# plt.tight_layout()
-# plt.show()
+# ACF/PACF
+fig, axes = plt.subplots(2, 1, figsize=(16, 5))
+plot_acf(df[target_variable], lags=20, ax=axes[0], title=f'ACF of {target_variable}')
+plot_pacf(df[target_variable], lags=20, ax=axes[1], title=f'PACF of {target_variable}')
+plt.tight_layout()
+plt.show()
 
 
 # Encoding

@@ -23,8 +23,7 @@ print("\n--- Missing Values Check ---")
 print(df.isnull().sum())
 
 # --- Resample the data to daily sums ---
-# Group by date and sum the relevant columns
-# 'total' for sales, and meal counts for free, paid, discount
+
 daily_df = df.resample('D').agg({
     'total': 'sum',
     'free_meals': 'sum',
@@ -59,13 +58,4 @@ plt.tight_layout()
 plt.show()
 #
 
-# 2. Distribution of Daily Total Sales
-plt.figure(figsize=(10, 6))
-sns.histplot(daily_df[target_variable], kde=True, bins=30)
-plt.title("Distribution of Daily Total Food Sales")
-plt.xlabel("Total Food Sales")
-plt.ylabel("Frequency")
-plt.grid(True)
-plt.tight_layout()
-plt.show()
-#
+
