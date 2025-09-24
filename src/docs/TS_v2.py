@@ -61,7 +61,7 @@ plt.tight_layout()
 plt.show()
 
 
-# Encoding
+# Encoding for potential independent variable
 non_categorical_variables= ['school_code', 'item','free_meals', 'reduced_price_meals','full_price_meals','alac_student']
 categorical_variable = ['time_of_day']
 #note that 'time_of_day' needs to be encoded
