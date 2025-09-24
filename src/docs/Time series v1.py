@@ -16,14 +16,34 @@ plt.style.use('seaborn-v0_8-darkgrid')
 
 
 #%%
-#load the dataset
-df = pd.read_csv('raw_data/sales.csv')
-df.head()
-df.info()
 
-# Convert 'Date' to datetime objects
-df['date'] = pd.to_datetime(df['date'])
-df = df.groupby('date')['total'].sum().reset_index()
+# Load the original data
+df_original = pd.read_csv('raw_data/sales.csv')
+print("--- Original DataFrame Info ---")
+df_original.info()
+print("\n--- Original DataFrame Head ---")
+print(df_original.head())
+
+
+# --- Step 1: Preprocessing for time_of_day and initial date conversion ---
+# Convert 'Date' to datetime objects in the original DataFrame
+df_original['date'] = pd.to_datetime(df_original['date'])
+
+# Encode 'time_of_day' BEFORE aggregation, if you need it for later analysis
+# Make sure 'time_of_day' column actually exists in your CSV with these values
+if 'time_of_day' in df_original.columns:
+    df_original['tod'] = df_original['time_of_day'].map({'Breakfast': 0, 'Lunch': 1}).fillna(-1) # Added fillna for potentially missing values
+    print("\n'tod' column after mapping in original df:")
+    print(df_original['tod'].value_counts())
+    print("New dtype:", df_original['tod'].dtype)
+else:
+    print("\nWARNING: 'time_of_day' column not found in the original CSV. Cannot encode 'tod'.")
+    # You might want to handle this case, e.g., create a dummy 'tod' or skip encoding
+
+# --- Step 2: Create the aggregated DataFrame for time series plotting ---
+# Group by 'date' and sum 'total' to get daily totals
+# This will be your 'df' for time series analysis
+df = df_original.groupby('date')['total'].sum().reset_index()
 
 # Set 'Date' as the index
 df.set_index('date', inplace=True)
@@ -31,9 +51,16 @@ df.set_index('date', inplace=True)
 # Sort the index to ensure chronological order
 df.sort_index(inplace=True)
 
-# Check for missing values
-print("\n--- Missing Values Check ---")
+print("\n--- Aggregated DataFrame Info (for time series) ---")
+df.info()
+print("\n--- Aggregated DataFrame Head (for time series) ---")
+print(df.head())
+
+
+# Check for missing values in the aggregated DataFrame
+print("\n--- Missing Values Check (Aggregated DF) ---")
 print(df.isnull().sum())
+
 ###################################
 weekend_dates_in_df = df[df.index.dayofweek >= 5]
 if not weekend_dates_in_df.empty:
@@ -46,11 +73,11 @@ else:
 start_date_plot = df.index.min()
 end_date_plot = df.index.max()
 
-print(f"\nPlotting data from {start_date_plot.date()} to {end_date_plot.date()}")
 
+print(f"\nPlotting data from {start_date_plot.date()} to {end_date_plot.date()}")
 plt.figure(figsize=(14, 5))
-sns.lineplot(data=df, x=df.index, y='total') # Plotting the 'df' directly
-plt.title("Time Series Plot of Total Food Sales (Existing Weekday Data)")
+sns.lineplot(data=df, x=df.index, y='total')
+plt.title("Time Series Plot of Total Food Sales (Daily Aggregated Data)")
 plt.xlabel("Date")
 plt.ylabel("Total Food Sales")
 plt.grid(True)
@@ -60,47 +87,72 @@ plt.show()
 ##############################################################################################
 
 
-# #%%
-# # define target variable and independent var
-# target_var = 'total'
+#%%
+# define target variable and independent var
+target_var = 'total'
+
+# This line was incorrect as df after aggregation only has 'total'
 # numerical_features_names = df.iloc[:,6:].columns.tolist()
-#
-#
-# # Identify categorical features and encoding
-# df['tod'] = df['time_of_day'].map({'breakfast': 0, 'lunch': 1})
-#
-# print("\n'tod' column after mapping:")
-# print(df['tod'])
-# print("New dtype:", df['tod'].dtype)
-#
-# print("\nDataFrame with new encoded column:")
-# print(df)
-#
-# categorical_features_names = 'tod'
-# ind_names = numerical_features_names + [categorical_features_names]
-# indepenent_var = df[ind_names]
-# print(indepenent_var)
-#
-#
-#
-# # plot sales over time
-# daily_sales = df[target_var].resample('D').sum()
-#
+# If you need other numerical features, you'll need them from df_original
+# or create them during aggregation. For now, we'll assume target_var is the only one.
+numerical_features_names = [] # No other numerical features in the aggregated df for now
+
+# # plot sales over time (this section is fine with the aggregated df)
+# daily_sales = df[target_var].resample('D').sum() # Resampling 'D' on an already daily df doesn't change much
+#                                                 # but confirms daily frequency
 # plt.figure(figsize=(15, 6))
 # daily_sales.plot(title=f'{target_var} Over Time')
 # plt.ylabel('sales')
 # plt.xlabel('Date')
 # plt.tight_layout()
 # plt.show()
+
+
+#%%
+# Identify categorical features and encoding
+# You now need to use the df_original (or a copy of it) if you want 'tod' in its full glory
+# If you plan to merge 'tod' with the aggregated daily 'total', you need a strategy.
+
+# For now, let's assume you want 'tod' for *individual transactions* or another type of model
+# that uses the original transaction data.
+
+# If you want to use 'tod' in a model alongside the *daily aggregated total*,
+# you would need to aggregate 'tod' in some way (e.g., average 'tod' per day, most frequent 'tod' per day)
+# or keep the original df_original for a different model.
+
+# Let's show how you would proceed if you were using df_original for modeling with 'tod'.
+# For the purpose of *this specific aggregated df*, 'tod' doesn't exist anymore.
+# If you intend to use 'tod' as a feature, you need to revisit your data preparation strategy
+# to either keep it during aggregation (e.g., group by date AND time_of_day)
+# or use the df_original for a different modeling task.
+
+# Example if you wanted to keep 'tod' in the aggregated daily data (more complex, depends on what you want to model):
+# df_with_tod = df_original.groupby(['date', 'tod'])['total'].sum().reset_index()
+# print("\nExample: Aggregated DF with 'tod' as well:")
+# print(df_with_tod.head())
+
+# The following lines will still cause an error with the *current* `df`
+# because `df` only has 'date' and 'total'.
+# To demonstrate, I'll comment out the problematic part and explain.
+
+# categorical_features_names = 'tod'
+# ind_names = numerical_features_names + [categorical_features_names]
+# independent_var = df[ind_names] # This would fail because 'tod' is not in df
+# print(independent_var)
+
+print("\n--- End of Script ---")
+print("Note: The 'tod' encoding was applied to the original DataFrame. "
+      "If you need 'tod' in your aggregated daily DataFrame, "
+      "you need to decide how to aggregate categorical features (e.g., one-hot encode before sum, or take mode).")
+
 #
-#
-# # # Plot ACF and PACF for the target variable
-# # fig, axes = plt.subplots(2, 1, figsize=(16, 5))
-# # plot_acf(df[target_var], lags=50, ax=axes[0], title=f'ACF of {target_var}')
-# # plot_pacf(df[target_var], lags=50, ax=axes[1], title=f'PACF of {target_var}')
-# # plt.tight_layout()
-# # plt.show()
-#
+# Plot ACF and PACF for the target variable
+fig, axes = plt.subplots(2, 1, figsize=(16, 5))
+plot_acf(df[target_var], lags=20, ax=axes[0], title=f'ACF of {target_var}')
+plot_pacf(df[target_var], lags=20, ax=axes[1], title=f'PACF of {target_var}')
+plt.tight_layout()
+plt.show()
+
 #
 #
 # #%% check for stationary
