@@ -56,19 +56,23 @@ Note: Use Markdown Cheat Sheet download in the directory as needed.
 * [ ] Crystal: research optimization method to create better use of the budget
 * [ ] Email professor for optimization code
 ---
-## Date: Week 5 - Month Day Year 
+## Date: Week 5 - September 24, 2025
 - Topics of discussion
-    - Item1
-    - Item2
-    - Item3
+    - Sent questions for FCPS on data to Tyler
+    - Change timeseries analysis to regression analysis due to no obvious temporal data
+    - Review optimization model and add in additional constraints
 
 - Action Items:
 
-* [ ] Action Item 1
-* [ ] Action Item 2
-* [ ] Action Item 3
-* [ ] Action Item 4
-* [ ] Action Item 5
+* [ ] Jupiter: start looking at regression models instead of timeseries
+* [ ] Alonso: review optimization model and add in additional constraints
+* [ ] Crystal: divide and download school population data
+* [ ] Jupiter: test out LSTM for timeseries
+* [ ] Prove optimization works by comparing to the regression model
+* [ ] use optimization on other factors
+* [ ] Alonso: create readme file to explain optimization model
+* [ ] Project Management: move all tickets to done and start a new iteration
+* [ ] 
 ---
 ## Date: Week 6 - Month Day Year 
 - Topics of discussion
