@@ -74,19 +74,23 @@ Note: Use Markdown Cheat Sheet download in the directory as needed.
 * [ ] Project Management: move all tickets to done and start a new iteration
 * [ ] 
 ---
-## Date: Week 6 - Month Day Year 
+## Date: Week 6 - October 1, 2025
 - Topics of discussion
-    - Item1
-    - Item2
-    - Item3
+    - continuing to fill out nutrition file
+    - discussion on how to compare regression to optimization model
+    - test other regression/timeseries models
+    - start preparing for presentation
 
 - Action Items:
 
-* [ ] Action Item 1
-* [ ] Action Item 2
-* [ ] Action Item 3
-* [ ] Action Item 4
-* [ ] Action Item 5
+* [ ] Alonso: Create optimization of budget by school and create graph
+* [ ] Crystal: run optimization on milk
+* [ ] Jupiter: try AR
+* [ ] Jupiter: rerun LSTM with 2 day predictor
+* [ ] Jupiter: run regression on milk
+* [ ] All: finish filling the nutrition file
+* [ ] Alonso: look into starting UI
+* [ ] Crystal: start consolidating documents for final report
 ---
 ## Date: Week 7 - Month Day Year 
 - Topics of discussion
