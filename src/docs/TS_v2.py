@@ -42,15 +42,15 @@ target_variable = 'total'
 start_date_plot = df.index.min()
 end_date_plot = df.index.max()
 
-print(f"\nPlotting data from {start_date_plot.date()} to {end_date_plot.date()}")
-plt.figure(figsize=(14, 5))
-sns.lineplot(data=df, x=df.index, y='total')
-plt.title("Time Series Plot of Total Food Sales")
-plt.xlabel("Date")
-plt.ylabel("Total Food Sales")
-plt.grid(True)
-plt.tight_layout()
-plt.show()
+# print(f"\nPlotting data from {start_date_plot.date()} to {end_date_plot.date()}")
+# plt.figure(figsize=(14, 5))
+# sns.lineplot(data=df, x=df.index, y='total')
+# plt.title("Time Series Plot of Total Food Sales")
+# plt.xlabel("Date")
+# plt.ylabel("Total Food Sales")
+# plt.grid(True)
+# plt.tight_layout()
+# plt.show()
 
 
 # ACF/PACF
@@ -205,6 +205,13 @@ plt.show()
 
 # Perform stationarity tests on the differenced training data
 check_stationarity(train_data_diff, f"Differenced {target_variable}")
+
+fig, axes = plt.subplots(2, 1, figsize=(16, 5))
+plot_acf(train_data_diff, lags=20, ax=axes[0], title=f'ACF of Differenced {target_variable}')
+plot_pacf(train_data_diff, lags=20, ax=axes[1], title=f'PACF of Differenced {target_variable}')
+plt.tight_layout()
+plt.show()
+
 
 
 
