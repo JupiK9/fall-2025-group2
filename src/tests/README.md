@@ -56,3 +56,42 @@ Best for continuous variables like portion sizes and ingredient quantities
 >   - **Very large populated schools (xxxl):** Have a very tight production window (e.g., 99% to 101% of demand)
 >
 > ***Note:*** *School size categorizing is based on the student population size for the academic 2024-2025 school year from the [School Profiles database](https://schoolprofiles.fcps.edu/schlprfl/f?p=108%3A8)*
+>
+> ---
+>
+> #### Method 3. Optimization with Monthly Aggregation
+>
+> **Model Objective:** Produce a monthly aggregate of recommended food item quantities for each school to produce.
+> 
+> **How it Works:** This method incorporates a monthly cycle, in this case 20 days, in which it aggregates together to produce the recommendation of food quantities per school based on demand for the school.
+>
+
+#### 2. Integer Linear Programming (ILP)
+Used when decisions involve whole units, in our case number of meals.
+
+**Usage**
+> **Model Objective:** To minimize the total cost of producing meals across all schools. Unlike the Linear Programming Optimization model, this model ensures that the value ends with a whole number, which is ideal for meal production as we cannot serve a fraction of an item.
+>
+> **How it Works:** The model decides the optimal number of breakfasts and lunches to produce for each of the schools. These decisions are limited by two main constraints:
+>   1. **Budget Constraint:** The total cost of meals produced for each school cannot exceed that school's specific budget, and the grand total cost cannot exceed the overall budget for the entire school system.
+>
+>   2. **Production Bounds:** Set a uniform production window for every school, regardless of its student population size. The model is forced to produce a quantity that is between 90% and 110% of that school's average historical demand for each meal.
+>
+
+#### 3. Multi-Objective Optimization
+Balances multiple competing goals simultaneously.
+
+**Objectives:**
+
+1. **Minimize Cost:** Produce fewer meals in order to save money.
+
+2. **Minimize Waste:** Produce enough meals to meet demand and avoid leftovers.
+
+**Usage**
+> **Model Objective:** To minimize the total cost of producing meals and reducing food waste for each school in Fairfax County in proportion to their school size.
+>
+> **How it Works:** The model recommends the optimal number of food items for breakfast and lunch for each of the schools. The recommendations are based by two constraints:
+>   1. **Budget Constraint:** The total cost of meals produced for each school cannot exceed the school's specific budget, which the model has proportionally allocated funds based on student population size.
+>
+>   2. **Production Bounds:** This model does not use a uniform production bound, but rather the size-based production bounds used in an earlier model, where smaller schools have a wider production window and larger schools have a narrower production window.
+>
