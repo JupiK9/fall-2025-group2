@@ -172,8 +172,6 @@ def run_meal_optimization(schools_to_optimize, meal_types, meal_costs, demand, s
         print(f"An error occurred during optimization: {e}")
         return None
 
-
-# This is your original `run_meal_optimization_ilp` function
 def run_meal_optimization_ilp(schools_to_optimize, meal_types, meal_costs, demand, school_budgets, total_budget, waste_penalty, bounds):
     """
     Runs the linear programming model and prints an output with production bounds
@@ -454,7 +452,7 @@ def run_monthly_meal_optimization(schools_to_optimize, meal_types, meal_costs, d
 # ==============================================================================
 # Monthly Budget Optimization based on School Size
 # ==============================================================================
-def run_proportional_monthly_optimization(data, total_budget=36362814):
+def run_proportional_monthly_optimization(data, total_budget=139144760):
     """
     Runs a monthly optimization where the budget is allocated to each school
     proportionally based on its student population.
