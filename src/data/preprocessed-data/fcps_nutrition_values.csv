@@ -1,0 +1,414 @@
+Food_Name,Calories,Total Fat (g),Saturated Fat (g),Cholesterol (mg),Sodium (mg),Carbohydrate (g),Dietary Fiber (g),Total Sugars (g),Added Sugars (g),Protein (g),Vitamin A (IU),Vitamin C (mg),Vitamin D (D2 + D3) (mcg),Calcium (mg),Iron (mg),Potassium (mg),Category,Sub-Category,Served
+Mini Maple Pancakes (Package),200,6,1,5,210,36,4,12,11,4,1000,0,0,40,4,0,Main Hot Entree #1,Main,Breakfast
+1% White Milk (Each),110,3,2,10,125,13,0,12,0,8,150,0,3,300,0,410,Sides,Milk,Lunch
+Orange (6 Slices per 1/2 cup),82,0,0,0,2,20,6,0,0,2,330,94,0,92,2,258,Sides,Fruit,Lunch
+Fat Free White Milk (Each),90,0,0,5,130,13,0,12,0,9,160,0,3,310,0,410,Sides,Milk,Lunch
+Honey Cheerios Cereal (Each),210,3,1,0,340,44,5,12,12,6,750,9,3,150,5,282,Daily Cereal,Main,Breakfast
+Blueberry Chex Cereal (Each),240,5,1,0,350,46,1,12,12,3,500,6,2,100,16,0,Daily Cereal,Main,Breakfast
+Cinnamon Chex Cereal (Each),230,5,1,0,320,46,3,12,12,3,500,6,2,100,14,0,Daily Cereal,Main,Breakfast
+"Cinnamon Toast Crunch Cereal, 25% Less Sugar (Each)",210,5,1,0,320,44,7,11,11,3,500,6,2,100,5,94,Daily Cereal,Main,Breakfast
+Apple Juice (Each),60,0,0,0,5,14,0,13,0,0,0,0,0,10,0,130,Sides,Fruit Juice,Breakfast
+Orange Tangerine Juice (Each),60,0,0,0,10,15,0,13,0,0,0,0,0,19,0,200,Sides,Fruit Juice,Breakfast
+Chilled Peaches (1/2 cup (drained)),82,0,0,0,6,20,0,16,2,0,0,0,0,18,0,230,Sides,Fruit,Lunch
+Assorted Cereal (Cereal Cup),223,5,1,0,333,45,4,12,12,4,562,7,2,112,10,94,PreSchool,Grain,Breakfast
+Strawberry Parfait (Parfait),334,2,1,5,120,78,6,0,0,8,1175,30,0,260,2,0,Daily Yogurt Entree,Main,Breakfast
+Egg and American Cheese on Biscuit (Sandwich),330,16,8,160,960,33,1,2,0,11,300,60,0,80,1,0,Main Hot Entree #1,Main,Breakfast
+Blueberry Bread (1oz Grain (1/64 Baked Pan)),270,9,0,0,190,43,2,0,0,6,0,0,0,0,0,0,PreSchool,Main,Breakfast
+Blueberry Muffin Top (Muffin Top),200,10,4,30,140,26,1,13,0,3,0,0,0,0,1,0,Main Hot Entree #1,Main,Breakfast
+String Cheese (1 Stick),80,6,4,20,200,2,0,1,0,6,0,0,0,198,0,55,Main Hot Entree #1,Protein,Breakfast
+Banana (Each),112,0,0,0,1,29,3,15,0,1,81,11,0,6,0,451,Sides,Fruit,Breakfast
+Mandarin Orange Parfait (Parfait),250,2,0,3,63,55,3,36,15,7,1696,68,3,308,1,478,Daily Yogurt Entree,Main,Breakfast
+Chilled Pineapple (1/2 cup),108,0,0,0,2,28,2,26,0,1,90,17,0,29,1,223,Sides,Fruit,Breakfast
+Red Delicious Apple (Each - serving),64,0,0,0,1,17,3,0,0,0,66,6,0,7,0,0,Sides,Fruit,Breakfast
+Orange Slices (3 slices per 1/4 cup),42,0,0,0,1,10,3,0,0,1,165,47,0,46,1,129,Sides,Fruit,Breakfast
+Applesauce (1/2 Cup),50,0,0,0,0,14,2,12,0,0,0,10,0,0,0,0,Sides,Fruit,Lunch
+Natural Grape Jam (Packet),35,0,0,0,0,9,0,9,8,0,0,0,0,0,0,0,Main Hot Entree #1,Condiment,Breakfast
+Turkey Sausage Breakfast Biscuit (Sandwich),297,16,7,37,488,28,2,3,2,12,7,0,0,120,2,360,Main Hot Entree #1,Main,Breakfast
+Biscuit (Biscuit),210,9,5,0,290,28,2,3,2,5,0,0,0,120,2,360,Main Hot Entree #1,Main,Breakfast
+"Batter, Pumpkin Bread (1oz Grain (1/64 Baked Pan))",194,7,1,17,105,31,2,16,15,3,0,0,0,52,1,89,Plant-Forward Hot Entree,Grain,Breakfast
+Pumpkin Bread (1 square),194,7,1,17,105,31,2,16,15,3,0,0,0,52,1,89,Plant-Forward Hot Entree,Grain,Breakfast
+Chicken & Biscuit Sandwich (Sandwich),285,12,5,20,420,34,3,3,2,11,18,0,0,123,2,360,Main Hot Entree #1,Main,Breakfast
+Blueberry Bread (1 square),218,9,1,20,113,34,2,17,0,3,0,0,0,59,1,74,Main Hot Entree #1,Grain,Lunch
+Bagel (Bagel),170,1,0,0,300,35,1,3,0,6,0,0,0,30,2,10,Main Hot Entree #1,Main,Breakfast
+Cream Cheese (Each),70,6,4,20,100,2,0,2,1,1,0,0,0,32,0,0,Main Hot Entree #1,Condiment,Breakfast
+Orange Slices (6 Slices per 1/2 cup),83,0,0,0,3,20,6,0,0,2,328,93,0,92,1,257,Sides,Fruit,Breakfast
+Vegan Burger (Sandwich),270,7,0,0,668,35,10,4,3,20,0,0,7,180,3,598,Main Hot Entree #1,Main,Lunch
+Cheeseburger (Sandwich),335,15,6,52,620,30,4,4,3,21,0,0,7,197,2,170,Main Hot Entree #1,Main,Lunch
+Egg and American Cheese on Bagel (Sandwich),226,7,2,9,521,28,3,3,2,10,0,0,1,181,1,162,Main Hot Entree #1,Main,Breakfast
+Apple Cinnamon Bread (1oz Grain (1/64 Baked Pan)),206,8,1,19,110,33,2,18,17,3,0,0,0,74,1,71,Main Hot Entree #1,Main,Breakfast
+Golden Delicious Apple (Each),88,0,0,0,2,23,4,18,0,0,91,8,0,10,0,181,Sides,Fruit,Breakfast
+Natural Breakfast Syrup (Each),80,0,0,0,15,21,0,21,21,0,0,0,0,0,0,0,Main Hot Entree #1,Condiment,Breakfast
+Gala Apple (Each),90,0,0,0,2,24,4,0,0,0,93,8,0,10,0,0,Sides,Fruit,Lunch
+"Sandwich, Breakfast. Bagel, Turkey Sausage (Sandwich)",217,8,2,37,398,25,3,2,2,11,7,0,0,83,2,75,Main Hot Entree #1,Main,Breakfast
+"Parfait, Triple Berry (Parfait)",216,2,0,3,53,46,4,26,15,6,0,13,3,296,1,303,Daily Yogurt Entree,Main,Breakfast
+Egg and American Cheese on English Muffin (Sandwich),216,8,2,9,591,24,1,2,0,12,0,0,1,188,1,177,Main Hot Entree #1,Main,Breakfast
+"Lactose Free, White Milk (Each)",90,0,0,5,130,13,0,12,0,9,155,0,2,312,0,331,Sides,Milk,Lunch
+"Milk, Soy, Plain, Bulk (12/32 oz) (1 cup)",140,6,1,0,130,13,1,9,5,10,150,0,3,340,3,510,Sides,Milk,Breakfast
+Whole Strawberries (1/2 cup thawed),30,0,0,0,0,7,1,4,0,0,0,31,0,10,0,110,Sides,Fruit,Breakfast
+Chilled Mandarin Oranges (1/2 cup (drained)),74,0,0,0,10,19,1,18,0,1,1696,68,0,22,1,265,Sides,Fruit,Lunch
+IW Applesauce Cup (Each),50,0,0,0,0,14,1,12,0,0,0,0,0,5,0,95,PreK,Fruit,Breakfast
+"Frozen Berry, Triple Berry Blend (1/2 cup (thawed))",40,0,0,0,0,10,2,7,0,1,0,13,0,10,0,90,Sides,Fruit,Breakfast
+1% Unflavored Shelf-Stable Milk (Each),110,3,2,10,105,12,0,12,0,8,150,0,3,300,0,320,Sides,Milk,Breakfast
+Orange (Each - serving),84,0,0,0,3,21,6,0,0,2,333,95,0,93,1,261,Sides,Fruit,Lunch
+Graham Crackers (Package),90,3,0,0,90,17,1,5,5,1,0,0,0,10,1,40,Sides,Grain,Lunch
+Cherry Flavored Dried Cranberries (2 Eaches),220,0,0,0,0,54,4,48,42,4,0,0,0,0,0,0,Sides,Fruit,Lunch
+"Apple Slices (3 slices, 1/4 cup)",17,0,0,0,0,4,1,3,0,0,0,27,0,15,0,0,Sides,Fruit,Lunch
+Assorted Craisins (Packet),110,0,0,0,0,27,2,24,14,0,0,0,0,0,0,0,Sides,Fruit,Breakfast
+Strawberry Flavored Dried Cranberries (2 Eaches),220,0,0,0,0,54,4,48,42,0,0,0,0,0,0,0,Sides,Fruit,Lunch
+Peach Parfait (Parfait),258,2,0,3,60,56,3,35,16,5,0,0,3,304,1,441,Daily Yogurt Entree,Main,Breakfast
+"Bread, English Muffin, WG (Each)",120,2,0,0,270,21,1,1,0,6,0,0,0,90,1,90,Main Hot Entree #1,Main,Breakfast
+"Milk, Lactose Free,  Fat Free, Shelf-Stable (Each)",90,0,0,5,130,12,0,12,0,8,150,0,3,300,0,400,Sides,Milk,Lunch
+Chicken Tenders (3 tenders),226,10,1,60,389,18,4,0,0,17,55,0,0,10,1,0,Main Hot Entree #1,Main,Lunch
+"Apple, Slices, IW - ER Supper Only (Each)",30,0,0,0,0,7,1,6,0,0,0,1,0,0,0,0,Sides,Fruit,Lunch
+Turkey & Cheese on Biscuit (Sandwich),272,11,6,21,655,30,2,4,2,14,0,0,0,200,2,494,Main Hot Entree #1,Main,Breakfast
+Blueberry Bread (2oz Grain (1/32 Baked Pan)),540,18,0,0,380,86,4,0,0,12,0,0,0,0,0,0,Main Hot Entree #1,Grain,Lunch
+"Batter, Pumpkin Bread (2oz Grain (1/32Baked Pan))",388,14,2,34,210,62,4,32,30,6,0,0,0,104,2,178,Plant-Forward Hot Entree,Grain,Breakfast
+Apple Cinnamon Bread (2oz Grain (1/32 Baked Pan)),412,16,2,38,220,66,4,36,34,3,0,0,0,148,2,142,Main Hot Entree #1,Main,Breakfast
+"Bar, Lemon Blueberry (Each)",180,12,3,0,125,10,7,2,0,12,0,0,0,78,3,188,A La Carte,Main,Lunch
+Assorted  4 oz Yogurt (Container),138,7,5,30,104,11,0,11,0,8,0,0,0,0,0,350,Daily Yogurt Entree,Protein,Lunch
+Granola (1/4 cup),104,2,0,0,0,20,2,5,5,2,0,0,0,0,1,70,Daily Yogurt Entree,Grain,Lunch
+Red Seedless Grapes (16 grapes per 1/2 cup),59,0,0,0,2,16,1,13,0,1,57,3,0,9,0,165,Sides,Fruit,Lunch
+"Cereal, Cinnamon Toast Crunch 1 oz (Sub) (Each)",210,5,1,0,320,44,7,11,11,3,500,6,2,100,5,94,Daily Cereal,Main,Breakfast
+Fat Free Unflavored Shelf-Stable Milk (Each),90,0,0,5,130,13,0,12,0,8,150,0,3,300,0,410,Sides,Milk,Breakfast
+"Applesauce, IW, Cinnamon. Unsweetened, Shelf-Stable (SUB) (Each)",50,0,0,0,0,14,1,12,0,0,0,0,0,5,0,95,Sides,Fruit,Breakfast
+Orange (1/4 cup),41,0,0,0,1,10,3,0,0,1,163,46,0,46,1,127,Sides,Fruit,Lunch
+Hot Turkey & Cheese (sandwich),270,8,3,30,960,34,4,4,0,22,0,0,1,220,2,315,Main Hot Entree #1,Main,Lunch
+Natural Blackberry Jam (Packet),35,0,0,0,0,9,0,9,0,0,0,0,0,0,0,0,Main Hot Entree #1,Condiment,Breakfast
+"Milk, Soy, Vanilla (24/8 oz) (each)",141,5,0,0,111,17,2,15,14,8,151,0,3,301,1,352,Sides,Milk,Lunch
+Mandarin Orange Pepper Fruit Salsa (1 TBSP),5,0,0,0,2,1,0,1,0,0,252,13,0,4,0,43,Main Hot Entree #1,Condiments,Lunch
+Maple Belgian Waffle (Waffle),250,9,4,44,290,37,2,15,0,6,0,0,0,30,1,94,Main Hot Entree #1,Main,Breakfast
+Apple Cinnamon Bread (Grain for entree) (1 square),206,8,1,19,110,33,2,18,17,3,0,0,0,74,1,71,Main Hot Entree #1,Grain,Breakfast
+Apple Slices (3 slices per 1/4 cup),17,0,0,0,0,4,1,3,0,0,0,27,0,15,0,0,Sides,Fruit,Lunch
+Raspberry Lemonade Flavored Dried Cranberries (2 Eaches),220,0,0,0,0,54,0,48,0,0,0,0,0,0,0,0,Sides,Fruit,Lunch
+Chicken Tenders Sub (Sandwich),366,12,1,60,609,45,8,3,3,23,55,0,7,120,2,130,Main Hot Entree #1,Main,Lunch
+Orange Flavored Dried Cranberries (2 Eaches),220,0,0,0,0,54,4,48,42,0,0,0,0,0,0,0,Sides,Fruit,Lunch
+Triple Berry Parfait Power Pack (Power Pack),503,16,5,42,363,81,6,45,32,15,0,13,3,568,2,429,Power Pack,Main,Lunch
+Bottled Water (Bottle),0,0,0,0,10,0,0,0,0,0,0,0,0,0,0,0,A La Carte,Beverage,Lunch
+Watermelon Flavored Dried Cranberries (2 Eaches),220,0,0,0,0,54,4,48,0,0,0,0,0,0,0,0,Sides,Fruit,Lunch
+Strawberry Parfait Power Pack (Power Pack),493,16,5,42,363,78,5,42,32,14,0,31,3,568,2,449,Power Pack,Main,Lunch
+Chilled Peaches (1/2 cup),82,0,0,0,6,20,2,16,2,0,0,0,0,18,0,230,Sides,Fruit,Lunch
+Mini Maple Waffles (Package),200,6,1,5,210,36,4,12,11,4,1000,0,0,40,4,0,Main Hot Entree #1,Main,Breakfast
+Blueberry Parfait (Parfait),220,2,0,3,53,45,4,25,15,6,0,0,3,286,0,0,Daily Yogurt Entree,Main,Breakfast
+Cherry Vanilla Yogurt Power Pack (Power Packs),320,7,4,25,395,51,3,16,10,14,0,0,4,499,2,315,Power Pack,Main,Lunch
+Whole Wheat Dinner Roll (Each),80,1,0,0,125,15,2,1,1,3,0,0,3,50,1,70,Plant-Forward Hot Entree,Grain,Lunch
+Whole Wheat Dinner Roll (2 rolls),160,2,0,0,250,30,4,2,2,6,0,0,6,100,2,140,Plant-Forward Hot Entree,Grain,Lunch
+Apple Slices (6 Slices per 1/2 cup),34,0,0,0,0,8,2,6,0,0,0,54,0,30,0,0,Sides,Fruit,Lunch
+"Waffle (Grain), Belgian, Buttery Maple, Bulk (Waffle)",250,9,4,44,290,37,2,15,0,6,0,0,0,30,1,94,Main Hot Entree #1,Grain,Breakfast
+"Frozen, Blueberries (1/2 cup)",40,0,0,0,0,9,2,6,0,1,0,0,0,0,0,0,Sides,Fruit,Lunch
+Apple Berry Smoothie (8oz portion),142,0,0,3,58,33,1,27,11,3,0,23,3,286,0,208,Daily Yogurt Entree,Main,Breakfast
+"-Peas and Diced Carrots, Frozen (1/2 cup)",60,0,0,0,15,11,4,4,0,3,0,0,0,30,1,170,A La Carte,Vegetable,Breakfast
+Watermelon Flavored Dried Cranberries (Each),110,0,0,0,0,27,2,24,0,0,0,0,0,0,0,0,Sides,Fruit,Lunch
+Raspberry Lemonade Flavored Dried Cranberries (Each),110,0,0,0,0,27,0,24,0,0,0,0,0,0,0,0,Sides,Fruit,Lunch
+"Plums, Red, Whole (Each)",30,0,0,0,0,7,1,6,0,0,225,6,0,4,0,102,Main Hot Entree #1,Fruit,Lunch
+Oat Milk (Each),130,1,0,0,150,22,0,18,18,8,150,0,3,475,3,350,PreK,Milk,Breakfast
+Peach Yogurt (Container),90,0,0,5,55,19,0,14,10,3,0,0,4,291,0,140,Daily Yogurt Entree,Main,Lunch
+"Nutri-Grain, Apple Cinnamon (each)",150,3,0,0,140,31,3,14,13,2,0,0,2,140,2,110,Cold Grab & Go,Grain,Breakfast
+"Nutri-Grain, Strawberry (each)",150,3,0,0,140,30,3,12,12,2,0,0,2,140,2,110,Cold Grab & Go,Grain,Breakfast
+Roasted Sunflower Seeds (Package),160,14,1,0,140,7,3,1,0,6,0,0,0,20,1,241,Power Pack,Protein,Lunch
+Strawberry Flavored Dried Cranberries (Each),110,0,0,0,0,27,2,24,21,0,0,0,0,0,0,0,Sides,Fruit,Lunch
+Cherry Flavored Dried Cranberries (Each),110,0,0,0,0,27,2,24,21,2,0,0,0,0,0,0,Sides,Fruit,Lunch
+Pineapple Parfait (Parfait),284,2,0,3,55,64,4,44,15,6,90,17,3,315,1,436,Daily Yogurt Entree,Main,Breakfast
+Strawberry & Banana Yogurt Power Pack (Power Packs),320,7,4,25,390,51,3,16,10,14,0,0,4,500,2,306,Power Pack ,Main,Lunch
+Peach Yogurt Power Pack (Power Packs),320,7,4,25,395,51,3,16,10,14,0,0,4,500,2,295,Power Pack,Main,Lunch
+Cherry Vanilla Yogurt (Container),90,0,0,5,55,19,0,14,10,3,0,0,4,290,0,160,Daily Yogurt Entree,Main,Lunch
+"Cheese, String, Mozzarella, Low-Fat IW (SUBSTITUTION) (1 Stick)",60,3,2,20,200,1,0,1,0,7,0,0,0,198,0,55,Power Pack,Protein,Lunch
+"Bread, Loco (1/2 piece)",75,2,0,0,68,13,2,1,0,2,0,0,0,40,1,0,Main Hot Entree #1,Grain,Lunch
+Strawberry Banana Yogurt (each),90,0,0,5,50,19,0,14,10,3,0,0,4,291,0,151,Daily Yogurt Entree,Main,Lunch
+Fat Free Chocolate Milk (Each),130,0,0,5,249,22,0,20,8,9,163,0,3,325,0,456,Sides,Milk,Lunch
+"Bread, Hamburger Bun (Bun)",140,2,0,0,220,27,4,3,3,6,0,0,7,110,1,130,Main Hot Entree #1,Grain,Lunch
+"Cheese, American, Sliced (3 slices)",105,6,4,23,630,3,0,3,0,11,0,0,0,288,0,98,PreK,Protein,Lunch
+"Sandwich, Turkey & Cheese (sandwich)",250,7,3,35,873,31,4,5,3,20,0,0,7,270,2,352,PreK,Main,Lunch
+Strawberry Chex Mix (Package),120,3,1,0,55,23,2,6,6,2,0,0,0,0,1,0,A La Carte,Grain,Lunch
+Orange Flavored Dried Cranberries (Each),110,0,0,0,0,27,2,24,21,0,0,0,0,0,0,0,Sides,Fruit,Lunch
+Banana Bread (Each),280,7,1,30,180,51,2,26,25,5,0,0,0,26,2,115,Main Hot Entree #1,Main,Breakfast
+"Nutri-Grain, Blueberry (each)",130,3,0,0,115,25,2,13,12,2,0,0,2,130,2,80,A La Carte,Snacks for Purchase,Lunch
+"Apple Slices (6 Slices, 1/2 cup)",34,0,0,0,0,8,2,6,0,0,0,54,0,30,0,0,Sides,Fruit,Lunch
+"Sandwich, Turkey & Cheese on Sub Roll (sandwich)",215,5,2,28,663,29,4,4,3,18,0,0,7,190,1,312,Cold Grab & Go,Main,Lunch
+Strawberry Smoothie (8oz portion),147,0,0,5,75,31,1,24,11,5,20,25,3,357,0,340,Daily Yogurt Entree,Main,Lunch
+Cinnamon Waffle (each),200,8,3,25,230,30,2,12,11,5,0,0,0,40,1,94,Main Hot Entree #1,Main,Breakfast
+"Cheese, American, Sliced (Slice)",105,6,4,23,630,3,0,3,0,11,0,0,0,288,0,98,PreK,Protein,Lunch
+Applesauce (1/4 cup),25,0,0,0,0,7,1,6,0,0,0,5,0,0,0,0,Sides,Fruit,Lunch
+Chilled Pineapple (1/4 cup),54,0,0,0,1,14,1,13,0,0,45,8,0,14,0,112,Sides,Fruit,Lunch
+"Waffle, Belgian, Sweet Cinnamon, WG, Bulk (Waffle)",200,8,3,25,230,30,2,12,11,5,0,0,0,40,1,94,Daily Yogurt Entree,Main,Breakfast
+"Cereal, Cinnamon Toasters, Malt-O-Meal, IW (Sub) (1 Each)",3,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,Daily Cereal,Main,Breakfast
+Ketchup Packet (Packet),10,0,0,0,89,2,0,2,2,0,0,0,0,1,0,22,Sides,Condiment,Lunch
+Manager's Vegetable Choice (1/2 cup),0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,Sides,Vegetable,Lunch
+"Egg, Hard Boiled, Bulk pouch (Each)",78,5,2,187,62,1,0,1,0,6,260,0,1,25,1,63,Main Hot Entree #1,Protein,Breakfast
+Soft Pretzel (1 pretzel),150,1,0,0,140,30,3,1,0,5,0,0,0,11,2,100,Salad Bar Entree,Grain,Lunch
+"Patty, Chicken, Breaded, WG (2 strips)",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,Main Hot Entree #1,Main,Lunch
+Corn (1/4 cup (thawed)),35,0,0,0,0,8,1,1,0,1,0,0,0,0,0,88,Sides,Vegetable,Lunch
+String Cheese (Each),80,6,4,20,200,2,0,1,0,6,0,0,0,198,0,55,Main Hot Entree #1,Protein,Lunch
+Broccoli Florets (1/4 cup),4,0,0,0,4,1,0,0,0,0,468,15,0,7,0,51,Sides,Vegetable,Lunch
+Lettuce Blend Salad Mix (1 cup),8,0,0,0,6,2,0,2,0,0,290,2,0,10,0,82,Sides,Vegetable,Lunch
+Lettuce Blend Salad Mix (1/2 cup),4,0,0,0,3,1,0,1,0,0,145,1,0,5,0,41,Sides,Vegetable,Lunch
+Cheez-Its Crackers (Package),100,4,1,5,150,14,1,0,0,2,0,0,0,20,1,50,A La Carte,Grain,Lunch
+Italian Dressing (1 ounce),15,0,0,0,260,3,0,2,2,0,0,0,0,0,0,0,Sides,Condiment,Lunch
+Doritos Wild White Nacho Flavored Tortilla Chips (Bag),130,5,1,0,170,20,2,0,0,2,0,0,0,40,0,50,A La Carte,Grain,Lunch
+Chickpeas (1/4 cup),40,1,0,0,70,7,2,1,0,2,0,0,0,14,1,74,Sides,Vegetable,Lunch
+Ranch Dressing (1 ounce),80,8,1,10,270,2,0,1,1,1,0,0,0,29,0,0,Sides,Condiment,Lunch
+Smartfood RF White Cheddar Popcorn (Each),70,3,0,0,100,9,2,0,0,2,0,0,0,10,0,40,A La Carte,Grain,Lunch
+PB&J Power Pack (Power Packs),480,27,8,25,630,48,5,15,12,17,0,0,0,244,2,105,Power Packs,Main,Lunch
+Manager's Vegetable Choice (1/4 cup),0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,Sides,Vegetable,Lunch
+Asian Veggie Sub (sandwich),539,16,2,13,1757,84,8,32,24,19,1961,2,7,191,4,951,Main Hot Entree #1,Main,Lunch
+Asian Meatball Sub (sandwich),520,18,5,61,1759,68,6,31,24,19,1961,2,7,174,3,421,Main Hot Entree #1,Main,Lunch
+Cherry Tomatoes (1/4 cup),7,0,0,0,2,1,0,1,0,0,312,5,0,4,0,89,Sides,Vegetable,Lunch
+Red Seedless Grapes (8 grapes per 1/4 cup),30,0,0,0,1,8,0,7,0,0,29,2,0,5,0,83,Sides,Fruit,Lunch
+Black Beans (1/2 Cup),130,1,0,0,140,23,6,1,0,8,0,0,0,48,0,2,Sides,Vegetable,Lunch
+Chilled Mandarin Oranges (1/4 cup (drained)),37,0,0,0,5,9,0,9,0,0,848,34,0,11,0,133,Sides,Fruit,Lunch
+Turkey Pepperoni Pizza (Slice),348,16,8,39,569,29,3,3,1,22,0,0,0,462,2,260,Main Hot Entree #1,Main,Lunch
+Cheese Pizza (Slice),335,15,8,34,500,29,3,3,1,21,0,0,0,462,2,241,Main Hot Entree #1,Main,Lunch
+Baby Carrots (6 Baby Carrots per 1/2 cup),24,0,0,0,54,6,2,4,0,0,9696,2,0,22,0,166,Sides,Vegetable,Lunch
+"Peppers, red, pre-sliced (1/2 cup sliced)",12,0,0,0,2,2,2,2,0,0,230,50,0,6,0,110,Sides,Vegetable,Lunch
+Chilled Peaches (1/4 cup (drained)),41,0,0,0,3,10,1,8,1,0,0,0,0,9,0,115,Sides,Fruit,Lunch
+Chickenless Bites (4 Bites),170,8,1,0,330,18,3,2,0,12,0,0,0,40,2,530,Main Hot Entree #1,Main,Lunch
+Chocolate Chip Cookie (Cookie),148,5,2,19,96,24,2,11,9,2,0,0,1,10,1,54,Sides,Dessert,Lunch
+Roasted Plantains (6 Slices),280,6,0,0,0,56,2,46,0,2,0,0,0,7,0,774,Sides,Vegetable,Lunch
+Sour Cream (2 Tablespoons),60,5,3,15,15,1,0,1,1,1,60,0,0,30,0,0,Sides,Condiment,Lunch
+Cucumber Slices (1/4 cup),9,0,0,0,1,2,0,1,0,0,60,2,0,9,0,83,Sides,Vegetable,Lunch
+"Salsa, Mild Canned (1.5 oz)",15,0,0,0,105,3,2,2,0,0,0,0,0,0,0,0,Sides,Condiment,Lunch
+Black Beans (1/4 Cup),65,0,0,0,70,12,3,0,0,4,0,0,0,24,1,0,Sides,Vegetable,Lunch
+Cheese Quesadilla (Quesadilla),351,17,8,35,603,31,3,3,1,19,0,0,0,331,2,115,Plant-Forward Hot Entree,Main,Lunch
+Pineapple Pepper Fruit Salsa (1 TBSP),7,0,0,0,2,2,0,1,0,0,206,12,0,4,0,43,Main Hot Entree #1,Condiment,Lunch
+"Sauce, Spicy Mayo (tbsp)",39,3,1,6,211,2,0,1,1,0,0,0,0,3,0,38,Main Hot Entree #1,Condiment,Lunch
+Fish Tacos (2 Tacos),390,16,4,45,480,43,5,2,2,18,0,0,1,48,3,504,Main Hot Entree #1,Main,Lunch
+Beef Meatball Sub Sandwich (Sandwich),412,19,8,63,802,35,6,8,4,26,0,0,7,371,3,332,Main Hot Entree #1,Main,Lunch
+Steamed Baby Carrots (1/2 cup),25,0,0,0,57,6,2,3,0,0,9992,2,0,23,1,172,Sides,Vegetable,Lunch
+Alfredo & Basil Lasagna (Each),397,16,9,49,719,34,2,9,0,26,404,6,0,635,1,263,Plant-Forward Hot Entree,Main,Lunch
+Cucumber Slices (6 Slices per 1/2 cup),18,0,0,0,2,4,0,2,0,0,120,4,0,18,0,166,Sides,Vegetable,Lunch
+Chana Masala (1/2 cup),80,2,0,0,140,14,4,2,0,4,0,0,0,27,1,148,Plant-Forward Hot Entree,Main,Lunch
+Cooked  Brown Rice (1 cup cooked),227,2,0,0,6,48,1,0,0,5,0,0,0,5,1,140,Main Hot Entree #1,Grain,Lunch
+Cooked  Brown Rice (1/2 cup cooked),113,1,0,0,3,24,0,0,0,2,0,0,0,2,0,70,Main Hot Entree #1,Grain,Lunch
+Chicken Masala Drumstick (Drumstick),150,8,2,90,350,2,0,1,1,17,0,0,0,0,1,330,Main Hot Entree #1,Main,Lunch
+Baby Carrots (3 baby carrots per 1/4 cup),12,0,0,0,27,3,1,2,0,0,4848,1,0,11,0,83,Sides,Vegetable,Lunch
+Grilled Cheese Sandwich (Sandwich),300,11,5,30,1160,38,4,6,0,18,0,0,1,380,2,300,Main Hot Entree #1,Main,Lunch
+BBQ Chicken Drumstick (Drumstick),185,8,2,90,434,10,0,8,7,17,0,0,0,0,1,463,Main Hot Entree #1,Main,Lunch
+Bean and Cheese Pupusa (Pupusa),290,11,3,15,480,35,4,1,0,13,0,0,0,250,1,330,Main Hot Entree #1,Main,Lunch
+Tex Mex Corn (1/2 cup),115,1,0,0,2,27,3,4,0,4,85,21,0,10,1,330,Sides,Vegetable,Lunch
+Turkey Barbacoa Arepa (1 Arepa + #10 scoop of turkey barbacoa),282,9,3,78,949,29,3,0,0,23,0,0,0,0,1,18,Main Hot Entree #1,Main,Lunch
+Chocolate Chip Cookie (1/2 Cookie),74,2,1,9,48,12,1,5,5,1,0,0,0,5,0,27,Sides,Dessert,Lunch
+Orange Sauce (ounce),62,0,0,0,123,15,0,14,12,1,0,0,0,0,0,0,Hot Grab & Go #1,Condiment,Lunch
+Chicken & Vegetable Dumplings (6 dumplings),242,7,1,35,554,31,2,3,1,17,0,0,0,35,3,283,Main Hot Entree #1,Main,Lunch
+Orange Chickenless Bites (4 bites),220,8,1,0,430,30,3,13,10,13,0,0,0,40,2,530,Plant-Forward Hot Entree,Main,Lunch
+Steamed Broccoli (1/2 cup),8,0,0,0,0,2,0,0,0,0,936,30,0,14,0,102,Sides,Vegetable,Lunch
+Orange Chicken (4 Bites w/ 1oz sauce),231,6,1,45,634,27,1,11,10,18,0,0,0,13,2,259,Main Hot Entree #1,Main,Lunch
+Corn (1/2 cup (cooked)),71,0,0,0,0,17,2,2,0,3,0,0,0,0,0,177,Sides,Vegetable,Lunch
+Potato Wedges (4 pieces),63,2,0,0,48,10,1,0,0,1,0,0,0,0,0,242,Sides,Vegetable,Lunch
+Potato Wedges (7 pieces),110,4,0,0,84,18,2,0,0,2,0,0,0,0,0,424,Sides,Vegetable,Lunch
+Mayonnaise Packet (Packet),40,4,1,5,80,1,0,0,0,0,0,0,0,1,0,5,Sides,Condiment,Lunch
+Mustard Packet (Packet),5,0,0,0,65,0,0,0,0,0,0,0,0,2,0,6,Sides,Condiment,Lunch
+Baked Cheese Sticks (2 Cheese Sticks),300,12,6,30,640,17,2,4,2,16,0,0,0,360,2,0,Main Hot Entree #1,Main,Lunch
+Marinara Sauce (1/2 cup),60,2,0,0,135,10,2,6,1,2,0,0,0,55,1,354,Hot Grab & Go #2,Vegetable,Lunch
+"Penne Pasta with Marinara and Beef Meatballs (cup cooked pasta, 1/2c sauce, 5 meatballs)",492,19,8,63,668,54,7,10,1,28,0,0,0,313,4,559,Main Hot Entree #1,Main,Lunch
+"Penne Pasta with Marinara and Beef Meatballs (1/2 cup cooked pasta, 1/2c sauce, 5 meatballs)",492,19,8,63,668,54,7,10,1,28,0,0,0,313,4,559,Main Hot Entree #1,Main,Lunch
+"Quesadilla, Turkey Barbacoa and Cheese (Quesadilla)",402,19,8,63,868,32,3,3,1,26,0,0,0,331,3,122,Main Hot Entree #1,Main,Lunch
+Nachos with Turkey Barbacoa and Cheese Sauce (Serving),435,20,6,39,855,44,2,4,0,19,0,0,0,186,1,465,Main Hot Entree #1,Main,Lunch
+Nachos with Black Beans and Cheese Sauce (Serving),439,18,5,5,601,54,5,4,0,14,0,0,0,210,1,456,Main Hot Entree #1,Main,Lunch
+Nachos with Cheese Sauce (Serving),468,24,8,10,912,48,2,8,0,16,0,0,0,372,0,792,Main Hot Entree #1,Main,Lunch
+Chickenless Bites (2 Bites),85,4,1,0,165,9,2,1,0,6,0,0,0,20,1,0,Main Hot Entree #1,Main,Lunch
+"WG 10"" Flour Tortilla (Tortilla)",180,5,0,0,220,29,3,2,1,5,0,0,0,120,2,90,Salad Bar Entree,Grain,Lunch
+"Turkey,  Breast, Pre-Sliced, Oven Roasted (3 Slices)",40,1,0,20,233,0,0,0,0,9,0,0,0,0,0,142,Salad Bar Entree,Protein,Lunch
+Corn (2 Tablespoons (thawed)),18,0,0,0,0,4,0,0,0,0,0,0,0,0,0,44,Sides,Vegetable,Lunch
+"Cheese, Shredded, Cheddar (1/4 cup)",80,6,4,20,200,1,0,0,0,7,0,0,0,0,0,0,Salad Bar Entree,Protein,Lunch
+"Onions, Red, Whole (2 Tablespoons (sliced))",6,0,0,0,1,1,0,1,0,0,0,1,0,4,0,23,Sides,Vegetable,Lunch
+Cucumber Slices (2 Tablespoon),4,0,0,0,0,1,0,0,0,0,30,1,0,4,0,42,Sides,Vegetable,Lunch
+"Peppers, Green, Whole (2 Tablespoon)",2,0,0,0,0,1,0,0,0,0,43,9,0,1,0,20,Sides,Vegetable,Lunch
+"Peppers, Red, Whole (2 Tablespoons)",3,0,0,0,0,1,0,0,0,0,360,15,0,1,0,24,Sides,Vegetable,Lunch
+Sub Roll (Sub Roll),140,2,0,0,220,27,4,3,3,6,0,0,7,110,1,130,Salad Bar Entree,Grain,Lunch
+Marinara Sauce (1/4 Cup),30,2,0,0,135,10,2,6,1,2,0,0,0,55,1,354,Plant-Forward Hot Entree,Vegetable,Lunch
+Chickpeas (2 Tablespoons),20,0,0,0,35,3,1,0,0,1,0,0,0,7,0,37,Sides,Vegetable,Lunch
+Doritos Flamas (Each),150,8,1,0,200,18,1,0,0,2,0,0,0,30,0,40,A La Carte,Vegetable,Lunch
+Doritos RF Spicy Sweet Chili (Each),150,7,1,0,280,18,1,0,0,2,0,0,0,30,0,50,A La Carte,Vegetable,Lunch
+Doritos RF Nacho Cheese (Each),130,5,1,0,200,20,2,0,0,2,0,0,0,40,0,50,A La Carte,Vegetable,Lunch
+Cool Ranch Reduced Fat Doritos (Each),130,5,1,0,160,19,2,1,0,2,5,0,0,40,0,0,A La Carte,Vegetable,Lunch
+SS Baked Cheetos Flaming Hot (Each),140,5,0,0,220,20,0,0,0,2,0,0,0,140,0,40,A La Carte,Vegetable,Lunch
+SS Baked Cheetos Flaming Limon (Each),110,4,1,0,140,18,1,0,0,2,0,0,0,10,1,130,A La Carte,Vegetable,Lunch
+SS Cheetos Fantastix Flaming Hot (Each),130,5,1,0,200,20,2,0,0,2,0,0,0,20,1,10,A La Carte,Vegetable,Lunch
+Kettle Cooked Smoky BBQ Chips (Each),180,7,1,0,190,27,2,3,1,3,0,9,0,10,1,580,A La Carte,Vegetable,Lunch
+RF Kettle Chips Jalapeno & Cheddar Chips (Each),180,7,1,0,160,27,2,2,0,3,0,0,0,30,1,570,A La Carte,Vegetable,Lunch
+RF Kettle Chips Sea Salt & Vinegar Chips (Each),180,7,1,0,180,28,2,2,0,3,0,0,0,10,1,570,A La Carte,Vegetable,Lunch
+"Fruit Snacks, Welch's Mixed (Each)",80,0,0,0,20,19,0,11,0,1,225,90,0,0,0,0,Sides,Fruit,Lunch
+Spicy Chicken Wrap (Wrap),446,17,3,50,716,47,4,2,1,25,46,0,0,121,4,100,Cold Grab & Go,Main,Lunch
+"Carrots, IW,   Super Snack (each)",26,0,0,0,57,6,2,4,0,0,10164,2,0,24,1,175,Sides,Vegetable,Lunch
+Black Beans (2 Tablespoons),33,0,0,0,35,6,1,0,0,2,0,0,0,12,0,0,Sides,Vegetable,Lunch
+Ranch Dressing Packet (Packet),60,2,0,0,210,9,1,4,2,1,0,0,0,30,0,0,Sides,Condiment,Lunch
+WG Baked Funyuns (Each),100,4,0,0,125,14,0,0,0,2,0,0,0,0,1,40,A La Carte,Vegetable,Lunch
+Lay's RF Kettle Original Chips (Each),180,7,1,0,190,27,2,1,0,3,0,9,0,10,1,610,A La Carte,Vegetable,Lunch
+Broccoli Florets (6 Pieces per 1/2 cup),8,0,0,0,8,2,0,0,0,0,936,30,0,14,0,102,Sides,Vegetable,Lunch
+Vegetable Dumpling (6 dumplings),242,5,1,0,363,33,4,2,1,16,0,0,0,60,3,333,Hot Grab & Go #1,Main,Lunch
+"Peppers, green, pre-sliced (1/4 cup sliced)",6,0,0,0,1,1,0,0,0,0,116,25,0,3,0,55,Sides,Vegetable,Lunch
+Spicy Breaded Chicken Patty on Bun (Sandwich),365,11,1,40,615,44,5,3,3,22,10,0,7,110,3,130,Main Hot Entree #1,Main,Lunch
+"Bread, Loco (flatbread)",150,3,0,0,135,26,3,1,0,4,0,0,0,80,1,0,Hot Grab & Go #2,Grain,Lunch
+Pasta with Meat Sauce (serving),191,1,0,0,22,41,4,2,0,7,0,0,0,25,2,190,,Main,Lunch
+Turkey & Cheese on Sub Roll (sandwich),215,5,2,28,663,29,4,4,3,18,0,0,7,190,1,312,Main Hot Entree #1,Main,Lunch
+"Onions, Red, Whole (1/4 cup (sliced))",12,0,0,0,2,2,0,2,0,0,0,2,0,8,0,46,Sides,Vegetable,Lunch
+"Peppers, red, pre-sliced (1/4 cup sliced)",6,0,0,0,1,1,1,1,0,0,115,25,0,3,0,55,Sides,Vegetable,Lunch
+Fish  Sandwich (Sandwich),350,13,2,45,550,40,5,3,3,20,0,0,8,110,2,440,Main Hot Entree #1,Main,Lunch
+"Salsa, Mild Canned (2 Tablespoons)",10,0,0,0,70,2,1,1,0,0,0,0,0,0,0,0,Sides,Condiment,Lunch
+"Beef, Meatballs, Pre-Cooked (5 meatballs)",151,10,4,48,332,2,1,1,0,12,0,0,0,23,1,0,Main Hot Entree #1,Protein,Lunch
+Chicken Quesadilla (quesadilla),341,11,4,53,441,30,3,3,1,24,0,0,0,231,2,179,Main Hot Entree #1,Main,Lunch
+Cucumbers (1/2 cup sliced),18,0,0,0,2,4,0,2,0,0,120,4,0,18,0,166,Sides,Vegetable,Lunch
+Apple Cinnamon Spread (Each),170,10,1,0,65,15,2,5,3,5,0,0,0,13,1,188,Cold Grab & Go,Protein,Lunch
+Chickpeas - salad bar entree (1/2 cup),80,1,0,0,140,14,4,2,0,4,0,0,0,27,1,148,Salad Bar Entree,Protein,Lunch
+Roasted Plantains (3 Slices),140,3,0,0,0,28,1,23,0,1,0,0,0,4,0,387,Sides,Vegetable,Lunch
+Celery Sticks (1/2 cup),16,0,0,0,91,3,2,2,0,1,509,4,0,45,0,295,Sides,Vegetable,Lunch
+"Peppers, Green, Whole (1/2 cup)",8,0,0,0,0,4,0,0,0,0,172,36,0,4,0,80,Sides,Vegetable,Lunch
+Chicken and Cheese Quesadilla (Quesadilla),402,18,8,61,738,31,3,3,1,28,0,0,0,331,2,217,Main Hot Entree #1,Main,Lunch
+Black Beans - salad bar entree (1/2 cup),130,1,0,0,140,23,6,1,0,8,0,0,0,48,2,0,Salad Bar Entree,Protein,Lunch
+Original Flavored Dried Cranberries (Package),110,0,0,0,0,27,2,24,21,0,0,0,0,0,0,0,Sides,Fruit,Lunch
+Arepa w/Taco Beef (1 Aprea + #8 scoop of beef),253,6,2,34,510,35,6,4,0,16,1914,10,0,73,3,1021,Main Hot Entree #1,Main,Lunch
+Cucumber Slices (1/2 cup),18,0,0,0,2,4,0,2,0,0,120,4,0,18,0,166,Sides,Vegetable,Lunch
+BBQ Vegan Burger (Sandwich),310,7,0,0,763,44,10,12,10,20,0,0,7,180,3,748,Plant-Forward Hot Entree,Main,Lunch
+"Cucumbers (1/4 cup sliced, 3 slices)",9,0,0,0,1,2,0,1,0,0,60,2,0,9,0,83,Sides,Vegetable,Lunch
+Celery Sticks (1/4 cup),8,0,0,0,46,1,1,1,0,0,255,2,0,23,0,148,Sides,Vegetable,Lunch
+Turkey Pepperoni Pizza (1.37 oz),348,16,8,39,569,29,3,3,1,22,0,0,0,462,2,260,Main Hot Entree #1,Main,Lunch
+"Chicken, Wings, Pre-Cooked (3 Wings)",192,13,0,122,166,0,0,0,0,19,0,0,0,51,1,0,Main Hot Entree #1,Main,Lunch
+Whole Strawberries (1/4 cup thawed),15,0,0,0,0,3,0,2,0,0,0,16,0,5,0,55,Sides,Fruit,Lunch
+"Frozen Berry, Triple Berry Blend (1/4 cup (thawed))",40,0,0,0,0,10,2,7,0,1,0,13,0,10,0,90,Sides,Fruit,Lunch
+Chickpeas (1/2 cup),80,2,0,0,140,14,2,2,0,4,0,0,0,28,2,148,Sides,Vegetable,Lunch
+Grape Tomatoes (1/4 cup),10,0,0,0,3,2,1,1,0,1,475,8,0,6,0,135,Sides,Vegetable,Lunch
+Corn (1/4 cup (cooked)),36,0,0,0,0,8,1,1,0,1,0,0,0,0,0,89,Sides,Vegetable,Lunch
+Hamburger (Sandwich),300,13,5,45,410,28,4,3,3,18,0,0,7,117,2,130,Main Hot Entree #1,Main,Lunch
+BBQ Chickenless Bites (4 bites),205,8,1,0,414,26,3,9,6,12,0,0,0,40,2,663,Plant-Forward Hot Entree,Main,Lunch
+"Carrots, Shredded (Cup)",37,0,0,0,63,9,3,4,0,1,15203,5,0,30,0,291,Sides,Vegetable,Lunch
+"Chicken, Bites (4 Bites)",180,6,1,45,531,15,1,0,0,17,0,0,0,13,2,258,PreK,Main,Lunch
+"Lettuce, Green Salad Mix (1 cup)",10,0,0,0,7,2,1,1,0,1,344,2,0,12,0,97,Salad Bar Entree,Vegetable,Lunch
+"Taco, Turkey Barbacoa, Loco Bread (2 Tacos)",292,9,2,73,834,29,3,1,0,23,0,0,0,80,3,18,Main Hot Entree #1,Main,Lunch
+"Sauce, BBQ, HFCS-Free, Bulk, Low-Sodium (2 TBSP)",40,0,0,0,95,9,0,8,7,0,0,0,0,0,0,150,Sides,Condiment,Lunch
+Chicken Alfredo Pasta (heaping 1 cup ( #4 scoop)),358,10,4,46,479,47,4,6,0,23,0,0,0,283,2,411,Plant-Forward Hot Entree,Main,Lunch
+Black Beans (1/2 cup),130,1,0,0,140,23,6,1,0,8,0,0,0,48,2,0,Sides,Vegetable,Lunch
+Potato Encrusted Breaded Pollock (Fillet),210,11,2,45,330,13,1,0,0,14,0,0,1,0,1,310,Main Hot Entree #1,Main,Lunch
+"Chicken, Bites, Breaded (4 Bites)",181,6,1,45,534,15,1,0,0,17,0,0,0,13,2,259,Main Hot Entree #1,Main,Lunch
+"CLPP, Grape Tomatoes (1/2 cup)",12,0,0,0,32,2,1,0,0,1,1122,12,0,4,0,159,Sides,Vegetable,Lunch
+Sweet Thai Chili Chicken Wings (3 Wings),246,13,0,122,469,13,0,11,10,19,0,0,0,53,1,22,Main Hot Entree #1,Main,Lunch
+"Pizza, Turkey Pepperoni, Slice (Slice)",348,16,8,39,569,29,3,3,3,22,0,0,0,462,2,260,Main Hot Entree #1,Main,Lunch
+Creamy Cabbage Slaw (1/4 cup),29,2,0,3,86,2,0,1,0,1,17,6,0,16,0,30,Sides,Vegetable,Lunch
+Breaded  Chicken Patty on a Bun (Sandwich),365,11,1,40,615,44,5,3,3,22,10,0,7,110,3,130,Main Hot Entree #1,Main,Lunch
+"Cheese Sauce, Frozen, Nacho (1/2 cup)",120,9,5,27,217,2,0,4,1,7,0,0,0,211,0,51,Plant-Forward Hot Entree,Protein,Lunch
+"Green Beans, Frozen (1/2 cup)",25,0,0,0,0,4,2,1,0,1,0,0,0,30,0,140,Sides,Vegetable,Lunch
+Cheese Sandwich (sandwich),280,10,5,30,1060,35,4,7,3,16,0,0,7,430,2,290,PreK,Main,Lunch
+Chicken Philly Sandwich (each),452,11,3,54,969,66,16,26,3,34,10799,642,7,299,4,1566,Main Hot Entree #1,Main,Lunch
+Nachos with Taco Meat and Cheese Sauce (Serving Size),449,22,7,27,581,45,3,5,17,17,167,11,0,192,1,592,Main Hot Entree #1,Main,Lunch
+"Quesadilla, Cheese and Taco Meat (Quesadilla)",317,13,5,37,568,33,4,3,1,19,9,9,9,143,3,501,Plant-Forward Hot Entree,Main,Lunch
+Chicken Alfredo Pasta (1 cup),358,10,4,46,479,47,4,6,0,23,0,0,0,283,2,411,Main Hot Entree #1,Main,Lunch
+"Sauce, Alfredo (2oz Ladle (1/4 cup))",92,6,3,18,196,4,0,3,0,6,0,0,0,189,0,206,Plant-Forward Hot Entree,Protein,Lunch
+"Pasta, Baked Penne (1 cup)",726,30,14,61,1134,74,10,23,3,41,0,0,0,1024,5,1293,Plant-Forward Hot Entree,Main,Lunch
+Chicken Tikka Masala (1/2 cup),102,2,0,51,273,1,0,0,0,19,0,0,0,0,0,202,Main Hot Entree #1,Main,Lunch
+Fresh Whole Pear (Each),101,0,0,0,2,27,6,17,0,1,45,8,0,16,0,206,Sides,Fruit,Lunch
+Broccoli Florets (Cup),16,0,0,0,16,4,0,0,0,0,1872,60,0,28,0,204,Sides,Vegetable,Lunch
+Bean Salad (SUMMER) (1 cup),237,2,0,0,756,42,10,7,4,12,0,0,0,75,3,148,Main Hot Entree #1,Vegetable,Lunch
+"Peppers, green, pre-sliced (1/2 cup sliced)",12,0,0,0,2,3,1,1,0,1,231,50,0,6,0,109,Sides,Vegetable,Lunch
+Carrot and Celery Sticks (1/2 cup),20,0,0,0,66,5,2,2,0,1,5306,4,0,33,0,244,Salad Bar Entree,Vegetable,Lunch
+BBQ Sandwich (Sandwich),315,7,1,68,995,42,4,14,12,24,0,0,7,110,3,347,Main Hot Entree #1,Main,Lunch
+BBQ Chicken Sandwich (Sandwich),331,2,0,71,375,36,4,11,10,29,0,0,7,122,2,433,Main Hot Entree #1,Main,Lunch
+Whole Wheat Sliced Bread (Slice),80,2,0,0,160,15,2,1,0,4,0,0,0,30,1,70,Main Hot Entree #1,Grain,Lunch
+Applesauce (3/4 cup),75,0,0,0,0,21,3,18,0,0,0,15,0,0,0,0,Sides,Fruit,Lunch
+"Chicken, Bites, Korean (4 Bites w/ 1oz sauce)",205,8,1,0,524,26,3,8,5,12,0,0,0,46,2,561,Main Hot Entree #1,Protein,Lunch
+Broccoli Alfredo Pasta (1 cup),438,16,8,43,516,54,6,10,0,24,2551,79,0,531,3,913,Plant-Forward Hot Entree,Main,Lunch
+Soft Bean Taco on Flour Tortilla (Taco),390,12,4,20,850,51,9,3,1,19,0,0,0,144,3,90,Main Hot Entree #1,Main,Lunch
+Cheddar Chex Mix (Package),130,4,1,0,280,23,1,3,2,2,0,0,0,0,1,0,A La Carte,Grain,Lunch
+Soft Beef Taco on Flour Tortilla (Taco),216,12,6,54,525,10,2,2,0,21,0,0,0,61,2,835,Main Hot Entree #1,Main,Lunch
+"Dough, Cookie, Double Chocolate, WG (1/2 Cookie)",69,2,1,6,50,12,1,6,5,1,0,0,0,13,0,38,Sides,Dessert,Lunch
+"Patty, Chicken, Spicy, Breaded (2 strips)",113,5,1,20,198,9,1,0,0,8,5,0,0,0,1,0,Salad Bar Entree,Protein,Lunch
+"Tomato, Large, whole, Plum (1/4 cup sliced)",8,0,0,0,2,2,1,1,0,0,378,6,0,5,0,108,Sides,Vegetable,Lunch
+Kelloggâ€™s W/G Rice Krispies Treats (Each),160,4,1,0,140,30,0,11,11,2,0,0,0,0,2,40,A La Carte,Vegetable,Lunch
+WG Chocolate Chip Rice Krispy Treats (Each),190,5,2,0,150,34,0,14,14,2,0,0,0,0,3,70,A La Carte,Vegetable,Lunch
+Potstickers (6 Potstickers),242,5,1,0,363,33,4,2,1,16,0,0,0,60,3,333,Hot Grab & Go #1,Main,Lunch
+"Peanut Butter and Jelly Sandwich, IW (Each)",300,17,3,0,280,32,4,14,12,9,0,0,0,26,1,0,A La Carte,Main,Lunch
+Fish Filet Potato Encrusted (each),202,10,2,45,293,14,1,0,0,14,0,0,1,0,0,374,Hot Grab & Go #1,Protein,Lunch
+Wheat Thins (Package),220,7,0,0,330,35,5,7,0,3,0,0,0,4,8,0,A La Carte,Grain,Lunch
+Tomato & Basil Lasagna (Each),313,10,5,28,542,34,3,8,0,19,442,6,0,432,2,176,Plant-Forward Hot Entree,Main,Lunch
+Nachos with Cheese Sauce (serving size),468,24,8,10,912,48,2,8,0,16,0,0,0,372,0,792,Plant-Forward Hot Entree,Main,Lunch
+"Wrap, Breaded Chicken (Wrap)",431,20,3,40,711,44,4,2,1,21,36,0,0,121,3,100,Main Hot Entree #1,Main,Lunch
+Assorted Whole Fruit (Piece of Fruit),87,0,0,0,2,22,4,5,0,1,160,37,0,36,1,237,A La Carte,Fruit,Lunch
+Tomato Soup (8 oz Ladle),176,9,4,21,408,16,3,9,2,9,0,0,0,287,2,653,Sides,Vegetable,Lunch
+Korean BBQ Chickenless Bites (4 bites),205,8,1,0,524,26,3,8,5,12,0,0,0,46,2,561,Plant-Forward Hot Entree,Main,Lunch
+Flour Tortilla (Tortilla),180,5,0,0,220,29,3,2,1,5,0,0,0,120,2,90,Salad Bar Entree,Grain,Lunch
+Sweet Thai Chili Sauce (ounce),54,0,0,0,303,13,0,11,10,0,0,0,0,2,0,22,Hot Grab & Go #1,Condiment,Lunch
+"Chicken, Drumstick, Sweet Thai Chili (Drumstick)",336,16,4,118,1338,21,0,13,12,24,0,0,0,18,2,304,Main Hot Entree #1,Main,Lunch
+Chicken Eggroll (2 Egg Rolls),320,10,3,60,780,40,6,4,2,18,126,14,0,90,3,0,Hot Grab & Go #2,Main,Lunch
+"Calzone, Cheese (Each)",300,12,6,30,490,30,3,4,2,18,0,0,0,350,2,147,Main Hot Entree #1,Main,Lunch
+"Pasta, Lasagna Roll-Up, Cheese (Each)",240,6,4,20,390,29,2,5,0,15,400,6,0,300,1,0,Plant-Forward Hot Entree,Main,Lunch
+"Cheese, Shredded, Mozzarella (1/4 cup)",90,6,4,15,180,1,0,1,0,7,0,0,0,208,0,25,Main Hot Entree #1,Protein,Lunch
+Taco Flavored Hummus (2 Each),120,3,0,0,180,18,5,3,0,6,0,0,0,41,2,201,Power Pack,Protein,Lunch
+Cherry Tomatoes (6 Tomatoes per 1/2 cup),14,0,0,0,4,2,0,0,0,0,624,10,0,8,0,178,Sides,Vegetable,Lunch
+Grape Tomatoes (6 Tomatoes per 1/2 cup),20,0,0,0,6,4,2,2,0,2,950,16,0,12,0,270,Sides,Vegetable,Lunch
+Steamed Baby Carrots (1/4 cup),13,0,0,0,29,3,1,1,0,0,4996,1,0,12,0,86,Sides,Vegetable,Lunch
+Beef Meatballs (Serving),151,10,4,48,332,2,1,1,0,12,0,0,0,23,1,0,Main Hot Entree #1,Main,Lunch
+Tex Mex Corn (1/4 cup),58,0,0,0,1,14,1,2,0,2,43,11,0,5,0,165,Sides,Vegetable,Lunch
+"Carrots, IW,   Super Snack (2 each)",52,0,0,0,114,12,4,8,0,0,20328,4,0,48,2,350,Cold Grab & Go,Vegetable,Lunch
+"Tacos, Taco Meat, Flour Tortilla (2 Tacos)",313,12,5,39,496,35,6,4,2,19,0,0,0,94,4,1016,Main Hot Entree #1,Main,Lunch
+Corn (1/2 cup (thawed)),70,0,0,0,0,16,2,2,0,2,0,0,0,0,0,176,Sides,Vegetable,Lunch
+IW Heartzels Pretzels (Package),80,1,0,0,200,16,2,1,0,2,0,0,0,30,1,120,A La Carte,Grain,Lunch
+Vanilla Sugar Cookie (1/2 Cookie),70,2,1,7,47,12,1,6,6,1,0,0,1,23,0,23,A La Carte,Grain,Lunch
+Sweet Thai Chili Chicken Bites (4 Bites w/ 1oz sauce),235,6,1,45,837,28,1,11,10,17,0,0,0,15,2,281,Main Hot Entree #1,Protein,Lunch
+Turkey & Cheese & Cracker Power Pack (wrap),330,13,3,35,973,39,0,9,7,17,0,0,0,210,2,362,Plant-Forward Hot Entree,Main,Lunch
+Mac & Cheese (2/3 cup),293,11,6,34,441,31,2,7,0,15,0,0,0,381,1,780,Main Hot Entree #1,Main,Lunch
+"Pasta, Macaroni (1 cup cooked)",190,1,0,0,19,41,4,2,0,7,0,0,0,24,2,180,Main Hot Entree #1,Grain,Lunch
+"Quesadilla, Cheese w/ 6 Inch Tortillas (Quesadilla)",351,17,10,35,533,32,4,3,2,18,0,0,0,259,2,219,Plant-Forward Hot Entree,Main,Lunch
+Nachos w/Shredded Chicken and Cheese Sauce (Serving Size),424,19,5,30,754,44,2,4,0,19,0,0,0,186,0,456,Main Hot Entree #1,Main,Lunch
+"Chicken, Drumstick, Roasted (Each Drumstick)",282,16,4,118,1035,8,0,2,2,24,0,0,0,16,2,282,Main Hot Entree #1,Main,Lunch
+"Quesadilla, Chicken & Cheese (Shred Chicken) 6 in Tortilla (Quesadilla)",316,12,6,43,565,32,4,3,2,20,0,0,0,153,2,207,Main Hot Entree #1,Main,Lunch
+"CLPP, Grape Tomatoes (1/4 cup)",6,0,0,0,16,1,0,0,0,0,561,6,0,2,0,80,Sides,Vegetable,Lunch
+Cheese Pizza (slice),335,15,8,34,500,29,3,3,1,21,0,0,0,462,2,241,Main Hot Entree #1,Main,Lunch
+Red Seedless Grapes (2 Tablespoons),15,0,0,0,0,4,0,3,0,0,14,1,0,2,0,41,Sides,Fruit,Lunch
+Turkey Barbacoa (#10 scoop),90,4,1,50,480,2,0,0,0,13,0,0,0,0,1,13,Main Hot Entree #1,Protein,Lunch
+"Canned Pineapple, Tidbits (1/2 cup (drained))",108,0,0,0,2,28,2,26,0,1,90,17,0,29,1,223,Sides,Fruit,Lunch
+Taco Flavored Hummus (each),120,3,0,0,180,18,5,3,0,6,0,0,0,41,2,201,Power Pack,Protein,Lunch
+Turkey Barbacoa Tacos on Flour Tortillas (2 Tacos),322,11,4,73,849,33,4,2,2,23,0,0,0,48,3,212,Main Hot Entree #1,Main,Lunch
+Shredded Chicken Wrap (Wrap),282,7,0,0,668,31,3,2,1,23,36,0,0,121,2,100,Main Hot Entree #1,Main,Lunch
+Make Your Own Nachos (Nacho Kit),308,16,7,10,857,28,2,8,0,14,0,0,0,392,0,712,Plant-Forward Hot Entree,Main,Lunch
+Orange Slices (Each),14,0,0,0,0,3,1,0,0,0,55,16,0,15,0,43,Sides,Fruit,Lunch
+"Chicken, Shredded, Fully Cooked (1/2 cup)",101,3,0,50,447,2,0,0,0,18,0,0,0,0,0,0,PreK,Protein,Lunch
+Apple Slices (3/4 cup),51,0,0,0,0,12,3,9,0,0,0,81,0,45,0,0,Sides,Fruit,Lunch
+Red Seedless Grapes (24 grapes per 3/4 cup),89,0,0,0,3,24,2,20,0,2,86,5,0,14,0,248,Sides,Fruit,Lunch
+Orange Slices (9 slices per 3/4 cup),125,0,0,0,5,30,9,0,0,3,492,140,0,138,2,386,Sides,Fruit,Lunch
+Cucumber Slices (3/4 cup),27,0,0,0,3,6,0,3,0,0,180,6,0,27,0,249,Sides,Vegetable,Lunch
+Tortilla Chips (13 chips),138,6,1,0,74,19,1,0,0,2,0,0,0,0,0,59,A La Carte,Grain,Lunch
+"Chex Mix, Cheddar - do not use (Package)",110,3,0,0,130,20,2,4,4,2,0,0,0,0,0,0,Sides,Grain,Lunch
+"Beef, Taco Meat, Pre-Cooked (1/2 cup (#8 scoop))",113,5,2,34,296,5,2,2,0,13,0,0,0,46,2,822,Main Hot Entree #1,Protein,Lunch
+Sweet N' Salty Popcorn (Bag),130,5,1,0,140,20,3,5,5,2,0,0,0,0,1,60,Sides,Grain,Lunch
+Carrot and Celery Sticks (1/4 cup),10,0,0,0,33,2,1,1,0,0,2653,2,0,17,0,122,Salad Bar Entree,Vegetable,Lunch
+"Peppers, Red, Whole (1/4 cup)",6,0,0,0,0,2,0,0,0,0,720,30,0,2,0,48,Sides,Vegetable,Lunch
+Vanilla Sugar Cookie (Cookie),70,2,1,7,47,12,1,6,6,1,0,0,1,23,0,23,A La Carte,Grain,Lunch
+Bean Street Tacos on Flour Tortillas (2 Tacos),330,8,3,5,630,52,10,3,2,12,0,0,0,72,3,194,Plant-Forward Hot Entree,Main,Lunch
+"Salsa, Mild Canned (1/4 cup)",20,0,0,0,140,4,3,3,0,0,0,0,0,0,0,0,Sides,Condiment,Lunch
+Korean Chicken Drumstick (Drumstick),317,16,4,118,1229,16,0,8,7,24,0,0,0,22,2,313,Main Hot Entree #1,Main,Lunch
+Black Bean and Corn Salad (1/2 cup),100,0,0,0,70,20,4,1,0,5,0,0,0,24,1,89,Sides,Vegetable,Lunch
+"CLPP, Broccoli Crowns (1/2 cup)",2,0,0,0,5,0,0,0,0,0,386,3,0,10,0,29,Sides,Vegetable,Lunch
+Hard Boiled Eggs (Each),78,5,2,187,62,1,0,1,0,6,260,0,1,25,1,63,Main Hot Entree #1,Protein,Breakfast
+Tikka Masala Sauce (ounce),0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,Main Hot Entree #1,Vegetable,Lunch
+Yellow Peach (Each),59,0,0,0,0,14,2,13,0,1,489,10,0,9,0,285,Sides,Fruit,Lunch
+"Cheese, Shredded, Cheddar (Cup)",320,24,16,80,808,8,0,0,0,32,0,0,0,0,0,0,Salad Bar Entree,Protein,Lunch
+"Pasta, Penne (Prepared) (1/2 cup cooked)",95,1,0,0,9,20,2,1,0,4,0,0,0,12,1,90,Main Hot Entree #1,Grain,Lunch
+"Patty, Chicken, Spicy, Breaded (Patty)",57,2,0,10,99,5,0,0,0,4,2,0,0,0,0,0,Salad Bar Entree,Protein,Lunch
+"Turkey,  Breast, Pre-Sliced, Oven Roasted (6 Slices)",80,2,0,40,466,0,0,0,0,18,0,0,0,0,0,142,Salad Bar Entree,Protein,Lunch
+"Peppers, Green, Whole (1/4 cup)",6,0,0,0,1,1,0,0,0,0,116,25,0,3,0,55,Sides,Vegetable,Lunch
+"Pasta, Penne (Prepared) (cup cooked)",190,2,0,0,18,40,4,2,0,8,0,0,0,12,2,180,Main Hot Entree #1,Grain,Lunch
+"Chicken, Diced (1/2 cup)",93,2,0,47,248,1,0,0,0,17,0,0,0,0,0,186,PreK,Protein,Lunch
+"Patty, Chicken, Breaded, WG (Serving)",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,Salad Bar Entree,Protein,Lunch
+Grape Tomatoes (2 Tablespoons),5,0,0,0,1,1,0,0,0,0,238,4,0,3,0,68,Sides,Vegetable,Lunch
+Coke Classic 24/12oz (Each),140,0,0,0,45,39,0,39,39,0,0,0,0,0,0,0,A La Carte,Snacks For Purchase,Lunch
+Diet Coke 24/12oz (Each),0,0,0,0,40,0,0,0,0,0,0,0,0,0,0,0,A La Carte,Snacks For Purchase,Lunch
+Cherry Coke 24/12oz (Each),150,0,0,0,35,42,0,42,42,0,0,0,0,0,0,0,A La Carte,Snacks For Purchase,Lunch
+Sprite 24/12oz (Each),140,0,0,0,65,38,0,38,38,0,0,0,0,0,0,0,A La Carte,Snacks For Purchase,Lunch
+Powerade Mixed Berry Zero (Each),0,0,0,0,240,0,0,0,0,0,0,18,0,0,0,80,A La Carte,Snacks For Purchase,Lunch
+Powerade Fruit Punch Zero (Each),0,0,0,0,150,0,0,0,0,0,0,0,0,0,0,40,A La Carte,Snacks For Purchase,Lunch
+Chicken Alfredo Pasta (heaping 1/2 cup (#8 scoop)),171,4,2,24,188,23,2,3,0,12,0,0,0,107,1,254,Main Hot Entree #1,Main,Lunch
+Strawberry Parfait Power Pack w/Egg (Power Pack),490,15,2,208,225,76,5,41,32,14,260,31,4,395,3,457,Power Pack,Main,Lunch
+"CLPP, Cucumbers (1 cup)",15,0,0,0,2,4,1,2,0,1,105,3,0,16,0,147,Sides,Vegetable,Lunch
+Chickenless Bites Wrap (Wrap),391,16,3,10,651,48,6,4,1,21,36,0,0,161,4,630,Main Hot Entree #1,Main,Lunch
+Chicken Parmesan Sandwich (Sandwich),459,21,5,45,827,45,6,6,3,26,748,3,7,359,3,286,Main Hot Entree #1,Main,Lunch
+Steamed Broccoli (1/4 cups),4,0,0,0,0,1,0,0,0,0,468,15,0,7,0,51,Sides,Vegetable,Lunch
+Sweet Thai Chili Chickenless Bites (4 bites),235,6,1,45,837,28,1,11,10,17,0,0,0,15,2,281,Main Hot Entree #1,Main,Lunch
+"IZZE, Apple (each)",70,0,0,0,10,15,0,15,0,0,0,0,0,0,0,0,A La Carte,Snacks For Purchase,Lunch
+"IZZE, Blackberry (each)",70,0,0,0,10,15,0,14,0,0,0,0,0,0,0,0,A La Carte,Snacks For Purchase,Lunch
+"IZZE, Strawberry (each)",70,0,0,0,10,16,0,14,0,0,0,0,0,0,0,0,A La Carte,Snacks For Purchase,Lunch
+Gatorade Zero Glacier Freeze (Each),5,0,0,0,270,2,0,0,0,0,0,0,0,0,0,80,A La Carte,Snacks For Purchase,Lunch
+Turkey Breast Steak (2 Slices),80,2,1,30,440,0,0,0,0,17,0,0,0,0,0,190,Main Hot Entree #1,Main,Lunch
+Turkey Barbacoa (1/2 Cup),99,4,1,55,527,2,0,0,0,14,0,0,0,0,1,14,Main Hot Entree #1,Protein,Lunch
+Tortilla Chips (26 chips),277,12,2,0,148,38,2,0,0,4,0,0,0,0,0,119,Plant-Forward Hot Entree,Grain,Lunch
+Chicken & Cheese Nachos (Serving),505,21,6,66,925,46,3,5,0,32,0,0,0,186,0,699,Hot Grab & Go #2,Main,Lunch
+"Pasta, Frozen, Penne (Serving Size)",250,2,0,0,20,49,6,2,0,9,0,0,0,0,2,290,Plant-Forward Hot Entree,Grain,Lunch
+"Tortilla Chips, Reduced Fat Tostitos, IW (Each)",120,4,1,0,95,18,2,0,0,2,0,0,0,20,0,40,A La Carte,Grain,Dinner
+"Carrots, Slims Bulk (Sub For Receiving Only) (3 baby carrots per 1/4 cup)",12,0,0,0,27,3,1,2,0,0,4848,1,0,11,0,83,Main Hot Entree #1,Vegetable,Lunch
+Vanilla Yogurt (1/2 cup),104,2,1,6,81,17,0,17,0,6,15,1,0,209,0,268,Daily Yogurt Entree,Main,Lunch
