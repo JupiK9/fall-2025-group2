@@ -341,8 +341,8 @@ def run_size_based_optimization(schools_to_optimize, meal_types, meal_costs, dem
     and saves the output to a separate CSV file.
     """
 
-    dfb = pd.read_csv('../data/preprocessed-data/breakfast_combined.csv')
-    dfl = pd.read_csv('../data/preprocessed-data/lunch_combined.csv')
+    dfb = pd.read_csv('../data/preprocessed-data/breakfast_combined.csv', low_memory=False)
+    dfl = pd.read_csv('../data/preprocessed-data/lunch_combined.csv', low_memory=False)
 
     # --- Create the school_sizes dictionary ---
     school_sizes = {}
@@ -507,3 +507,126 @@ def run_proportional_monthly_optimization(data, total_budget=139144760):
             dfl,
             '../data/monthly_proportional_to_size.csv'
         )
+    return results_df, school_budgets, meal_costs
+
+def calculate_actual_annual_cost(data):
+    """
+    Calculates the actual total food cost from the source data and
+    extrapolates it to a full 10-month school year.
+    """
+    print("\n--- Calculating Baseline (Actual) Annual Food Cost ---")
+    dfb = data['dfb']
+    dfl = data['dfl']
+    
+    # Sum the costs from the one-month data period
+    actual_monthly_cost = dfb['production_cost_total'].sum() + dfl['production_cost_total'].sum()
+    
+    # Scale to a 10-month school year
+    actual_annual_cost = actual_monthly_cost * 10
+    
+    print(f"Actual cost for the data period (1 month): ${actual_monthly_cost:,.2f}")
+    print(f"Estimated Actual Annual Food Cost: ${actual_annual_cost:,.2f}")
+    
+    return actual_annual_cost
+
+def analyze_annual_budget(results_df, school_budgets, meal_costs, actual_annual_cost=None):
+    """
+    Calculates the remaining annual budget for each school after scaling the
+    optimized monthly food costs to a full 10-month school year.
+    """
+    if results_df is None:
+        print("Skipping budget analysis: No optimization results available.")
+        return None
+
+    print("\n" + "="*60)
+    print("ANALYSIS: Remaining Annual Budget for Non-Food Expenses")
+    print("="*60)
+
+    MONTHS_IN_SCHOOL_YEAR = 10
+
+    # Map meal types to their costs
+    meal_cost_map = {'Breakfast': meal_costs[0], 'Lunch': meal_costs[1]}
+    results_df['monthly_food_cost'] = results_df.apply(
+        lambda row: row['optimal_quantity'] * meal_cost_map[row['meal_type']],
+        axis=1
+    )
+
+    # Calculate total food cost per school for one month
+    school_monthly_costs = results_df.groupby('school')['monthly_food_cost'].sum().reset_index()
+
+    # Create a DataFrame for the analysis
+    budget_analysis_df = pd.DataFrame(list(school_budgets.items()), columns=['school', 'proportional_annual_budget'])
+    budget_analysis_df = pd.merge(budget_analysis_df, school_monthly_costs, on='school', how='left').fillna(0)
+
+    # Scale monthly food cost to a full 10-month school year
+    budget_analysis_df['annual_food_cost'] = budget_analysis_df['monthly_food_cost'] * MONTHS_IN_SCHOOL_YEAR
+    budget_analysis_df['remaining_annual_balance'] = budget_analysis_df['proportional_annual_budget'] - budget_analysis_df['annual_food_cost']
+    
+    # Calculate and print the grand totals for the full year
+    total_budget = budget_analysis_df['proportional_annual_budget'].sum()
+    grand_total_food_cost = budget_analysis_df['annual_food_cost'].sum()
+    grand_total_remaining = budget_analysis_df['remaining_annual_balance'].sum()
+
+    print("\n--- Overall Financial Summary (Annual) ---")
+    print(f"Total Allocated Annual Budget: ${total_budget:,.2f}")
+    print(f"Grand Total Annual Food Expenses: ${grand_total_food_cost:,.2f}")
+    print(f"Grand Total Remaining for Other Expenses: ${grand_total_remaining:,.2f}")
+
+    if actual_annual_cost is not None:
+        savings = actual_annual_cost - grand_total_food_cost
+        savings_percent = (savings / actual_annual_cost) * 100
+        print("\n-- Savings Analysis ---")
+        print(f"Baseline Actual Annual Food Cost: ${actual_annual_cost:,.2f}")
+        print(f"Optimized Annual Food Cost: ${grand_total_food_cost:,.2f}")
+        print(f"Total Annual Savings: ${savings:,.2f} ({savings_percent:.2f}%)")
+
+    # Format for display
+    print("\n--- Detailed Breakdown by School (Annual) ---")
+    display_df = budget_analysis_df[['school', 'proportional_annual_budget', 'annual_food_cost', 'remaining_annual_balance']].copy()
+    for col in display_df.columns[1:]:
+        display_df[col] = display_df[col].map('${:,.2f}'.format)
+
+    return display_df
+
+def prepare_savings_analysis_df(data, results_df, meal_costs):
+    """
+    Prepares a DataFrame comparing actual and optimized annual costs for each school.
+    """
+    if results_df is None:
+        return None
+
+    dfb = data['dfb']
+    dfl = data['dfl']
+    df_sizes = data['df_sizes']
+    MONTHS_IN_SCHOOL_YEAR = 10
+
+    # Calculate Optimized Annual Cost per School
+    meal_cost_map = {'Breakfast': meal_costs[0], 'Lunch': meal_costs[1]}
+    results_df['monthly_food_cost'] = results_df.apply(
+        lambda row: row['optimal_quantity'] * meal_cost_map[row['meal_type']], axis=1
+    )
+    optimized_costs = results_df.groupby('school')['monthly_food_cost'].sum().reset_index()
+    optimized_costs['optimized_annual_cost'] = optimized_costs['monthly_food_cost'] * MONTHS_IN_SCHOOL_YEAR
+
+    # Calculate Actual Annual Cost per School
+    actual_costs_b = dfb.groupby('school_name')['production_cost_total'].sum()
+    actual_costs_l = dfl.groupby('school_name')['production_cost_total'].sum()
+    actual_costs = (actual_costs_b.add(actual_costs_l, fill_value=0) * MONTHS_IN_SCHOOL_YEAR).reset_index(name='actual_annual_cost')
+    actual_costs.rename(columns={'school_name': 'school'}, inplace=True)
+
+    # Combine into a single DataFrame
+    savings_df = pd.merge(actual_costs, optimized_costs[['school', 'optimized_annual_cost']], on='school', how='left')
+    
+    # This handles schools that were not in the optimization results.
+    savings_df['optimized_annual_cost'].fillna(0, inplace=True)
+
+    savings_df['savings'] = savings_df['actual_annual_cost'] - savings_df['optimized_annual_cost']
+    
+    # Create an 'outcome' column and an absolute value column for size
+    savings_df['outcome'] = np.where(savings_df['savings'] >= 0, 'Savings', 'Loss')
+    savings_df['savings_magnitude'] = savings_df['savings'].abs()
+    
+    # Add size category for additional hover data
+    savings_df = pd.merge(savings_df, df_sizes[['school_name', 'size_category']], left_on='school', right_on='school_name', how='left')
+
+    return savings_df

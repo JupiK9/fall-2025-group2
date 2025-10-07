@@ -18,7 +18,54 @@ This project demonstrates how to use data analysis, time-series, and linear prog
 - Minimum nutritional requirements
 - Demand forecasting limits
 
-### Optimization Approaches
+---
+
+## Data Preparation
+
+### Data Transformer (HTML)
+>
+> This pipeline processes structured HTML reports of school lunch and breakfast production data and converts them into clean csv files for analysis.
+> - Reads all `.html` files from `../data/FairfaxCounty/May 2025 Lunch Production records/May 2025 Breakfast production records` and `../data/FairfaxCounty/May 2025 Lunch Production records/May 2025 Lunch production records`.
+> - Extracts tables for each school using `BeautifulSoup`.
+> - Parses key metrics: planned, offered, served, discarded, and cost-related values.
+> - Automatically detects the reporting date from the content or file name.
+> - Saves parsed results as individual `.csv` files in the target directory.
+>
+
+### CSV Combiner (HTML)
+>
+> Gathers all the csv files created from the Data Transformer and combines them together to their respective period they represent.
+> - Collects all `.csv` files in an output folder.
+> - Merges them into one combined dataset.
+> - Optionally sorts by columns like `School_Name`, `Date`, and `Identifier`.
+> - Saves final merged CSVs for both **Breakfast** and **Lunch** datasets.
+>
+
+### PDF Processing
+>
+> Reads all PDF files from a specified folder and gathers all the relevant values from each individual PDF files and generate a combined `sales.csv` file.
+>
+
+---
+
+## Data Cleaning and Exploratory Data Analysis
+>
+>
+>
+
+### Food Popularity
+>
+> This section in the analysis provides an analysis of menu items that students and adults are purchasing, eating, and not leaving as much left over when the food period concludes.
+>
+> `food_popularity`: function that provides the user the individual menu items with their total amount served to students and adults across every school in the Fairfax County Public School system.
+>
+> `net_consumption`: function that provides an analysis of menu items that were served to students and adults subtracted by the amount of each menu item was discarded across all the schools in the system.
+>
+> `leftover_rate`: 
+
+---
+
+## Optimization Approaches
 ---
 
 #### 1. Linear Programming (LP)
