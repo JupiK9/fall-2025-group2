@@ -1,14 +1,19 @@
 #%% imports
 import numpy as np
-import matplotlib.pyplot as plt
 import seaborn as sns
 import statsmodels.api as sm
+# Corrected Import: Import ARIMA directly from statsmodels.tsa.arima.model
+from statsmodels.tsa.arima.model import ARIMA
 import datetime as dt
 import pandas as pd
 import warnings
 import matplotlib.pyplot as plt
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from statsmodels.tsa.stattools import adfuller, kpss
+from sklearn.preprocessing import MinMaxScaler
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense
+from sklearn.metrics import mean_squared_error, r2_score
 
 # Configure settings
 warnings.filterwarnings("ignore")
@@ -62,7 +67,7 @@ plt.show()
 
 
 # Encoding for potential independent variable
-non_categorical_variables= ['school_code', 'item','free_meals', 'reduced_price_meals','full_price_meals','alac_student']
+non_categorical_variables= ['school_code', 'item','free_meals', 'reduced_price_meals','full_price_meals','adults','alac_adult','alac_student','earned_student','earned_adult','earned_alac_student','earned_alac_adult','adj_alac','adj_meal']
 categorical_variable = ['time_of_day']
 #note that 'time_of_day' needs to be encoded
 # Encoding 'time_of_day'
@@ -261,186 +266,15 @@ try:
     # Get the last observation from the training data (original 'total' series)
     last_train_value = train_data[target_variable].iloc[-1]
 
-    # To forecast using AR(1) on the differenced data, we need to:
-    # 1. Forecast the differenced value.
-    # 2. Add this differenced forecast back to the last known original value.
-
-    # Predict the differenced values for the length of the test set
-    # The 'start' and 'end' parameters refer to the index of the differenced series.
-    # Since we are forecasting for the test set period, we need to determine the
-    # number of steps to forecast, which is the length of the test set.
-
-    # We need to make sure the forecast index aligns with the test set's dates.
-    # The ARIMA predict method can take a start and end date/index directly.
-    # However, since we are predicting 'differenced' values, we need to be careful
-    # when converting back to original scale.
 
     # A simpler approach for step-by-step forecasting and converting back to original scale:
     history = [x for x in train_data[target_variable]]  # Original training data
     predictions_ar1 = list()
 
-    # Re-difference the test data for comparison if needed, but we forecast original scale
-    # We will forecast the original scale based on the differenced model.
 
     # We iterate through the test set to make step-ahead predictions
     # This simulates how the model would be used in production for true out-of-sample forecasting
     for t in range(len(test_data)):
-        # Refit the model with the latest data up to the current point 't' in test set,
-        # or use the pre-fitted model for multiple step ahead predictions.
-        # For simplicity and given the task, let's use the fitted model on train_data_diff
-        # to predict the next differenced value, then convert back.
-
-        # Predict the next differenced value from the current model
-        # Using the last observed differenced value for an AR(1) forecast.
-        # However, `ARIMA.predict` automatically handles using the last data points.
-
-        # This approach for AR(1) model needs to be careful:
-        # AR(1) on differenced data means: diff_y_t = c + phi * diff_y_{t-1} + e_t
-        # So y_t - y_{t-1} = c + phi * (y_{t-1} - y_{t-2}) + e_t
-        # y_t = y_{t-1} + c + phi * (y_{t-1} - y_{t-2}) + e_t
-
-        # Let's use the standard `forecast` method for ARIMA.
-        # The `steps` argument is for forecasting N steps *ahead of the end of the training data*.
-        # It's generally better to use the `get_forecast` method for more detailed results including confidence intervals.
-
-        # For an AR(1) on *differenced* data, the forecast will be for the differenced value.
-        # We need to manually "undifference" it.
-
-        # Let's forecast for the entire test period in one go for the differenced series
-        forecast_diff_steps = len(test_data)
-        forecast_results = ar1_results.get_forecast(steps=forecast_diff_steps)
-        forecast_diff_values = forecast_results.predicted_mean
-
-        # Convert differenced forecasts back to the original scale
-        # We start with the last observed value from the training data
-        last_observed_value = train_data[target_variable].iloc[-1]
-
-        # Initialize list for original scale predictions
-        original_scale_predictions = []
-
-        # Iterate through differenced forecasts to reconstruct original scale
-        current_prediction_value = last_observed_value
-        for diff_forecast in forecast_diff_values:
-            # The next original value is the current original value + the forecasted difference
-            current_prediction_value = current_prediction_value + diff_forecast
-            original_scale_predictions.append(current_prediction_value)
-
-        # Convert to pandas Series with the test_data index for easy plotting and evaluation
-        ar1_test_predictions = pd.Series(original_scale_predictions, index=test_data.index)
-
-        # Evaluate the model on the test set
-        mse_ar1_test = ((ar1_test_predictions - Y_test) ** 2).mean()
-        rmse_ar1_test = np.sqrt(mse_ar1_test)
-
-        ss_total_ar1 = ((Y_test - Y_test.mean()) ** 2).sum()
-        ss_residual_ar1 = ((Y_test - ar1_test_predictions) ** 2).sum()
-        r_squared_ar1_test = 1 - (ss_residual_ar1 / ss_total_ar1) if ss_total_ar1 > 0 else 0
-
-        print(f"\n--- AR(1) Model Test Set Evaluation (Differenced Series) ---")
-        print(f"Mean Squared Error (MSE): {mse_ar1_test:.4f}")
-        print(f"Root Mean Squared Error (RMSE): {rmse_ar1_test:.4f}")
-        print(f"R-squared: {r_squared_ar1_test:.4f}")
-
-        # Plotting Actual vs. Predicted values for the test set
-        plt.figure(figsize=(14, 7))
-        plt.plot(Y_test.index, Y_test, label='Actual Total Sales', color='blue', alpha=0.7)
-        plt.plot(ar1_test_predictions.index, ar1_test_predictions, label='Predicted Total Sales (AR(1))', color='green',
-                 linestyle='--', alpha=0.7)
-        plt.title('AR(1) Model: Actual vs. Predicted Total Sales (Test Set)')
-        plt.xlabel('Date')
-        plt.ylabel('Total Food Sales')
-        plt.legend()
-        plt.grid(True)
-        plt.tight_layout()
-        plt.show()
-
-        # Residual Plot for AR(1)
-        residuals_ar1 = Y_test - ar1_test_predictions
-        plt.figure(figsize=(14, 7))
-        plt.scatter(ar1_test_predictions, residuals_ar1, alpha=0.6)
-        plt.axhline(y=0, color='red', linestyle='--')
-        plt.title('Residual Plot (AR(1) Model - Test Set)')
-        plt.xlabel('Predicted Values')
-        plt.ylabel('Residuals')
-        plt.grid(True)
-        plt.tight_layout()
-        plt.show()
-
-
-except Exception as e:
-    print(f"An error occurred while fitting or forecasting with the AR(1) model: {e}")
-    print("Please ensure 'train_data_diff' has sufficient length and variance for model fitting.")
-
-
-# %% AR(1) Model for Differenced Time Series
-
-print("\n--- Building an AR(1) Model for the Differenced Training Data ---")
-
-# Define the order for AR(1) on the differenced series: (p=1, d=0, q=0)
-# We use d=0 because train_data_diff is already differenced.
-# If we were to model the original series, it would be ARIMA(1,1,0) for an AR(1) on first-differenced data.
-order_ar1 = (1, 0, 0)  # (AR order, Differencing order, MA order)
-
-# Fit the AR(1) model
-# Using the statsmodels ARIMA model, which is versatile.
-# We fit it on the 'train_data_diff' which is the differenced 'total' series.
-try:
-    ar1_model = sm.tsa.arima.model.ARIMA(train_data_diff, order=order_ar1)
-    ar1_results = ar1_model.fit()
-
-    # Print the model summary
-    print(ar1_results.summary())
-
-    # --- Forecasting with AR(1) ---
-    print("\n--- Forecasting with AR(1) Model ---")
-
-    # Get the last observation from the training data (original 'total' series)
-    last_train_value = train_data[target_variable].iloc[-1]
-
-    # To forecast using AR(1) on the differenced data, we need to:
-    # 1. Forecast the differenced value.
-    # 2. Add this differenced forecast back to the last known original value.
-
-    # Predict the differenced values for the length of the test set
-    # The 'start' and 'end' parameters refer to the index of the differenced series.
-    # Since we are forecasting for the test set period, we need to determine the
-    # number of steps to forecast, which is the length of the test set.
-
-    # We need to make sure the forecast index aligns with the test set's dates.
-    # The ARIMA predict method can take a start and end date/index directly.
-    # However, since we are predicting 'differenced' values, we need to be careful
-    # when converting back to original scale.
-
-    # A simpler approach for step-by-step forecasting and converting back to original scale:
-    history = [x for x in train_data[target_variable]]  # Original training data
-    predictions_ar1 = list()
-
-    # Re-difference the test data for comparison if needed, but we forecast original scale
-    # We will forecast the original scale based on the differenced model.
-
-    # We iterate through the test set to make step-ahead predictions
-    # This simulates how the model would be used in production for true out-of-sample forecasting
-    for t in range(len(test_data)):
-        # Refit the model with the latest data up to the current point 't' in test set,
-        # or use the pre-fitted model for multiple step ahead predictions.
-        # For simplicity and given the task, let's use the fitted model on train_data_diff
-        # to predict the next differenced value, then convert back.
-
-        # Predict the next differenced value from the current model
-        # Using the last observed differenced value for an AR(1) forecast.
-        # However, `ARIMA.predict` automatically handles using the last data points.
-
-        # This approach for AR(1) model needs to be careful:
-        # AR(1) on differenced data means: diff_y_t = c + phi * diff_y_{t-1} + e_t
-        # So y_t - y_{t-1} = c + phi * (y_{t-1} - y_{t-2}) + e_t
-        # y_t = y_{t-1} + c + phi * (y_{t-1} - y_{t-2}) + e_t
-
-        # Let's use the standard `forecast` method for ARIMA.
-        # The `steps` argument is for forecasting N steps *ahead of the end of the training data*.
-        # It's generally better to use the `get_forecast` method for more detailed results including confidence intervals.
-
-        # For an AR(1) on *differenced* data, the forecast will be for the differenced value.
-        # We need to manually "undifference" it.
 
         # Let's forecast for the entire test period in one go for the differenced series
         forecast_diff_steps = len(test_data)
@@ -513,21 +347,9 @@ except Exception as e:
 ################
 # %% LSTM Analysis for Time Series Forecasting
 
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-from sklearn.preprocessing import MinMaxScaler
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense
-from sklearn.metrics import mean_squared_error, r2_score
-
 print("\n--- Starting LSTM Analysis ---")
 
 # --- 1. Data Preparation for LSTM ---
-
-# We will use the original 'total' series for LSTM, as differencing can sometimes be
-# learned by LSTMs internally, or we can feed it the differenced series directly.
-# For simplicity, let's start with the original series, but scaled.
 
 # Select the target variable for LSTM
 lstm_data = df[[target_variable]]
@@ -571,8 +393,8 @@ print(f"LSTM Test X shape: {X_test_lstm.shape}, Y shape: {Y_test_lstm.shape}")
 
 print("\n--- Building LSTM Model ---")
 lstm_model = Sequential()
-lstm_model.add(LSTM(50, return_sequences=True, input_shape=(look_back, 1))) # 50 units, return sequences for next LSTM layer
-lstm_model.add(LSTM(50, return_sequences=False)) # 50 units, don't return sequences for final dense layer
+lstm_model.add(LSTM(20, return_sequences=True, input_shape=(look_back, 1))) # 50 units, return sequences for next LSTM layer
+lstm_model.add(LSTM(20, return_sequences=False)) # 50 units, don't return sequences for final dense layer
 lstm_model.add(Dense(1)) # Output layer with 1 neuron for single value prediction
 
 lstm_model.compile(optimizer='adam', loss='mean_squared_error')
@@ -582,7 +404,7 @@ lstm_model.summary()
 # --- 3. Training the LSTM Model ---
 
 print("\n--- Training LSTM Model (This may take a while) ---")
-history = lstm_model.fit(X_train_lstm, Y_train_lstm, epochs=50, batch_size=32, verbose=1, shuffle=False)
+history = lstm_model.fit(X_train_lstm, Y_train_lstm, epochs=20, batch_size=16, verbose=1, shuffle=False)
 
 # Plot training loss
 plt.figure(figsize=(12, 6))
