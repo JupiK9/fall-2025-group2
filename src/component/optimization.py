@@ -283,8 +283,6 @@ def run_meal_optimization_ilp(schools_to_optimize, meal_types, meal_costs, deman
         print(f"An error occurred during optimization: {e}")
         return None
 
-
-
 # ==============================================================================
 # Food Item popularity optimization
 # ==============================================================================
@@ -330,7 +328,6 @@ def generate_item_breakdown(optimization_results_df, dfb, dfl, output_filename):
 
     else:
         print("Optimization did not produce a result")
-
 
 # ==============================================================================
 # Size based and monthly optimization
@@ -509,6 +506,9 @@ def run_proportional_monthly_optimization(data, total_budget=139144760):
         )
     return results_df, school_budgets, meal_costs
 
+# ==============================================================================
+# Calculate the actual annual cost of producing the foods
+# ==============================================================================
 def calculate_actual_annual_cost(data):
     """
     Calculates the actual total food cost from the source data and
@@ -529,6 +529,9 @@ def calculate_actual_annual_cost(data):
     
     return actual_annual_cost
 
+# ==============================================================================
+# Creating a graph for savings analysis
+# ==============================================================================
 def analyze_annual_budget(results_df, school_budgets, meal_costs, actual_annual_cost=None):
     """
     Calculates the remaining annual budget for each school after scaling the
@@ -630,3 +633,41 @@ def prepare_savings_analysis_df(data, results_df, meal_costs):
     savings_df = pd.merge(savings_df, df_sizes[['school_name', 'size_category']], left_on='school', right_on='school_name', how='left')
 
     return savings_df
+
+# ==============================================================================
+# Data preparation for graphing savings by school size 
+# ==============================================================================
+def analyze_savings_by_school_size(results_df, school_budgets, meal_costs, df_sizes):
+    """
+    Aggregates the budget, optimized cost, and savings by school size category.
+    """
+    if results_df is None or df_sizes is None:
+        print("Skipping analysis: Missing results or size information.")
+        return None
+
+    print("\n" + "="*60)
+    print("ANALYSIS: Savings by School Size Category")
+    print("="*60)
+
+    # Calculate annual food cost for each school
+    MONTHS_IN_SCHOOL_YEAR = 10
+    meal_cost_map = {'Breakfast': meal_costs[0], 'Lunch': meal_costs[1]}
+    results_df['monthly_food_cost'] = results_df.apply(
+        lambda row: row['optimal_quantity'] * meal_cost_map[row['meal_type']], axis=1
+    )
+    school_costs = results_df.groupby('school')['monthly_food_cost'].sum().reset_index()
+    school_costs['annual_food_cost'] = school_costs['monthly_food_cost'] * MONTHS_IN_SCHOOL_YEAR
+
+    # Combine budget and cost data with school size data
+    budget_df = pd.DataFrame(list(school_budgets.items()), columns=['school', 'proportional_annual_budget'])
+    analysis_df = pd.merge(budget_df, school_costs[['school', 'annual_food_cost']], on='school', how='left')
+    analysis_df = pd.merge(analysis_df, df_sizes[['school_name', 'size_category']], left_on='school', right_on='school_name', how='left')
+
+    # Group by size category and sum the totals
+    agg_df = analysis_df.groupby('size_category')[['proportional_annual_budget', 'annual_food_cost']].sum().reset_index()
+    
+    # Calculate savings in dollars and as a percentage
+    agg_df['total_savings'] = agg_df['proportional_annual_budget'] - agg_df['annual_food_cost']
+    agg_df['percent_savings'] = (agg_df['total_savings'] / agg_df['proportional_annual_budget']) * 100
+
+    return agg_df
