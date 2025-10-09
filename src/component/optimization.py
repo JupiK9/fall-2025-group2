@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from scipy.optimize import linprog, milp, LinearConstraint, Bounds
+import geopandas as gpd
 
 # ==============================================================================
 # Data Preparation for Optimization
@@ -671,3 +672,97 @@ def analyze_savings_by_school_size(results_df, school_budgets, meal_costs, df_si
     agg_df['percent_savings'] = (agg_df['total_savings'] / agg_df['proportional_annual_budget']) * 100
 
     return agg_df
+
+# ==============================================================================
+# Geospatial analysis
+# ==============================================================================
+
+# Per school analysis
+def prepare_map_data_from_coordinates(savings_df, coordinates_csv_path):
+    """
+    Merges savings data with a CSV file containing school coordinates.
+    """
+    if savings_df is None:
+        print("Skipping map data prep: No savings data available.")
+        return None
+    
+    print("\n--- Preparing Map Data from Coordinates ---")
+    
+    try:
+        # Read the coordinates file
+        coords_df = pd.read_csv(coordinates_csv_path, low_memory=False)
+        coords_df.columns = coords_df.columns.str.lower()
+        
+        # Ensure school name column is consistent and select necessary columns
+        if 'school_name' in coords_df.columns:
+            coords_df.rename(columns={'school_name': 'school'}, inplace=True)
+            coords_df['school'] = coords_df['school'].str.lower()
+        else:
+            print("Error: Could not find 'school_name' column in coordinates file.")
+            return None
+
+        # Keep only the essential columns and remove duplicates
+        coords_df = coords_df[['school', 'latitude', 'longitude']].drop_duplicates(subset='school')
+        
+        # Merge with savings data
+        map_df = pd.merge(savings_df, coords_df, on='school', how='inner')
+        
+        # Drop rows with missing coordinates
+        map_df.dropna(subset=['latitude', 'longitude'], inplace=True)
+
+        print(f"Successfully merged coordinate data for {len(map_df)} schools.")
+        return map_df
+        
+    except FileNotFoundError:
+        print(f"Error: Coordinates file not found at {coordinates_csv_path}")
+        return None
+    except Exception as e:
+        print(f"An error occurred during map data preparation: {e}")
+        return None
+
+# Regional analysis
+def prepare_regional_map_data(savings_df, coordinates_csv_path):
+    """
+    Aggregates school savings data by FCPS Region.
+    """
+    if savings_df is None:
+        print("Skipping regional map prep: No savings data available.")
+        return None
+
+    print("\n--- Preparing Regional Map Data ---")
+    try:
+        # Read coordinates file to get region data
+        coords_df = pd.read_csv(coordinates_csv_path, low_memory=False)
+        coords_df.columns = coords_df.columns.str.lower()
+
+        # Clean and select necessary columns
+        if 'school_name' in coords_df.columns:
+            coords_df.rename(columns={'school_name': 'school'}, inplace=True)
+            coords_df['school'] = coords_df['school'].str.lower()
+        else:
+            print("Error: 'school_name' column not found in coordinates file.")
+            return None
+
+        # Keep only the columns needed for regional aggregation
+        region_df = coords_df[['school', 'fcps region', 'latitude', 'longitude']].drop_duplicates(subset='school')
+
+        # Merge savings data with region data
+        merged_df = pd.merge(savings_df, region_df, on='school', how='inner')
+
+        # Group by region and aggregate the results
+        regional_summary = merged_df.groupby('fcps region').agg(
+            total_savings=('savings', 'sum'),
+            latitude=('latitude', 'mean'),  # Get the average location for the bubble
+            longitude=('longitude', 'mean')
+        ).reset_index()
+
+        # Determine the outcome (Savings or Loss) for the entire region
+        regional_summary['outcome'] = np.where(regional_summary['total_savings'] >= 0, 'Savings', 'Loss')
+        regional_summary['savings_magnitude'] = regional_summary['total_savings'].abs()
+
+        print(f"Successfully aggregated savings for {len(regional_summary)} regions.")
+        return regional_summary
+
+    except Exception as e:
+        print(f"An error occurred during regional data preparation: {e}")
+        return None
