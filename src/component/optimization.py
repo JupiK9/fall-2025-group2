@@ -2,6 +2,8 @@ import pandas as pd
 import numpy as np
 from scipy.optimize import linprog, milp, LinearConstraint, Bounds
 import geopandas as gpd
+import folium
+import json
 
 # ==============================================================================
 # Data Preparation for Optimization
@@ -77,7 +79,7 @@ def run_meal_optimization(schools_to_optimize, meal_types, meal_costs, demand, s
     """
     num_vars = len(schools_to_optimize) * len(meal_types)
 
-    # --- Objective Function ---
+    # Objective Function
     c = []
     variable_names = []
     for school in schools_to_optimize:
@@ -90,7 +92,7 @@ def run_meal_optimization(schools_to_optimize, meal_types, meal_costs, demand, s
     print("\n--- Linear Programming Optimization (Daily) ---")
     print("Objective: Minimize Cost + Waste Penalty")
 
-    # --- Constraints ---
+    # Constraints
     A_ineq = []
     b_ineq = []
 
@@ -110,7 +112,7 @@ def run_meal_optimization(schools_to_optimize, meal_types, meal_costs, demand, s
     A_ineq.append(total_budget_constraint)
     b_ineq.append(total_budget)
 
-    # --- Running the Optimization ---
+    # Running the Optimization
     try:
         result = linprog(
             c=c,
@@ -120,7 +122,7 @@ def run_meal_optimization(schools_to_optimize, meal_types, meal_costs, demand, s
             method='highs'
         )
 
-         # --- Display Results ---
+         # Display Results
         if result.success:
             print(f"\nOptimization Successful!")
             print(f"Minimum Cost: ${result.fun:.2f}")
@@ -149,7 +151,7 @@ def run_meal_optimization(schools_to_optimize, meal_types, meal_costs, demand, s
             print("\n---")
             print(f"Total production cost across all schools: ${total_cost_check:.2f} (Total Budget: ${total_budget:.2f})")
 
-            # --- Waste Analysis ---
+            # Waste Analysis
             print(f"\nWaste Analysis")
             total_waste = 0
             for i, school in enumerate(schools_to_optimize):
@@ -179,7 +181,7 @@ def run_meal_optimization_ilp(schools_to_optimize, meal_types, meal_costs, deman
     """
     num_vars = len(schools_to_optimize) * len(meal_types)
 
-    # --- Objective Function ---
+    # Objective Function
     c = []
     variable_names = []
     for school in schools_to_optimize:
@@ -192,7 +194,7 @@ def run_meal_optimization_ilp(schools_to_optimize, meal_types, meal_costs, deman
     print("\n--- Integer Linear Programming Optimization (Daily) ---")
     print("Objective: Minimize Cost + Waste Penalty")
 
-    # --- Constraints ---
+    # Constraints
     A_ineq = []
     b_ineq = []
 
@@ -220,7 +222,7 @@ def run_meal_optimization_ilp(schools_to_optimize, meal_types, meal_costs, deman
     upper_bounds = [b[1] for b in bounds]
     bounds_obj = Bounds(lb=lower_bounds, ub=upper_bounds)
 
-    # --- Running the Optimization ---
+    # Running the Optimization
     try:
         integrality = [1] * num_vars
 
@@ -231,7 +233,7 @@ def run_meal_optimization_ilp(schools_to_optimize, meal_types, meal_costs, deman
             constraints=constraints
         )
 
-         # --- Display Results ---
+         # Display Results
         if result.success:
             print(f"\nOptimization Successful!")
             print(f"Minimum Cost: ${result.fun:.2f}")
@@ -260,7 +262,7 @@ def run_meal_optimization_ilp(schools_to_optimize, meal_types, meal_costs, deman
             print("\n---")
             print(f"Total production cost across all schools: ${total_cost_check:.2f} (Total Budget: ${total_budget:.2f})")
 
-            # --- Waste Analysis ---
+            # Waste Analysis
             print(f"\nWaste Analysis")
             total_waste = 0
             for i, school in enumerate(schools_to_optimize):
@@ -293,7 +295,7 @@ def generate_item_breakdown(optimization_results_df, dfb, dfl, output_filename):
         print("Skipping item breakdown: No optimization results.")
         return
     
-    # --- Generate Food Item Breakdown ---
+    # Generate Food Item Breakdown
     if optimization_results_df is not None:
         # Calculate popularity proportion for each itm within its meal type
         bf_popularity = dfb.groupby('name')['served_reimbursable'].sum()
@@ -766,3 +768,170 @@ def prepare_regional_map_data(savings_df, coordinates_csv_path):
     except Exception as e:
         print(f"An error occurred during regional data preparation: {e}")
         return None
+
+def generate_fcps_region_choropleth(
+    savings_df: "pd.DataFrame",
+    coords_csv_path: str,
+    geojson_path: str,
+    legend_name: str = "Optimization Savings per Region (USD)",
+    save_path: str | None = None,
+    bins: int | None = 6,
+    normalize_school_names: bool = True,
+):
+    """
+    Build an FCPS region choropleth (green = savings, red = loss).
+
+    Parameters
+    ----------
+    savings_df : pd.DataFrame
+        Must have ['school','savings'] columns.
+    coords_csv_path : str
+        CSV with School_Name (or school_name), FCPS Region, latitude, longitude.
+    geojson_path : str
+        GeoJSON with properties.REGION (1..N).
+    legend_name : str
+        Title for the legend.
+    save_path : str | None
+        Optional output HTML file path.
+    bins : int | None
+        Number of bins for color breaks. Set None to let folium auto-scale.
+    normalize_school_names : bool
+        Lowercases and trims school names for safer joins.
+    """
+    
+    # Load and normalize coordinate data
+    coords = pd.read_csv(coords_csv_path, low_memory=False)
+    coords.columns = coords.columns.str.lower()
+    school_col = "school_name" if "school_name" in coords.columns else "school"
+
+    lookup = (
+        coords[[school_col, "fcps region", "latitude", "longitude"]]
+        .drop_duplicates(subset=school_col)
+        .rename(columns={school_col: "school"})
+    )
+
+    # Normalize and merge savings data
+    sdf = savings_df.copy()
+    sdf["savings"] = pd.to_numeric(sdf["savings"], errors="coerce")
+    if normalize_school_names:
+        sdf["school"] = sdf["school"].astype(str).str.strip().str.lower()
+        lookup["school"] = lookup["school"].astype(str).str.strip().str.lower()
+
+    merged = sdf.merge(lookup, on="school", how="inner")
+    regional = (
+        merged.groupby("fcps region", as_index=False)
+        .agg(total_savings=("savings", "sum"))
+    )
+    regional["REGION"] = (
+        regional["fcps region"].astype(str).str.extract(r"(\d+)").astype(int)
+    )
+
+    regional_map_df = regional[["REGION", "total_savings"]].copy()
+    regional_map_df["REGION_KEY"] = regional_map_df["REGION"].astype(str)
+    regional_map_df["total_savings"] = pd.to_numeric(
+        regional_map_df["total_savings"], errors="coerce"
+    ).fillna(0.0)
+
+    # Load GeoJSON and align join key
+    with open(geojson_path, "r") as f:
+        gj = json.load(f)
+    for feat in gj.get("features", []):
+        props = feat.get("properties", {})
+        if "REGION" in props and props["REGION"] is not None:
+            props["REGION_KEY"] = str(int(props["REGION"]))
+        feat["properties"] = props
+
+    # Compute map center
+    def _geojson_center(geojson):
+        centers = []
+        for feat in geojson.get("features", []):
+            geom = feat.get("geometry", {})
+            if not geom or "coordinates" not in geom:
+                continue
+
+            def _flat(coords):
+                if isinstance(coords[0][0], (float, int)):
+                    return coords
+                out = []
+                for c in coords:
+                    out.extend(_flat(c))
+                return out
+
+            pts = _flat(geom["coordinates"])
+            if not pts:
+                continue
+            xs = [p[0] for p in pts]
+            ys = [p[1] for p in pts]
+            centers.append((float(np.mean(ys)), float(np.mean(xs))))
+        if centers:
+            lat = float(np.mean([c[0] for c in centers]))
+            lon = float(np.mean([c[1] for c in centers]))
+            return lat, lon
+        return (38.8462, -77.3064)  # Fairfax fallback
+
+    center_lat, center_lon = _geojson_center(gj)
+
+    # Build folium choropleth
+    m = folium.Map(location=[center_lat, center_lon], zoom_start=10, tiles="cartodbpositron")
+
+    choropleth_kwargs = dict(
+        geo_data=gj,
+        data=regional_map_df,
+        columns=["REGION_KEY", "total_savings"],
+        key_on="feature.properties.REGION_KEY",
+        fill_color="RdYlGn",
+        fill_opacity=0.85,
+        line_opacity=0.9,
+        nan_fill_color="#f0f0f0",
+        nan_fill_opacity=0.6,
+        legend_name=legend_name,
+        highlight=True,
+    )
+
+    vals = regional_map_df["total_savings"].astype(float).to_numpy()
+    if bins and vals.size >= 2 and not np.allclose(np.nanmin(vals), np.nanmax(vals)):
+        vmin, vmax = float(np.nanmin(vals)), float(np.nanmax(vals))
+        pad = (vmax - vmin) * 1e-6 or 1e-6
+        vmin -= pad; vmax += pad
+        span = max(1.0, abs(vmax - vmin))
+        base = 10.0 ** max(0, int(np.floor(np.log10(span))) - 2)
+        edges = np.linspace(vmin, vmax, int(bins) + 1)
+        edges = np.round(edges / base) * base
+
+        edges = np.array(sorted(set(edges)))
+        if edges.size >= 3:
+            choropleth_kwargs["bins"] = edges.tolist()
+
+    folium.Choropleth(**choropleth_kwargs).add_to(m)
+
+    folium.GeoJson(
+        gj,
+        control=False,
+        show=True,
+        style_function=lambda f: {"fillOpacity": 0, "color": "#222222", "weight": 1.5},
+    ).add_to(m)
+
+    lut = dict(zip(regional_map_df["REGION_KEY"], regional_map_df["total_savings"]))
+    def _fmt_money(v):
+        try:
+            return f"${v:,.0f}"
+        except Exception:
+            return "N/A"
+
+    folium.GeoJson(
+        gj,
+        control=False,
+        show=True,
+        style_function=lambda f: {"fillOpacity": 0, "color": "#00000000", "weight": 0},
+        tooltip=folium.GeoJsonTooltip(fields=["REGION"], aliases=["Region"]),
+        popup=lambda f: folium.Popup(
+            f"Region {f['properties'].get('REGION')} : {_fmt_money(lut.get(str(f['properties'].get('REGION')), None))}",
+            max_width=260,
+        ),
+        highlight_function=lambda f: {"weight": 3, "color": "#000000"},
+    ).add_to(m)
+
+    if save_path:
+        m.save(save_path)
+
+    return m, regional_map_df[["REGION", "total_savings"]]
