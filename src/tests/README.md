@@ -18,7 +18,56 @@ This project demonstrates how to use data analysis, time-series, and linear prog
 - Minimum nutritional requirements
 - Demand forecasting limits
 
-### Optimization Approaches
+---
+
+## Data Preparation
+
+### Data Transformer (HTML)
+>
+> This pipeline processes structured HTML reports of school lunch and breakfast production data and converts them into clean csv files for analysis.
+> - Reads all `.html` files from `../data/FairfaxCounty/May 2025 Lunch Production records/May 2025 Breakfast production records` and `../data/FairfaxCounty/May 2025 Lunch Production records/May 2025 Lunch production records`.
+> - Extracts tables for each school using `BeautifulSoup`.
+> - Parses key metrics: planned, offered, served, discarded, and cost-related values.
+> - Automatically detects the reporting date from the content or file name.
+> - Saves parsed results as individual `.csv` files in the target directory.
+>
+
+### CSV Combiner (HTML)
+>
+> Gathers all the csv files created from the Data Transformer and combines them together to their respective period they represent.
+> - Collects all `.csv` files in an output folder.
+> - Merges them into one combined dataset.
+> - Optionally sorts by columns like `School_Name`, `Date`, and `Identifier`.
+> - Saves final merged CSVs for both **Breakfast** and **Lunch** datasets.
+>
+
+### PDF Processing
+>
+> Reads all PDF files from a specified folder and gathers all the relevant values from each individual PDF files and generate a combined `sales.csv` file.
+>
+
+---
+
+## Data Cleaning and Exploratory Data Analysis
+>
+>
+>
+
+### Food Popularity
+>
+> This section in the analysis provides an analysis of menu items that students and adults are purchasing, eating, and not leaving as much left over when the food period concludes.
+>
+> `prepare_popularity_data`: function that prepares the data to be used for food popularity analysis.
+>
+> `food_popularity`: function that provides the user the individual menu items with their total amount served to students and adults across every school in the Fairfax County Public School system.
+>
+> `net_consumption`: function that provides an analysis of menu items that were served to students and adults subtracted by the amount of each menu item was discarded across all the schools in the system.
+>
+> `leftover_rate`: function that provides an analysis of menu items with the highest leftover rate for both breakfast and lunch.
+
+---
+
+## Optimization Approaches
 ---
 
 #### 1. Linear Programming (LP)
@@ -76,22 +125,4 @@ Used when decisions involve whole units, in our case number of meals.
 >   1. **Budget Constraint:** The total cost of meals produced for each school cannot exceed that school's specific budget, and the grand total cost cannot exceed the overall budget for the entire school system.
 >
 >   2. **Production Bounds:** Set a uniform production window for every school, regardless of its student population size. The model is forced to produce a quantity that is between 90% and 110% of that school's average historical demand for each meal.
->
-
-#### 3. Multi-Objective Optimization
-Balances multiple competing goals simultaneously.
-
-**Objectives:**
-
-1. **Minimize Cost:** Produce fewer meals in order to save money.
-
-2. **Minimize Waste:** Produce enough meals to meet demand and avoid leftovers.
-
-**Usage**
-> **Model Objective:** To minimize the total cost of producing meals and reducing food waste for each school in Fairfax County in proportion to their school size.
->
-> **How it Works:** The model recommends the optimal number of food items for breakfast and lunch for each of the schools. The recommendations are based by two constraints:
->   1. **Budget Constraint:** The total cost of meals produced for each school cannot exceed the school's specific budget, which the model has proportionally allocated funds based on student population size.
->
->   2. **Production Bounds:** This model does not use a uniform production bound, but rather the size-based production bounds used in an earlier model, where smaller schools have a wider production window and larger schools have a narrower production window.
 >
