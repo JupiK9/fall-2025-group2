@@ -92,19 +92,18 @@ Note: Use Markdown Cheat Sheet download in the directory as needed.
 * [ ] Alonso: look into starting UI
 * [ ] Crystal: start consolidating documents for final report
 ---
-## Date: Week 7 - Month Day Year 
+## Date: Week 7 - October 8, 2025
 - Topics of discussion
-    - Item1
-    - Item2
-    - Item3
+    - AR model
+    - optimization code issues
+    - visualizations
 
 - Action Items:
 
-* [ ] Action Item 1
-* [ ] Action Item 2
-* [ ] Action Item 3
-* [ ] Action Item 4
-* [ ] Action Item 5
+* [ ] Alonso: create optimiation based on region (and other variables if possible)
+* [ ] Jupiter: linear regression model
+* [ ] Crystal: create visuals for milk optimization
+* [ ] All: write up draft of final report
 ----
 ## Date: Week 8 - Month Day Year 
 - Topics of discussion
