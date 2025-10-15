@@ -327,8 +327,6 @@ def generate_item_breakdown(optimization_results_df, dfb, dfl, output_filename):
         output_filename = '../data/school_food_item_optimization.csv'
         optimized_df.to_csv(output_filename, index=False)
 
-        print(f"Saved the full list to '{output_filename}'")
-
     else:
         print("Optimization did not produce a result")
 
@@ -368,7 +366,7 @@ def run_size_based_optimization(schools_to_optimize, meal_types, meal_costs, dem
     print("Production bounds have been set based on custom school sizes.")
 
     # --- Run the base optimization logic ---
-    results_df = run_meal_optimization(schools_to_optimize, meal_types, meal_costs, demand, school_budgets, total_budget, waste_penalty, bounds)
+    results_df = run_meal_optimization_ilp(schools_to_optimize, meal_types, meal_costs, demand, school_budgets, total_budget, waste_penalty, bounds)
 
     # --- Generate the Food Item Breakdown and Save to a CSV file ---
     if results_df is not None:
@@ -409,17 +407,20 @@ def run_monthly_meal_optimization(schools_to_optimize, meal_types, meal_costs, d
     print("\n--- Starting Monthly Optimization (No Budget Constraint) ---")
     print("Objective: Minimize Cost + Waste Penalty")
 
-    # Due to unfeasibility errors, budgetary constraints have been removed
-    A_ineq = None
-    b_ineq = None
+    # Define bounds for each variable
+    lower_bounds = [b[0] for b in bounds]
+    upper_bounds = [b[1] for b in bounds]
+    bounds_obj = Bounds(lb=lower_bounds, ub=upper_bounds)
+
+    # Integrality constraint for all variables (1 means integer)
+    integrality = np.ones(num_vars)
 
     try:
-        result = linprog(
+        result = milp(
             c=c,
-            A_ub=A_ineq,
-            b_ub=b_ineq,
-            bounds=bounds,
-            method='highs'
+            integrality=integrality,
+            bounds=bounds_obj,
+            constraints=None
         )
         if result.success:
             print(f"\nOptimization Successful! Minimum Monthly Cost: ${result.fun:,.2f}")
@@ -452,13 +453,13 @@ def run_monthly_meal_optimization(schools_to_optimize, meal_types, meal_costs, d
 # ==============================================================================
 # Monthly Budget Optimization based on School Size
 # ==============================================================================
-def run_proportional_monthly_optimization(data, total_budget=139144760):
+def run_proportional_monthly_optimization_ilp(data, total_budget=139144760):
     """
     Runs a monthly optimization where the budget is allocated to each school
     proportionally based on its student population.
     """
     print("\n" + "="*60)
-    print("Proportional Budget Monthly Optimization (LP)")
+    print("Proportional Budget Monthly Optimization (ILP)")
     print("="*60)
 
     schools = data['schools']
@@ -494,7 +495,7 @@ def run_proportional_monthly_optimization(data, total_budget=139144760):
             monthly_bounds.append((monthly_demand[school][i] * 0.85, monthly_demand[school][i] * 1.10))
 
     # --- Run the Optimization ---
-    results_df = run_meal_optimization(
+    results_df = run_meal_optimization_ilp(
         schools, meal_types, meal_costs, monthly_demand,
         school_budgets, total_budget, waste_penalty, monthly_bounds
     )
@@ -505,7 +506,7 @@ def run_proportional_monthly_optimization(data, total_budget=139144760):
             results_df,
             dfb,
             dfl,
-            '../data/monthly_proportional_to_size.csv'
+            '../data/preprocessed-data/monthly_proportional_to_size.csv'
         )
     return results_df, school_budgets, meal_costs
 

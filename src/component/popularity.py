@@ -113,6 +113,8 @@ def food_popularity(breakfast_df, lunch_df, sales_df):
 
 def net_consumption(breakfast_df, lunch_df):
     """
+    Calculates the net consumption for breakfast and lunch items
+    prints the top 15, and saves the full lists to CSV files
     """
 
     # Breakfast
@@ -133,6 +135,14 @@ def net_consumption(breakfast_df, lunch_df):
     # Sorting by net consumption (higher is better)
     breakfast_net_consumption = breakfast_net_consumption.sort_values('net_consumption', ascending=False)
 
+    # Prepare Dataframe for output
+    breakfast_output_df = breakfast_net_consumption[['name', 'net_consumption', 'served_reimbursable', 'discarded_total']].copy()
+    breakfast_output_df.columns = ['Item Name', 'Net Consumption', 'Total Served', 'Total Discarded']
+
+    # Save as CSV
+    breakfast_output_df.to_csv('../data/preprocessed-data/breakfast_net_consumption.csv', index=False)
+    print("Saved full breakfast net consumption data to 'breakfast_net_consumption.csv'")
+
     # Lunch
     lunch_net_consumption = (
         lunch_df.groupby("name")
@@ -143,7 +153,7 @@ def net_consumption(breakfast_df, lunch_df):
         .reset_index()
     )
 
-    # Calculate new consumption
+    # Calculate net consumption
     lunch_net_consumption['net_consumption'] = (
         lunch_net_consumption['served_reimbursable'] - lunch_net_consumption['discarded_total']
     )
@@ -151,7 +161,15 @@ def net_consumption(breakfast_df, lunch_df):
     # Sorting by net consumption (higher is better)
     lunch_net_consumption = lunch_net_consumption.sort_values('net_consumption', ascending=False)
 
-    # --- Display Net Consumption Results ---
+    # Prepare DataFrame for output
+    lunch_output_df = lunch_net_consumption[['name', 'net_consumption', 'served_reimbursable', 'discarded_total']].copy()
+    lunch_output_df.columns = ['Item Name', 'Net Consumption', 'Total Served', 'Total Discarded']
+    
+    # --- Save to CSV ---
+    lunch_output_df.to_csv('../data/preprocessed-data/lunch_net_consumption.csv', index=False)
+    print("Saved full lunch net consumption data to 'lunch_net_consumption.csv'")
+
+    # Display Net Consumption Results
     print("=== NET CONSUMPTION POPULARITY RANKINGS ===")
 
     print("\nTop 15 Breakfast Items (by Net Consumption):")
@@ -168,6 +186,8 @@ def net_consumption(breakfast_df, lunch_df):
 
 def leftover_rate(breakfast_df, lunch_df):
     """
+    Calculates the leftover rate for breakfast and lunch items,
+    prints the top 15 food items, and saves the full lists to CSV files.
     """
     # ---------- Finding the items with the highest leftover rate ----------
 
@@ -190,6 +210,15 @@ def leftover_rate(breakfast_df, lunch_df):
     # Sorting by leftover rate (higher is worse)
     breakfast_leftover_rate = breakfast_leftover_rate.sort_values('leftover_rate', ascending=False)
 
+    # Prepare DataFrame for output
+    breakfast_output_df = breakfast_leftover_rate[['name', 'leftover_rate', 'left_over_total', 'offered_reimbursable']].copy()
+    breakfast_output_df.columns = ['Item Name', 'Leftover Rate (%)', 'Total Left Over', 'Total Offered']
+    breakfast_output_df['Leftover Rate (%)'] = breakfast_output_df['Leftover Rate (%)'].round(2)
+    
+    # Save to CSV
+    breakfast_output_df.to_csv('../data/preprocessed-data/breakfast_leftover_rate.csv', index=False)
+    print("Saved full breakfast leftover rate data to 'breakfast_leftover_rate.csv'")
+
     # Lunch
     lunch_leftover_rate = (
         lunch_df.groupby("name")
@@ -208,6 +237,15 @@ def leftover_rate(breakfast_df, lunch_df):
 
     # Sorting by leftover rate (higher is worse)
     lunch_leftover_rate = lunch_leftover_rate.sort_values('leftover_rate', ascending=False)
+
+    # Prepare DataFrame for output
+    lunch_output_df = lunch_leftover_rate[['name', 'leftover_rate', 'left_over_total', 'offered_reimbursable']].copy()
+    lunch_output_df.columns = ['Item Name', 'Leftover Rate (%)', 'Total Left Over', 'Total Offered']
+    lunch_output_df['Leftover Rate (%)'] = lunch_output_df['Leftover Rate (%)'].round(2)
+    
+    # Save to CSV
+    lunch_output_df.to_csv('../data/preprocessed-data/lunch_leftover_rate.csv', index=False)
+    print("Saved full lunch leftover rate data to 'lunch_leftover_rate.csv'")
 
     # --- Display Leftover Rate Results ---
     print("=== LEFTOVER RATE RANKINGS ===")
