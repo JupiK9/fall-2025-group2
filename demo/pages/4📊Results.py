@@ -223,11 +223,11 @@ if bf_combined is not None and opt_data is not None and bf_lr_school is not None
             """
             Applies all filters to the dataframe.
             """
-            # 1. Filter by specific school if chosen
+            # Filter by specific school if chosen
             if school != "All Schools":
                 df = df[df['School_Name'] == school].copy()
             else:
-                # 2. Otherwise, filter by Region, DK and Level
+                # Otherwise, filter by Region, DK and Level
                 if region != "All Regions":
                     df = df[df['FCPS Region'] == region].copy()
                 if dk != "All Distribution Kitchens":
@@ -235,14 +235,10 @@ if bf_combined is not None and opt_data is not None and bf_lr_school is not None
                 if level != "All Levels":
                     df = df[df['Educational Level'] == level].copy()
             
-            # 3. Perform original preprocessing
-            
-            # --- UPDATED THIS LIST ---
             cols_to_convert = [
                 'Discarded_Cost', 'Subtotal_Cost', 'Left_Over_Cost', 'Production_Cost_Total',
                 'Left_Over_Total', 'Offered_Total', 'Served_Total', 'Discarded_Total'
             ]
-            # --- END OF UPDATE ---
             
             for col in cols_to_convert:
                 if col in df.columns:
@@ -299,16 +295,13 @@ if bf_combined is not None and opt_data is not None and bf_lr_school is not None
             )
             st.plotly_chart(fig_cost_time, use_container_width=True)
 
-            # --- MOVED GEOGRAPHICAL ANALYSIS HERE ---
             if selected_school == "All Schools":
                 with st.expander("Geographical Analysis of Potential Savings", expanded=True):
                     st.header("🗺️ Geographical Insights")
                     
-                    # ... (your existing Left_Over_Cost conversion lines) ...
                     bf_data_map['Left_Over_Cost'] = pd.to_numeric(bf_data_map['Left_Over_Cost'].astype(str).str.replace('$', '').str.replace(',', ''), errors='coerce').fillna(0)
                     ln_data_map['Left_Over_Cost'] = pd.to_numeric(ln_data_map['Left_Over_Cost'].astype(str).str.replace('$', '').str.replace(',', ''), errors='coerce').fillna(0)
 
-                    # --- (your existing map filtering logic) ---
                     bf_map_filtered = bf_data_map.copy()
                     ln_map_filtered = ln_data_map.copy()
 
@@ -322,7 +315,6 @@ if bf_combined is not None and opt_data is not None and bf_lr_school is not None
                         bf_map_filtered = bf_map_filtered[bf_map_filtered['Educational Level'] == selected_level]
                         ln_map_filtered = ln_map_filtered[ln_map_filtered['Educational Level'] == selected_level]
                     
-                    # ... (your existing map data prep) ...
                     base_path = Path(__file__).resolve().parent.parent.parent / 'src' / 'data' / 'preprocessed-data'
                     geojson_path = base_path / "School_Regions.geojson"
 
@@ -334,7 +326,6 @@ if bf_combined is not None and opt_data is not None and bf_lr_school is not None
                     
                     school_savings = prepare_map_data_from_coordinates(bf_map_filtered, ln_map_filtered)
                     
-                    # ... (your map display code) ...
                     st.subheader("Potential Savings by Region (Choropleth Map)")
                     regional_map = generate_fcps_region_choropleth(
                         regional_savings, geojson_path,
@@ -387,7 +378,6 @@ if bf_combined is not None and opt_data is not None and bf_lr_school is not None
                         ).reset_index()
                         bf_lr_agg = bf_lr_agg[bf_lr_agg['Offered_Total'] > 0] # Avoid division by zero
                         bf_lr_agg['Leftover Rate (%)'] = (bf_lr_agg['Left_Over_Total'] / bf_lr_agg['Offered_Total']) * 100
-                        # --- SORTING FIX: Sort ascending to put biggest bars on top ---
                         bf_leftover_chart = bf_lr_agg.sort_values(by='Leftover Rate (%)', ascending=True)
                         
                         chart_height = max(400, len(bf_leftover_chart) * 20)
@@ -397,7 +387,6 @@ if bf_combined is not None and opt_data is not None and bf_lr_school is not None
                             labels={'Name': 'Food Item'}, color='Leftover Rate (%)',
                             color_continuous_scale=px.colors.sequential.Reds, height=chart_height
                         )
-                        # --- REMOVED layout command ---
                         st.plotly_chart(fig_bf_leftover, use_container_width=True)
                         with st.expander("📋 View Filtered Leftover Rate Data"):
                             st.dataframe(bf_leftover_chart.sort_values(by='Leftover Rate (%)', ascending=False))
@@ -412,7 +401,6 @@ if bf_combined is not None and opt_data is not None and bf_lr_school is not None
                         bf_nc_agg = bf_nc_agg[bf_nc_agg['Offered_Total'] > 0]
                         bf_nc_agg['Net Consumption'] = bf_nc_agg['Offered_Total'] - bf_nc_agg['Left_Over_Total']
                         bf_nc_agg['Net Consumption Rate (%)'] = (bf_nc_agg['Net Consumption'] / bf_nc_agg['Offered_Total']) * 100
-                        # --- SORTING FIX: Sort ascending to put biggest bars on top ---
                         bf_consumption_chart = bf_nc_agg.sort_values(by='Net Consumption Rate (%)', ascending=True)
 
                         chart_height = max(400, len(bf_consumption_chart) * 20)
@@ -422,7 +410,6 @@ if bf_combined is not None and opt_data is not None and bf_lr_school is not None
                             labels={'Name': 'Food Item'}, color='Net Consumption Rate (%)',
                             color_continuous_scale=px.colors.sequential.Greens, height=chart_height
                         )
-                        # --- REMOVED layout command ---
                         st.plotly_chart(fig_bf_consumption, use_container_width=True)
                         with st.expander("📋 View Filtered Net Consumption Rate Data"):
                             st.dataframe(bf_consumption_chart.sort_values(by='Net Consumption Rate (%)', ascending=False))
@@ -432,7 +419,6 @@ if bf_combined is not None and opt_data is not None and bf_lr_school is not None
                     st.markdown("Showing aggregate data for all schools (county-wide).")
                     with b_col1:
                         st.subheader("All Items by Leftover Rate")
-                        # --- SORTING FIX: Sort ascending to put biggest bars on top ---
                         bf_leftover_chart = bf_leftover.sort_values(by='Leftover Rate (%)', ascending=True)
                         chart_height = max(400, len(bf_leftover_chart) * 20)
                         fig_bf_leftover = px.bar(
@@ -441,14 +427,12 @@ if bf_combined is not None and opt_data is not None and bf_lr_school is not None
                             labels={'Item Name': 'Food Item'}, color='Leftover Rate (%)',
                             color_continuous_scale=px.colors.sequential.Reds, height=chart_height
                         )
-                        # --- REMOVED layout command ---
                         st.plotly_chart(fig_bf_leftover, use_container_width=True)
                         with st.expander("📋 View County-Wide Leftover Rate Data"):
                             st.dataframe(bf_leftover_chart.sort_values(by='Leftover Rate (%)', ascending=False))
 
                     with b_col2:
                         st.subheader("All Items by Net Consumption")
-                        # --- SORTING FIX: Sort ascending to put biggest bars on top ---
                         bf_consumption_chart = bf_consumption.sort_values(by='Net Consumption', ascending=True)
                         chart_height = max(400, len(bf_consumption_chart) * 20)
                         fig_bf_consumption = px.bar(
@@ -457,7 +441,6 @@ if bf_combined is not None and opt_data is not None and bf_lr_school is not None
                             labels={'Item Name': 'Food Item'}, color='Net Consumption',
                             color_continuous_scale=px.colors.sequential.Greens, height=chart_height
                         )
-                        # --- REMOVED layout command ---
                         st.plotly_chart(fig_bf_consumption, use_container_width=True)
                         with st.expander("📋 View County-Wide Net Consumption Data"):
                             st.dataframe(bf_consumption_chart.sort_values(by='Net Consumption', ascending=False))
@@ -473,7 +456,6 @@ if bf_combined is not None and opt_data is not None and bf_lr_school is not None
                     with b_col1:
                         st.subheader("All Items by Leftover Rate")
                         bf_lr_school_data = bf_lr_school[bf_lr_school['school_name'] == selected_school]
-                        # --- SORTING FIX: Sort ascending to put biggest bars on top ---
                         bf_lr_chart = bf_lr_school_data.sort_values(by='leftover_rate', ascending=True)
                         
                         if not bf_lr_chart.empty:
@@ -485,7 +467,6 @@ if bf_combined is not None and opt_data is not None and bf_lr_school is not None
                                 color='leftover_rate',
                                 color_continuous_scale=px.colors.sequential.Reds, height=chart_height
                             )
-                            # --- REMOVED layout command ---
                             st.plotly_chart(fig_bf_school_leftover, use_container_width=True)
                         else:
                             st.info("No pre-computed leftover rate data found for this school.")
@@ -496,7 +477,6 @@ if bf_combined is not None and opt_data is not None and bf_lr_school is not None
                     with b_col2:
                         st.subheader("All Items by Net Consumption Rate")
                         bf_nc_school_data = bf_nc_school[bf_nc_school['school_name'] == selected_school]
-                        # --- SORTING FIX: Sort ascending to put biggest bars on top ---
                         bf_nc_chart = bf_nc_school_data.sort_values(by='net_consumption_rate', ascending=True)
                         
                         if not bf_nc_chart.empty:
@@ -508,7 +488,6 @@ if bf_combined is not None and opt_data is not None and bf_lr_school is not None
                                 color='net_consumption_rate',
                                 color_continuous_scale=px.colors.sequential.Greens, height=chart_height
                             )
-                            # --- REMOVED layout command ---
                             st.plotly_chart(fig_bf_school_consumption, use_container_width=True)
                         else:
                             st.info("No pre-computed net consumption data found for this school.")
@@ -542,7 +521,6 @@ if bf_combined is not None and opt_data is not None and bf_lr_school is not None
                         ).reset_index()
                         ln_lr_agg = ln_lr_agg[ln_lr_agg['Offered_Total'] > 0]
                         ln_lr_agg['Leftover Rate (%)'] = (ln_lr_agg['Left_Over_Total'] / ln_lr_agg['Offered_Total']) * 100
-                        # --- SORTING FIX: Sort ascending to put biggest bars on top ---
                         ln_leftover_chart = ln_lr_agg.sort_values(by='Leftover Rate (%)', ascending=True)
                         
                         chart_height = max(400, len(ln_leftover_chart) * 20)
@@ -552,7 +530,6 @@ if bf_combined is not None and opt_data is not None and bf_lr_school is not None
                             labels={'Name': 'Food Item'}, color='Leftover Rate (%)',
                             color_continuous_scale=px.colors.sequential.Reds, height=chart_height
                         )
-                        # --- REMOVED layout command ---
                         st.plotly_chart(fig_ln_leftover, use_container_width=True)
                         with st.expander("📋 View Filtered Leftover Rate Data"):
                             st.dataframe(ln_leftover_chart.sort_values(by='Leftover Rate (%)', ascending=False))
@@ -567,7 +544,6 @@ if bf_combined is not None and opt_data is not None and bf_lr_school is not None
                         ln_nc_agg = ln_nc_agg[ln_nc_agg['Offered_Total'] > 0]
                         ln_nc_agg['Net Consumption'] = ln_nc_agg['Offered_Total'] - ln_nc_agg['Left_Over_Total']
                         ln_nc_agg['Net Consumption Rate (%)'] = (ln_nc_agg['Net Consumption'] / ln_nc_agg['Offered_Total']) * 100
-                        # --- SORTING FIX: Sort ascending to put biggest bars on top ---
                         ln_consumption_chart = ln_nc_agg.sort_values(by='Net Consumption Rate (%)', ascending=True)
 
                         chart_height = max(400, len(ln_consumption_chart) * 20)
@@ -577,7 +553,6 @@ if bf_combined is not None and opt_data is not None and bf_lr_school is not None
                             labels={'Name': 'Food Item'}, color='Net Consumption Rate (%)',
                             color_continuous_scale=px.colors.sequential.Greens, height=chart_height
                         )
-                        # --- REMOVED layout command ---
                         st.plotly_chart(fig_ln_consumption, use_container_width=True)
                         with st.expander("📋 View Filtered Net Consumption Rate Data"):
                             st.dataframe(ln_consumption_chart.sort_values(by='Net Consumption Rate (%)', ascending=False))
@@ -587,7 +562,6 @@ if bf_combined is not None and opt_data is not None and bf_lr_school is not None
                     st.markdown("Showing aggregate data for all schools (county-wide).")
                     with l_col1:
                         st.subheader("All Items by Leftover Rate")
-                        # --- SORTING FIX: Sort ascending to put biggest bars on top ---
                         ln_leftover_chart = ln_leftover.sort_values(by='Leftover Rate (%)', ascending=True)
                         chart_height = max(400, len(ln_leftover_chart) * 20)
                         fig_ln_leftover = px.bar(
@@ -596,14 +570,12 @@ if bf_combined is not None and opt_data is not None and bf_lr_school is not None
                             labels={'Item Name': 'Food Item'}, color='Leftover Rate (%)',
                             color_continuous_scale=px.colors.sequential.Reds, height=chart_height
                         )
-                        # --- REMOVED layout command ---
                         st.plotly_chart(fig_ln_leftover, use_container_width=True)
                         with st.expander("📋 View County-Wide Leftover Rate Data"):
                             st.dataframe(ln_leftover_chart.sort_values(by='Leftover Rate (%)', ascending=False))
 
                     with l_col2:
                         st.subheader("All Items by Net Consumption")
-                        # --- SORTING FIX: Sort ascending to put biggest bars on top ---
                         ln_consumption_chart = ln_consumption.sort_values(by='Net Consumption', ascending=True)
                         chart_height = max(400, len(ln_consumption_chart) * 20)
                         fig_ln_consumption = px.bar(
@@ -612,7 +584,6 @@ if bf_combined is not None and opt_data is not None and bf_lr_school is not None
                             labels={'Item Name': 'Food Item'}, color='Net Consumption',
                             color_continuous_scale=px.colors.sequential.Greens, height=chart_height
                         )
-                        # --- REMOVED layout command ---
                         st.plotly_chart(fig_ln_consumption, use_container_width=True)
                         with st.expander("📋 View County-Wide Net Consumption Data"):
                             st.dataframe(ln_consumption_chart.sort_values(by='Net Consumption', ascending=False))
@@ -628,7 +599,6 @@ if bf_combined is not None and opt_data is not None and bf_lr_school is not None
                     with l_col1:
                         st.subheader("All Items by Leftover Rate")
                         ln_lr_school_data = ln_lr_school[ln_lr_school['school_name'] == selected_school]
-                        # --- SORTING FIX: Sort ascending to put biggest bars on top ---
                         ln_lr_chart = ln_lr_school_data.sort_values(by='leftover_rate', ascending=True)
                         
                         if not ln_lr_chart.empty:
@@ -640,7 +610,6 @@ if bf_combined is not None and opt_data is not None and bf_lr_school is not None
                                 color='leftover_rate',
                                 color_continuous_scale=px.colors.sequential.Reds, height=chart_height
                             )
-                            # --- REMOVED layout command ---
                             st.plotly_chart(fig_ln_school_leftover, use_container_width=True)
                         else:
                             st.info("No pre-computed leftover rate data found for this school.")
@@ -651,7 +620,6 @@ if bf_combined is not None and opt_data is not None and bf_lr_school is not None
                     with l_col2:
                         st.subheader("All Items by Net Consumption Rate")
                         ln_nc_school_data = ln_nc_school[ln_nc_school['school_name'] == selected_school]
-                        # --- SORTING FIX: Sort ascending to put biggest bars on top ---
                         ln_nc_chart = ln_nc_school_data.sort_values(by='net_consumption_rate', ascending=True)
                         
                         if not ln_nc_chart.empty:
@@ -663,7 +631,6 @@ if bf_combined is not None and opt_data is not None and bf_lr_school is not None
                                 color='net_consumption_rate',
                                 color_continuous_scale=px.colors.sequential.Greens, height=chart_height
                             )
-                            # --- REMOVED layout command ---
                             st.plotly_chart(fig_ln_school_consumption, use_container_width=True)
                         else:
                             st.info("No pre-computed net consumption data found for this school.")
@@ -681,7 +648,7 @@ if bf_combined is not None and opt_data is not None and bf_lr_school is not None
     with tab_opt:
         st.header("Optimization Recommendations")
 
-        # Case 1: A specific school is selected
+        # A specific school is selected
         if selected_school != "All Schools":
             st.subheader(f"Recommendations for: {selected_school}")
             
@@ -703,7 +670,6 @@ if bf_combined is not None and opt_data is not None and bf_lr_school is not None
                 c1, c2 = st.columns(2)
                 
                 with c1:
-                    # --- EXISTING Bar Chart ---
                     fig_opt_subcat = px.bar(
                         subcat_totals,
                         x='recommended_quantity',
@@ -716,7 +682,6 @@ if bf_combined is not None and opt_data is not None and bf_lr_school is not None
                     st.plotly_chart(fig_opt_subcat, use_container_width=True)
                 
                 with c2:
-                    # --- NEW Pie Chart ---
                     fig_opt_pie = px.pie(
                         subcat_totals,
                         values='recommended_quantity',
@@ -747,7 +712,7 @@ if bf_combined is not None and opt_data is not None and bf_lr_school is not None
                     hide_index=True # Hides the pandas index for a cleaner look
                 )
 
-        # Case 2: "All Schools" is selected (aggregate view)
+        # "All Schools" is selected (aggregate view)
         else:
             # Start with a copy of all optimization data
             filtered_opt_data = opt_data.copy()
@@ -787,7 +752,6 @@ if bf_combined is not None and opt_data is not None and bf_lr_school is not None
                 c1, c2 = st.columns(2)
 
                 with c1:
-                    # --- EXISTING Bar Chart ---
                     fig_opt_subcat = px.bar(
                         subcat_totals,
                         x='recommended_quantity',
@@ -800,7 +764,6 @@ if bf_combined is not None and opt_data is not None and bf_lr_school is not None
                     st.plotly_chart(fig_opt_subcat, use_container_width=True)
 
                 with c2:
-                    # --- NEW Pie Chart ---
                     fig_opt_pie = px.pie(
                         subcat_totals,
                         values='recommended_quantity',
