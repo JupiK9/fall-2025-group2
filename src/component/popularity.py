@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np  # Added numpy for handling potential inf values
 
 def prepare_popularity_data(breakfast_path, lunch_path, sales_path):
     """
@@ -15,7 +16,7 @@ def prepare_popularity_data(breakfast_path, lunch_path, sales_path):
         dfs = pd.read_csv(sales_path, low_memory=False)
     except FileNotFoundError as e:
         print(f"Error: Could not find data file. {e}")
-        return
+        return None, None, None  # Return None to avoid errors
 
     # converting column names to lowercase
     dfb.columns = dfb.columns.str.lower()
@@ -23,10 +24,11 @@ def prepare_popularity_data(breakfast_path, lunch_path, sales_path):
     dfs.columns = dfs.columns.str.lower()
 
     # converting date columns into datetime objects
-    dfb['date'] = pd.to_datetime(dfb['date'])
-    dfl['date'] = pd.to_datetime(dfl['date'])
+    dfb['date'] = pd.to_datetime(dfb['date'], errors='coerce')
+    dfl['date'] = pd.to_datetime(dfl['date'], errors='coerce')
 
     return dfb, dfl, dfs
+
 
 def clean_numeric(df, cols):
     """
@@ -42,225 +44,151 @@ def clean_numeric(df, cols):
             df[col] = (
                 df[col]
                 .astype(str)
-                .str.replace(r"[\$,%, ]", "", regex=True)
-                .replace('nan', '0')
-                .astype(float)
+                .str.replace(r"[$,%]", "", regex=True)
+                .str.strip()
             )
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+            df[col] = df[col].fillna(0)
     return df
+
 
 def food_popularity(breakfast_df, lunch_df, sales_df):
     """
+    Analyzes and prints food popularity based on served and discarded totals.
+
+    Args:
+        breakfast_df (pd.DataFrame): Breakfast data.
+        lunch_df (pd.DataFrame): Lunch data.
+        sales_df (pd.DataFrame): Sales data.
     """
+    if breakfast_df is None or lunch_df is None:
+        print("DataFrames not loaded. Skipping food popularity analysis.")
+        return
 
-    # from sales
-    popular_sales = (
-        sales_df.groupby(["time_of_day", "description"])['total']
-        .sum()
-        .reset_index()
-        .sort_values(["time_of_day", "total"], ascending=[True, False])
-    )
-
-    # from breakfast (by served)
-    popular_breakfast = (
-        breakfast_df.groupby("name")["served_reimbursable"]
-        .sum()
-        .reset_index()
-        .sort_values("served_reimbursable", ascending=False)
-    )
-
-    # From lunch (by served)
-    popular_lunch = (
-        lunch_df.groupby("name")["served_reimbursable"]
-        .sum()
-        .reset_index()
-        .sort_values("served_reimbursable", ascending=False)
-    )
-
-    # --- Least discarded (lower is better) ---
-    if "discarded_total" in breakfast_df.columns:
-        popular_breakfast_low_discarded = (
-            breakfast_df.groupby("name")["discarded_total"]
-            .sum()
-            .reset_index()
-            .sort_values("discarded_total", ascending=True)
-        )
-    else:
-        popular_breakfast_low_discarded = None
-
-    if "discarded_total" in lunch_df.columns:
-        popular_lunch_low_discarded = (
-            lunch_df.groupby("name")["discarded_total"]
-            .sum()
-            .reset_index()
-            .sort_values("discarded_total", ascending=True)
-        )
-    else:
-        popular_lunch_low_discarded = None
-
+    # Popularity by served_reimbursable
     print("Top 10 Breakfast Items (by served_total):")
-    print(popular_breakfast.head(10))
+    b_pop_served = breakfast_df.groupby("name")["served_reimbursable"].sum().nlargest(10)
+    print(breakfast_df[breakfast_df['name'].isin(b_pop_served.index)][['name', 'served_reimbursable']].groupby('name').sum().sort_values('served_reimbursable', ascending=False))
 
     print("\nTop 10 Lunch Items (by served_total):")
-    print(popular_lunch.head(10))
+    l_pop_served = lunch_df.groupby("name")["served_reimbursable"].sum().nlargest(10)
+    print(lunch_df[lunch_df['name'].isin(l_pop_served.index)][['name', 'served_reimbursable']].groupby('name').sum().sort_values('served_reimbursable', ascending=False))
 
-    if popular_breakfast_low_discarded is not None:
-        print("\nTop 10 Breakfast Items (least discarded_total):")
-        print(popular_breakfast_low_discarded.head(10))
+    # Popularity by discarded_total (least popular)
+    print("\nTop 10 Breakfast Items (least discarded_total):")
+    b_pop_discarded = breakfast_df.groupby("name")["discarded_total"].sum().nsmallest(10)
+    print(breakfast_df[breakfast_df['name'].isin(b_pop_discarded.index)][['name', 'discarded_total']].groupby('name').sum().sort_values('discarded_total', ascending=True))
 
-    if popular_lunch_low_discarded is not None:
-        print("\nTop 10 Lunch Items (least discarded_total):")
-        print(popular_lunch_low_discarded.head(10))
+
+    print("\nTop 10 Lunch Items (least discarded_total):")
+    l_pop_discarded = lunch_df.groupby("name")["discarded_total"].sum().nsmallest(10)
+    print(lunch_df[lunch_df['name'].isin(l_pop_discarded.index)][['name', 'discarded_total']].groupby('name').sum().sort_values('discarded_total', ascending=True))
+
 
 def net_consumption(breakfast_df, lunch_df):
     """
-    Calculates the net consumption for breakfast and lunch items
-    prints the top 15, and saves the full lists to CSV files
+    Analyzes and prints net consumption for breakfast and lunch.
+
+    Args:
+        breakfast_df (pd.DataFrame): Breakfast data.
+        lunch_df (pd.DataFrame): Lunch data.
     """
+    if breakfast_df is None or lunch_df is None:
+        print("DataFrames not loaded. Skipping net consumption analysis.")
+        return
+
+    print("=== NET CONSUMPTION POPULARITY RANKINGS ===\n")
 
     # Breakfast
-    breakfast_net_consumption = (
+    breakfast_df["net_consumption"] = (
+        breakfast_df["served_reimbursable"] - breakfast_df["discarded_total"]
+    )
+    b_net_consumption = (
         breakfast_df.groupby("name")
-        .agg({
-            'served_reimbursable': 'sum',
-            'discarded_total': 'sum'
-        })
-        .reset_index()
+        .agg(
+            net_consumption=("net_consumption", "sum"),
+            total_served=("served_reimbursable", "sum"),
+            total_discarded=("discarded_total", "sum"),
+        )
+        .nlargest(15, "net_consumption")
     )
+    
+    print("Top 15 Breakfast Items (by Net Consumption):")
+    print("=" * 90)
+    b_display = b_net_consumption[['net_consumption', 'total_served', 'total_discarded']]
+    b_display.columns = ['Net Consumption', 'Total Served', 'Total Discarded']
+    print(b_display)
 
-    # Calculating net consumption
-    breakfast_net_consumption['net_consumption'] = (
-        breakfast_net_consumption['served_reimbursable'] - breakfast_net_consumption['discarded_total']
-    )
-
-    # Sorting by net consumption (higher is better)
-    breakfast_net_consumption = breakfast_net_consumption.sort_values('net_consumption', ascending=False)
-
-    # Prepare Dataframe for output
-    breakfast_output_df = breakfast_net_consumption[['name', 'net_consumption', 'served_reimbursable', 'discarded_total']].copy()
-    breakfast_output_df.columns = ['Item Name', 'Net Consumption', 'Total Served', 'Total Discarded']
-
-    # Save as CSV
-    breakfast_output_df.to_csv('../data/preprocessed-data/breakfast_net_consumption.csv', index=False)
-    print("Saved full breakfast net consumption data to 'breakfast_net_consumption.csv'")
 
     # Lunch
-    lunch_net_consumption = (
+    lunch_df["net_consumption"] = (
+        lunch_df["served_reimbursable"] - lunch_df["discarded_total"]
+    )
+    l_net_consumption = (
         lunch_df.groupby("name")
-        .agg({
-            'served_reimbursable': 'sum',
-            'discarded_total': 'sum'
-        })
-        .reset_index()
+        .agg(
+            net_consumption=("net_consumption", "sum"),
+            total_served=("served_reimbursable", "sum"),
+            total_discarded=("discarded_total", "sum"),
+        )
+        .nlargest(15, "net_consumption")
     )
-
-    # Calculate net consumption
-    lunch_net_consumption['net_consumption'] = (
-        lunch_net_consumption['served_reimbursable'] - lunch_net_consumption['discarded_total']
-    )
-
-    # Sorting by net consumption (higher is better)
-    lunch_net_consumption = lunch_net_consumption.sort_values('net_consumption', ascending=False)
-
-    # Prepare DataFrame for output
-    lunch_output_df = lunch_net_consumption[['name', 'net_consumption', 'served_reimbursable', 'discarded_total']].copy()
-    lunch_output_df.columns = ['Item Name', 'Net Consumption', 'Total Served', 'Total Discarded']
     
-    # --- Save to CSV ---
-    lunch_output_df.to_csv('../data/preprocessed-data/lunch_net_consumption.csv', index=False)
-    print("Saved full lunch net consumption data to 'lunch_net_consumption.csv'")
-
-    # Display Net Consumption Results
-    print("=== NET CONSUMPTION POPULARITY RANKINGS ===")
-
-    print("\nTop 15 Breakfast Items (by Net Consumption):")
-    print("=" * 90)
-    breakfast_display = breakfast_net_consumption[['name', 'net_consumption', 'served_reimbursable', 'discarded_total']].head(15)
-    breakfast_display.columns = ['Item Name', 'Net Consumption', 'Total Served', 'Total Discarded']
-    print(breakfast_display)
-
     print("\nTop 15 Lunch Items (by Net Consumption):")
     print("=" * 90)
-    lunch_display = lunch_net_consumption[['name', 'net_consumption', 'served_reimbursable', 'discarded_total']].head(15)
-    lunch_display.columns = ['Item Name', 'Net Consumption', 'Total Served', 'Total Discarded']
-    print(lunch_display)
+    l_display = l_net_consumption[['net_consumption', 'total_served', 'total_discarded']]
+    l_display.columns = ['Net Consumption', 'Total Served', 'Total Discarded']
+    print(l_display)
+
 
 def leftover_rate(breakfast_df, lunch_df):
     """
-    Calculates the leftover rate for breakfast and lunch items,
-    prints the top 15 food items, and saves the full lists to CSV files.
+    Analyzes and prints leftover rates for breakfast and lunch.
+
+    Args:
+        breakfast_df (pd.DataFrame): Breakfast data.
+        lunch_df (pd.DataFrame): Lunch data.
     """
-    # ---------- Finding the items with the highest leftover rate ----------
+    if breakfast_df is None or lunch_df is None:
+        print("DataFrames not loaded. Skipping leftover rate analysis.")
+        return
+
+    print("=== LEFTOVER RATE RANKINGS ===\n")
 
     # Breakfast
-    breakfast_leftover_rate = (
-        breakfast_df.groupby("name")
-        .agg({
-            'left_over_total': 'sum',
-            'offered_reimbursable': 'sum'
-        })
-        .reset_index()
+    b_item_waste = breakfast_df.groupby("name").agg(
+        left_over_total=("left_over_total", "sum"),
+        offered_reimbursable=("offered_reimbursable", "sum"),
     )
-
-    # Calculate leftover rate (percentage)
-    breakfast_leftover_rate['leftover_rate'] = (
-        breakfast_leftover_rate['left_over_total'] / 
-        breakfast_leftover_rate['offered_reimbursable'].replace(0, 1)
+    b_item_waste["leftover_rate"] = (
+        b_item_waste["left_over_total"] / b_item_waste["offered_reimbursable"]
     ) * 100
-
-    # Sorting by leftover rate (higher is worse)
-    breakfast_leftover_rate = breakfast_leftover_rate.sort_values('leftover_rate', ascending=False)
-
-    # Prepare DataFrame for output
-    breakfast_output_df = breakfast_leftover_rate[['name', 'leftover_rate', 'left_over_total', 'offered_reimbursable']].copy()
-    breakfast_output_df.columns = ['Item Name', 'Leftover Rate (%)', 'Total Left Over', 'Total Offered']
-    breakfast_output_df['Leftover Rate (%)'] = breakfast_output_df['Leftover Rate (%)'].round(2)
+    b_item_waste = b_item_waste[b_item_waste["offered_reimbursable"] > 0]  # Avoid division by zero
+    b_item_waste = b_item_waste.sort_values("leftover_rate", ascending=False)
     
-    # Save to CSV
-    breakfast_output_df.to_csv('../data/preprocessed-data/breakfast_leftover_rate.csv', index=False)
-    print("Saved full breakfast leftover rate data to 'breakfast_leftover_rate.csv'")
-
-    # Lunch
-    lunch_leftover_rate = (
-        lunch_df.groupby("name")
-        .agg({
-            'left_over_total': 'sum',
-            'offered_reimbursable': 'sum'
-        })
-        .reset_index()
-    )
-
-    # Calculate leftover rate (percentage)
-    lunch_leftover_rate['leftover_rate'] = (
-        lunch_leftover_rate['left_over_total'] / 
-        lunch_leftover_rate['offered_reimbursable'].replace(0, 1)
-    ) * 100
-
-    # Sorting by leftover rate (higher is worse)
-    lunch_leftover_rate = lunch_leftover_rate.sort_values('leftover_rate', ascending=False)
-
-    # Prepare DataFrame for output
-    lunch_output_df = lunch_leftover_rate[['name', 'leftover_rate', 'left_over_total', 'offered_reimbursable']].copy()
-    lunch_output_df.columns = ['Item Name', 'Leftover Rate (%)', 'Total Left Over', 'Total Offered']
-    lunch_output_df['Leftover Rate (%)'] = lunch_output_df['Leftover Rate (%)'].round(2)
-    
-    # Save to CSV
-    lunch_output_df.to_csv('../data/preprocessed-data/lunch_leftover_rate.csv', index=False)
-    print("Saved full lunch leftover rate data to 'lunch_leftover_rate.csv'")
-
-    # --- Display Leftover Rate Results ---
-    print("=== LEFTOVER RATE RANKINGS ===")
-
-    print("\nTop 15 Breakfast Items (Highest Leftover Rate - Most Waste):")
+    print("Top 15 Breakfast Items (Highest Leftover Rate - Most Waste):")
     print("=" * 100)
-    breakfast_display = breakfast_leftover_rate[['name', 'leftover_rate', 'left_over_total', 'offered_reimbursable']].head(15)
-    breakfast_display.columns = ['Item Name', 'Leftover Rate (%)', 'Total Left Over', 'Total Offered']
+    breakfast_display = b_item_waste[['leftover_rate', 'left_over_total', 'offered_reimbursable']].head(15)
+    breakfast_display.columns = ['Leftover Rate (%)', 'Total Left Over', 'Total Offered']
     breakfast_display['Leftover Rate (%)'] = breakfast_display['Leftover Rate (%)'].round(2)
     print(breakfast_display)
 
+
+    # Lunch
+    l_item_waste = lunch_df.groupby("name").agg(
+        left_over_total=("left_over_total", "sum"),
+        offered_reimbursable=("offered_reimbursable", "sum"),
+    )
+    l_item_waste["leftover_rate"] = (
+        l_item_waste["left_over_total"] / l_item_waste["offered_reimbursable"]
+    ) * 100
+    l_item_waste = l_item_waste[l_item_waste["offered_reimbursable"] > 0]
+    l_item_waste = l_item_waste.sort_values("leftover_rate", ascending=False)
+    
     print("\nTop 15 Lunch Items (Highest Leftover Rate - Most Waste):")
     print("=" * 100)
-    lunch_display = lunch_leftover_rate[['name', 'leftover_rate', 'left_over_total', 'offered_reimbursable']].head(15)
-    lunch_display.columns = ['Item Name', 'Leftover Rate (%)', 'Total Left Over', 'Total Offered']
+    lunch_display = l_item_waste[['leftover_rate', 'left_over_total', 'offered_reimbursable']].head(15)
+    lunch_display.columns = ['Leftover Rate (%)', 'Total Left Over', 'Total Offered']
     lunch_display['Leftover Rate (%)'] = lunch_display['Leftover Rate (%)'].round(2)
     print(lunch_display)
 
@@ -268,18 +196,86 @@ def leftover_rate(breakfast_df, lunch_df):
     print("\n=== OVERALL LEFTOVER STATISTICS ===")
     breakfast_total_leftover = breakfast_df['left_over_total'].sum()
     breakfast_total_offered = breakfast_df['offered_reimbursable'].sum()
-    breakfast_overall_rate = (breakfast_total_leftover / breakfast_total_offered) * 100
+    if breakfast_total_offered > 0:
+        breakfast_overall_rate = (breakfast_total_leftover / breakfast_total_offered) * 100
+        print(f"Breakfast Overall Leftover Rate: {breakfast_overall_rate:.2f}%")
+        print(f"  Total Left Over: {breakfast_total_leftover:,.0f}")
+        print(f"  Total Offered: {breakfast_total_offered:,.0f}")
+    else:
+        print("Breakfast: No offered items to calculate overall rate.")
 
     lunch_total_leftover = lunch_df['left_over_total'].sum()
     lunch_total_offered = lunch_df['offered_reimbursable'].sum()
-    lunch_overall_rate = (lunch_total_leftover / lunch_total_offered) * 100
+    if lunch_total_offered > 0:
+        lunch_overall_rate = (lunch_total_leftover / lunch_total_offered) * 100
+        print(f"\nLunch Overall Leftover Rate: {lunch_overall_rate:.2f}%")
+        print(f"  Total Left Over: {lunch_total_leftover:,.0f}")
+        print(f"  Total Offered: {lunch_total_offered:,.0f}")
+    else:
+        print("\nLunch: No offered items to calculate overall rate.")
 
-    print(f"Breakfast Overall Leftover Rate: {breakfast_overall_rate:.2f}%")
-    print(f"  Total Left Over: {breakfast_total_leftover:,.0f}")
-    print(f"  Total Offered: {breakfast_total_offered:,.0f}")
+    # Combined
+    total_leftover = breakfast_total_leftover + lunch_total_leftover
+    total_offered = breakfast_total_offered + lunch_total_offered
+    if total_offered > 0:
+        combined_overall_rate = (total_leftover / total_offered) * 100
+        print(f"\nCombined Overall Leftover Rate: {combined_overall_rate:.2f}%")
+    else:
+        print("\nCombined: No offered items to calculate overall rate.")
 
-    print(f"\nLunch Overall Leftover Rate: {lunch_overall_rate:.2f}%")
-    print(f"  Total Left Over: {lunch_total_leftover:,.0f}")
-    print(f"  Total Offered: {lunch_total_offered:,.0f}")
 
-    print(f"\nCombined Overall Leftover Rate: {((breakfast_total_leftover + lunch_total_leftover) / (breakfast_total_offered + lunch_total_offered)) * 100:.2f}%")
+# --- MODIFIED FUNCTION BELOW ---
+
+def get_net_consumption_by_school(df, meal_type):
+    """
+    Calculates the net consumption rate for each food item at each school.
+    Assumes 'offered_reimbursable' and 'left_over_total' are already numeric.
+    Net Consumption Rate = (Offered - Left Over) / Offered
+    """
+    print(f"Calculating Net Consumption Rate by Item and School for {meal_type}...")
+    
+    # Group by school AND item name
+    item_summary = df.groupby(['school_name', 'name']).agg(
+        total_offered=('offered_reimbursable', 'sum'),
+        total_left_over=('left_over_total', 'sum')
+    ).reset_index()
+
+    # Calculate net consumption rate for each item at each school
+    item_summary['net_consumption_rate'] = (
+        (item_summary['total_offered'] - item_summary['total_left_over']) / item_summary['total_offered']
+    ) * 100
+    
+    # Handle potential division by zero (if total_offered is 0)
+    item_summary['net_consumption_rate'] = item_summary['net_consumption_rate'].replace([np.inf, -np.inf], 0).fillna(0)
+    
+    # Sort by school, then by consumption rate
+    item_summary = item_summary.sort_values(by=['school_name', 'net_consumption_rate'], ascending=[True, False])
+    
+    return item_summary
+
+def get_leftover_rate_by_school(df, meal_type):
+    """
+    Calculates the leftover rate for each food item at each school.
+    Assumes 'left_over_total' and 'offered_reimbursable' are already numeric.
+    Leftover Rate = (Left Over / Offered) * 100
+    """
+    print(f"Calculating Leftover Rate by Item and School for {meal_type}...")
+    
+    # Group by school and item name, then sum up totals
+    item_summary = df.groupby(['school_name', 'name']).agg(
+        left_over_total=('left_over_total', 'sum'),
+        offered_reimbursable=('offered_reimbursable', 'sum')
+    ).reset_index()
+
+    # Calculate leftover rate for each item at each school
+    item_summary['leftover_rate'] = (
+        (item_summary['left_over_total'] / item_summary['offered_reimbursable']) * 100
+    )
+    
+    # Handle division by zero (if offered is 0)
+    item_summary['leftover_rate'] = item_summary['leftover_rate'].replace([np.inf, -np.inf], 0).fillna(0)
+    
+    # Sort by school, then by leftover rate (descending)
+    item_summary = item_summary.sort_values(by=['school_name', 'leftover_rate'], ascending=[True, False])
+    
+    return item_summary
