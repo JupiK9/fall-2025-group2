@@ -4,8 +4,29 @@ import plotly.express as px
 from pathlib import Path
 import folium
 from streamlit_folium import st_folium
-import geopandas as gpd
+import numpy as np
+import sys
 import json
+
+src_path = str(Path(__file__).resolve().parent.parent.parent / 'src')
+if src_path not in sys.path:
+    sys.path.append(src_path)
+
+try:
+    from component.optimization import (
+        prepare_optimization_data,
+        prepare_savings_analysis_df,
+        prepare_map_data_from_coordinates,
+        analyze_savings_by_school_size
+    )
+
+except ImportError as e:
+    st.error(f"Could not import functions from optimization.py: {e}.")
+    # Define dummy functions
+    def prepare_optimization_data(*args, **kwargs): return None
+    def prepare_savings_analysis_df(*args, **kwargs): return None
+    def prepare_map_data_from_coordinates(*args, **kwargs): return None
+    def analyze_savings_by_school_size(*args, **kwargs): return None
 
 # --- Page Configuration ---
 st.set_page_config(
@@ -18,771 +39,843 @@ st.set_page_config(
 st.title("📊 FCPS Waste & Food Management Analysis")
 st.markdown("An exploratory data analysis of food production, consumption, and waste within the Fairfax County Public Schools system.")
 
+# --- Helper function kept locally ---
 def map_educational_level(df):
-    """
-    Creates a new 'Educational Level' column by mapping the 'Level' column.
-    It groups 'SS' (Secondary) with 'HS' (High).
-    """
-    if 'Level' in df.columns:
-        # Define the mapping
-        level_map = {
-            'ES': 'Elementary',
-            'MS': 'Middle',
-            'HS': 'High',
-        }
-        # Create the new column
-        df['Educational Level'] = df['Level'].map(level_map).fillna('Other')
+    """Adds 'educational level' based on lowercase 'level'."""
+    if 'level' in df.columns:
+        level_map = {'es': 'Elementary', 'ms': 'Middle', 'hs': 'High', 'ss': 'High'}
+        df['educational level'] = df['level'].str.lower().map(level_map).fillna('Other')
     return df
 
 # --- Data Loading ---
 @st.cache_data
 def load_data():
-    """Builds file paths and loads all necessary CSV files."""
+    """Loads data using prepare_optimization_data and separately loads other files."""
+    opt_data_dict = None
+    school_opt_items_df = None
+    popularity_files = {}
+    bf_data_map_coords = None
+    ln_data_map_coords = None
+    nutrition_df = None # Initialize nutrition_df
+
     try:
-        # Construct the correct path relative to the script's location
         base_path = Path(__file__).resolve().parent.parent.parent / 'src' / 'data' / 'preprocessed-data'
-        
-        # --- Load Original Files ---
-        bf_combined = pd.read_csv(base_path / "breakfast_combined.csv")
-        ln_combined = pd.read_csv(base_path / "lunch_combined.csv")
-        bf_leftover = pd.read_csv(base_path / "breakfast_leftover_rate.csv")
-        ln_leftover = pd.read_csv(base_path / "lunch_leftover_rate.csv")
-        bf_consumption = pd.read_csv(base_path / "breakfast_net_consumption.csv")
-        ln_consumption = pd.read_csv(base_path / "lunch_net_consumption.csv")
+        breakfast_path = base_path / "breakfast_combined.csv"
+        lunch_path = base_path / "lunch_combined.csv"
+        student_counts_path = base_path / "2022-2025 Fairfax County School Student Count.csv" # Check filename
 
-        bf_data_map = pd.read_csv(base_path / "data_breakfast_with_coordinates.csv")
-        ln_data_map = pd.read_csv(base_path / "data_lunch_with_coordinates.csv")
+        # --- Call prepare_optimization_data ---
+        opt_data_dict = prepare_optimization_data(str(breakfast_path), str(lunch_path), str(student_counts_path))
+        if opt_data_dict is None:
+             st.error("Failed to prepare optimization data from optimization.py.")
+             return None, None, {}, None, None
 
-        # --- Load Optimization Files ---
-        opt_df = pd.read_csv(base_path / "school_food_item_optimization.csv")
+        # --- Load other needed files ---
+        school_opt_items_df = pd.read_csv(base_path / "school_food_item_optimization.csv")
         nutrition_df = pd.read_csv(base_path / "fcps_nutrition_values.csv")
+        # Ensure nutrition_df columns are lowercase immediately
+        if nutrition_df is not None:
+            nutrition_df.columns = nutrition_df.columns.str.lower()
 
-        # --- Load New School-Specific Popularity Files ---
-        bf_lr_school = pd.read_csv(base_path / "breakfast_leftover_rate_by_school.csv")
-        ln_lr_school = pd.read_csv(base_path / "lunch_leftover_rate_by_school.csv")
+        # Popularity Files
+        popularity_files['bf_leftover'] = pd.read_csv(base_path / "breakfast_leftover_rate.csv")
+        popularity_files['ln_leftover'] = pd.read_csv(base_path / "lunch_leftover_rate.csv")
+        popularity_files['bf_consumption'] = pd.read_csv(base_path / "breakfast_net_consumption.csv")
+        popularity_files['ln_consumption'] = pd.read_csv(base_path / "lunch_net_consumption.csv")
+        popularity_files['bf_lr_school'] = pd.read_csv(base_path / "breakfast_leftover_rate_by_school.csv")
+        popularity_files['ln_lr_school'] = pd.read_csv(base_path / "lunch_leftover_rate_by_school.csv")
+        popularity_files['bf_nc_school'] = pd.read_csv(base_path / "breakfast_net_consumption_by_school.csv")
+        popularity_files['ln_nc_school'] = pd.read_csv(base_path / "lunch_net_consumption_by_school.csv")
 
-        bf_nc_school = pd.read_csv(base_path / "breakfast_net_consumption_by_school.csv")
-        ln_nc_school = pd.read_csv(base_path / "lunch_net_consumption_by_school.csv")
+        # Clean column names for popularity files
+        for name, df in popularity_files.items():
+            if df is not None:
+                df.columns = df.columns.str.lower().str.strip().str.replace(' ', '_', regex=False)
+                df.rename(columns={'leftover_rate_(%)': 'leftover_rate', 'item_name': 'name'}, inplace=True, errors='ignore')
 
-        # --- Add Educational Level to files ---
-        bf_combined = map_educational_level(bf_combined)
-        ln_combined = map_educational_level(ln_combined)
-        bf_data_map = map_educational_level(bf_data_map)
-        ln_data_map = map_educational_level(ln_data_map)
-        
-        # --- Process and Merge Optimization Data ---
-        
-        # Create a clean school metadata table
-        school_metadata = bf_data_map[['School_Name', 'FCPS Region', 'Distribution Kitchen (DK)', 'Level', 'Educational Level']].drop_duplicates()
-        school_metadata['school_join_key'] = school_metadata['School_Name'].str.lower()
+        # Coordinate data
+        bf_data_map_coords = pd.read_csv(base_path / "data_breakfast_with_coordinates.csv")
+        if bf_data_map_coords is not None: bf_data_map_coords.columns = bf_data_map_coords.columns.str.lower()
+        ln_data_map_coords = pd.read_csv(base_path / "data_lunch_with_coordinates.csv")
+        if ln_data_map_coords is not None: ln_data_map_coords.columns = ln_data_map_coords.columns.str.lower()
 
-        # Merge optimization data with school metadata
-        opt_with_meta = pd.merge(
-            opt_df, 
-            school_metadata, 
-            left_on='school', 
-            right_on='school_join_key', 
-            how='left'
-        )
+        # --- Perform merges needed for school_opt_items_df ---
+        if school_opt_items_df is not None and bf_data_map_coords is not None:
+             # Create metadata from coordinate data, Select only necessary columns and drop duplicates based on 'school_name'
+             metadata_cols = ['school_name', 'fcps region', 'distribution kitchen (dk)', 'level']
+             if all(col in bf_data_map_coords.columns for col in metadata_cols):
+                 school_metadata = bf_data_map_coords[metadata_cols].drop_duplicates(subset=['school_name']).copy()
+                 # Add educational level
+                 school_metadata = map_educational_level(school_metadata)
+                 # Ensure the merge key ('school_name') is clean
+                 school_metadata['school_name'] = school_metadata['school_name'].astype(str).str.lower().str.strip()
 
-        # Merge with nutrition data to get Sub-Category
-        opt_full = pd.merge(
-            opt_with_meta, 
-            nutrition_df[['Food_Name', 'Sub-Category']], 
-            left_on='food_item', 
-            right_on='Food_Name', 
-            how='left'
-        )
-        
-        # Fill missing sub-categories
-        opt_full['Sub-Category'] = opt_full['Sub-Category'].fillna('Other')
-        
-        return (bf_combined, ln_combined, bf_leftover, ln_leftover, bf_consumption, ln_consumption, 
-                bf_data_map, ln_data_map, opt_full, bf_lr_school, ln_lr_school, bf_nc_school, ln_nc_school)
-        
+                 # Prepare school_opt_items_df for merge, ensure its 'school' column is lowercase and stripped
+                 school_opt_items_df['school'] = school_opt_items_df['school'].astype(str).str.lower().str.strip()
+
+                 # Perform the merge: 'school' from opt_items on 'school_name' from metadata
+                 school_opt_items_df = pd.merge(
+                     school_opt_items_df,
+                     school_metadata,
+                     left_on='school',
+                     right_on='school_name',
+                     how='left'
+                 )
+
+             else:
+                 st.warning("Coordinate data ('bf_data_map_coords') is missing required columns for metadata merge.")
+                 placeholder_cols = ['fcps region', 'distribution kitchen (dk)', 'level', 'educational level', 'school_name']
+                 for col in placeholder_cols:
+                      if col not in school_opt_items_df.columns: school_opt_items_df[col] = pd.NA
+
+
+             # Merge Nutrition Data
+             if nutrition_df is not None and 'food_name' in nutrition_df.columns and 'sub-category' in nutrition_df.columns:
+                 school_opt_items_df = pd.merge(school_opt_items_df, nutrition_df[['food_name', 'sub-category']], left_on='food_item', right_on='food_name', how='left')
+                 school_opt_items_df['sub-category'] = school_opt_items_df['sub-category'].fillna('Other')
+             else:
+                 st.warning("Nutrition data not available or missing columns for merging sub-categories.")
+                 if 'sub-category' not in school_opt_items_df.columns: school_opt_items_df['sub-category'] = 'Unknown'
+
+             school_opt_items_df['recommended_quantity'] = pd.to_numeric(school_opt_items_df['recommended_quantity'], errors='coerce').fillna(0)
+        else:
+              st.warning("Could not perform merges for optimization tab as required dataframes were not loaded correctly.")
+
+
+        return opt_data_dict, school_opt_items_df, popularity_files, bf_data_map_coords, ln_data_map_coords
+
     except FileNotFoundError as e:
-        st.error(f"Error loading data file: {e}. Please ensure the directory structure is correct (e.g., your app is in a 'pages' folder and data is in 'src/data/preprocessed-data/').")
-        return None, None, None, None, None, None, None, None, None, None, None, None, None
+        st.error(f"Error loading data file: {e}.")
+        return None, None, {}, None, None
+    except Exception as e:
+        st.error(f"An unexpected error occurred during data loading: {e}")
+        import traceback
+        st.text(traceback.format_exc())
+        return None, None, {}, None, None
 
-(bf_combined, ln_combined, bf_leftover, ln_leftover, bf_consumption, ln_consumption, bf_data_map, ln_data_map, opt_data, bf_lr_school, ln_lr_school, bf_nc_school, ln_nc_school) = load_data()
+# --- Load all data ---
+opt_data_loaded, school_opt_data, popularity_files, bf_coord_data, ln_coord_data = load_data()
 
-# --- Optimization and Mapping Functions ---
+# Local Mapping Functions
 def generate_fcps_region_choropleth(regional_map_df, geojson_path, columns, initial_column):
-    """
-    Generates and displays a choropleth map of FCPS regions with a dropdown to select different data columns.
-    """
+    """Generates choropleth map."""
+    # Ensure input keys match the expected format
+    regional_map_df.rename(columns={'fcps region': 'FCPS Region'}, inplace=True, errors='ignore')
+
     try:
-        with open(geojson_path) as f:
-            gj = json.load(f)
+        with open(geojson_path) as f: gj = json.load(f)
+        for feature in gj['features']:
+            if 'properties' in feature and 'REGION' in feature['properties']:
+                feature['properties']['REGION_KEY'] = str(feature['properties']['REGION'])
     except FileNotFoundError:
-        st.error(f"GeoJSON file not found at {geojson_path}")
-        return
+        st.error(f"GeoJSON file not found at {geojson_path}"); return None
+    except Exception as e:
+        st.error(f"Error processing GeoJSON: {e}"); return None
 
-    # Create the map centered on Fairfax County
     m = folium.Map(location=[38.8, -77.3], zoom_start=10, tiles='CartoDB positron')
+    try:
+        # Check if region_key exists before creating Choropleth
+        if 'region_key' not in regional_map_df.columns:
+            st.error("'region_key' column missing in regional_savings data for Choropleth.")
+            return None
+        if initial_column not in regional_map_df.columns:
+            st.error(f"Initial column '{initial_column}' missing for Choropleth.")
+            return None
 
-    # Create the choropleth layer
-    choropleth = folium.Choropleth(
-        geo_data=gj,
-        data=regional_map_df,
-        columns=['REGION_KEY', initial_column],
-        key_on='feature.properties.REGION',
-        fill_color='YlGn',
-        fill_opacity=0.7,
-        line_opacity=0.2,
-        legend_name=initial_column,
-        name=initial_column
-    ).add_to(m)
+        choropleth = folium.Choropleth(
+            geo_data=gj, data=regional_map_df,
+            columns=['region_key', initial_column], # Use region_key and the value column
+            key_on='feature.properties.REGION_KEY', # Match key
+            fill_color='YlGn', fill_opacity=0.7, line_opacity=0.2,
+            legend_name=initial_column.replace('_',' ').title(), name=initial_column
+        ).add_to(m)
+        folium.GeoJsonTooltip(['REGION']).add_to(choropleth.geojson)
+        folium.LayerControl().add_to(m)
+        return m
+    except Exception as e:
+        st.error(f"Error creating Choropleth: {e}")
+        st.write("Data passed to Choropleth:")
+        st.dataframe(regional_map_df.head()) # Show data passed to choropleth
+        return None
 
-    # Add a tooltip to the GeoJSON layer
-    folium.GeoJsonTooltip(['REGION']).add_to(choropleth.geojson)
+def prepare_eda_map_data(breakfast_data, lunch_data):
+    """Prepares combined potential savings data from leftover cost (uses lowercase)."""
+    req_cols = ['school_name', 'latitude', 'longitude', 'left_over_cost']
+    if breakfast_data is None or lunch_data is None or \
+       not all(col in breakfast_data.columns for col in req_cols) or \
+       not all(col in lunch_data.columns for col in req_cols):
+        st.error("Missing data or columns for EDA potential savings map.")
+        return None
 
-    # Add layer control
-    folium.LayerControl().add_to(m)
+    bf_savings = breakfast_data.groupby(['school_name', 'latitude', 'longitude'])['left_over_cost'].sum().reset_index()
+    bf_savings.rename(columns={'left_over_cost': 'Breakfast Savings'}, inplace=True)
+    ln_savings = lunch_data.groupby(['school_name', 'latitude', 'longitude'])['left_over_cost'].sum().reset_index()
+    ln_savings.rename(columns={'left_over_cost': 'Lunch Savings'}, inplace=True)
 
-    return m
+    combined = pd.merge(bf_savings, ln_savings, on=['school_name', 'latitude', 'longitude'], how='outer').fillna(0)
+    combined['Total Savings'] = combined['Breakfast Savings'] + combined['Lunch Savings']
+    combined['School_Name_Display'] = combined['school_name'].str.title()
+    return combined
 
-def prepare_map_data_from_coordinates(breakfast_data, lunch_data):
-    """Prepares combined breakfast and lunch data with coordinates for mapping."""
-    
-    # Calculate total leftover cost per school for breakfast
-    breakfast_savings = breakfast_data.groupby(['School_Name', 'latitude', 'longitude'])['Left_Over_Cost'].sum().reset_index()
-    breakfast_savings.rename(columns={'Left_Over_Cost': 'Breakfast Savings'}, inplace=True)
-    
-    # Calculate total leftover cost per school for lunch
-    lunch_savings = lunch_data.groupby(['School_Name', 'latitude', 'longitude'])['Left_Over_Cost'].sum().reset_index()
-    lunch_savings.rename(columns={'Left_Over_Cost': 'Lunch Savings'}, inplace=True)
-    
-    # Merge breakfast and lunch savings
-    combined_savings = pd.merge(breakfast_savings, lunch_savings, on=['School_Name', 'latitude', 'longitude'], how='outer').fillna(0)
-    
-    # Calculate total savings
-    combined_savings['Total Savings'] = combined_savings['Breakfast Savings'] + combined_savings['Lunch Savings']
-    
-    return combined_savings
+# Check if essential data loaded before proceeding
+if opt_data_loaded and school_opt_data is not None and popularity_files and bf_coord_data is not None and ln_coord_data is not None:
 
-if bf_combined is not None and opt_data is not None and bf_lr_school is not None and bf_nc_school is not None:
-    # --- Sidebar Filters ---
+    # Extract dfb, dfl for filtering popularity data
+    dfb = opt_data_loaded.get('dfb')
+    dfl = opt_data_loaded.get('dfl')
+    df_sizes = opt_data_loaded.get('df_sizes') # Get df_sizes from the loaded dict
+
+    # prepare_optimization_data only cleans production_cost_total and served_reimbursable
+    cost_cols_to_clean = ['left_over_cost', 'discarded_cost']
+    if dfb is not None:
+        for col in cost_cols_to_clean:
+            if col in dfb.columns:
+                dfb[col] = pd.to_numeric(dfb[col].astype(str).str.replace(r'[$,]', '', regex=True), errors='coerce').fillna(0)
+            else:
+                st.warning(f"Column '{col}' not found in breakfast data ('dfb'). Metrics might be inaccurate.")
+                dfb[col] = 0 # Add column with zeros if missing
+    if dfl is not None:
+        for col in cost_cols_to_clean:
+            if col in dfl.columns:
+                dfl[col] = pd.to_numeric(dfl[col].astype(str).str.replace(r'[$,]', '', regex=True), errors='coerce').fillna(0)
+            else:
+                 st.warning(f"Column '{col}' not found in lunch data ('dfl'). Metrics might be inaccurate.")
+                 dfl[col] = 0 # Add column with zeros if missing
+
+    # Sidebar Filters
     st.sidebar.header("Filters")
+    selected_meal_period = st.sidebar.selectbox("Select a Meal Period", ["Overall", "Breakfast", "Lunch"])
 
-    # Meal Period Filter
-    selected_meal_period = st.sidebar.selectbox(
-        "Select a Meal Period",
-        options=["Overall", "Breakfast", "Lunch"]
-    )
+    all_regions = sorted(bf_coord_data['fcps region'].dropna().unique())
+    selected_region = st.sidebar.selectbox("Select an FCPS Region", ["All Regions"] + all_regions)
 
-    # FCPS Region Filter
-    all_regions = sorted(pd.concat([bf_data_map['FCPS Region'], ln_data_map['FCPS Region']]).dropna().unique())
-    selected_region = st.sidebar.selectbox(
-        "Select an FCPS Region",
-        options=["All Regions"] + all_regions
-    )
+    all_dks = sorted(bf_coord_data['distribution kitchen (dk)'].dropna().unique())
+    selected_dk = st.sidebar.selectbox("Select a Distribution Kitchen", ["All Distribution Kitchens"] + all_dks)
 
-    # Distribution Kitchen Filter
-    all_dks = sorted(pd.concat([bf_data_map['Distribution Kitchen (DK)'], ln_data_map['Distribution Kitchen (DK)']]).dropna().unique())
-    selected_dk = st.sidebar.selectbox(
-        "Select a Distribution Kitchen",
-        options=["All Distribution Kitchens"] + all_dks
-    )
-
-    # Educational Level Filter
     all_levels = ['Elementary', 'Middle', 'High']
-    selected_level = st.sidebar.selectbox(
-        "Select an Educational Level",
-        options=["All Levels"] + all_levels
-    )
+    selected_level = st.sidebar.selectbox("Select an Educational Level", ["All Levels"] + all_levels)
 
     # --- Dynamic School Filtering ---
-    # Filter the list of schools based on DK and Level filters
-    temp_bf_schools = bf_data_map.copy()
-    temp_ln_schools = ln_data_map.copy()
+    temp_schools_df = bf_coord_data.copy()
+    temp_schools_df = map_educational_level(temp_schools_df)
 
     if selected_region != "All Regions":
-        temp_bf_schools = temp_bf_schools[temp_bf_schools['FCPS Region'] == selected_region]
-        temp_ln_schools = temp_ln_schools[temp_ln_schools['FCPS Region'] == selected_region]
-
+        temp_schools_df = temp_schools_df[temp_schools_df['fcps region'] == selected_region]
     if selected_dk != "All Distribution Kitchens":
-        temp_bf_schools = temp_bf_schools[temp_bf_schools['Distribution Kitchen (DK)'] == selected_dk]
-        temp_ln_schools = temp_ln_schools[temp_ln_schools['Distribution Kitchen (DK)'] == selected_dk]
-
+         temp_schools_df = temp_schools_df[temp_schools_df['distribution kitchen (dk)'] == selected_dk]
     if selected_level != "All Levels":
-        temp_bf_schools = temp_bf_schools[temp_bf_schools['Educational Level'] == selected_level]
-        temp_ln_schools = temp_ln_schools[temp_ln_schools['Educational Level'] == selected_level]
-    
-    # Create the dynamic list of schools
-    all_schools = sorted(pd.concat([temp_bf_schools['School_Name'], temp_ln_schools['School_Name']]).unique())
-    
-    selected_school = st.sidebar.selectbox(
-        "Select a School",
-        options=["All Schools"] + all_schools,
-        help="Filters based on DK and Level. Select 'All Schools' to see aggregate data for your filters."
-    )
+        temp_schools_df = temp_schools_df[temp_schools_df['educational level'] == selected_level]
 
-    # --- Data Preprocessing & Filtering ---
-    def preprocess_and_filter(df, school, region, dk, level):
-            """
-            Applies all filters to the dataframe.
-            """
-            # Filter by specific school if chosen
-            if school != "All Schools":
-                df = df[df['School_Name'] == school].copy()
-            else:
-                # Otherwise, filter by Region, DK and Level
-                if region != "All Regions":
-                    df = df[df['FCPS Region'] == region].copy()
-                if dk != "All Distribution Kitchens":
-                    df = df[df['Distribution Kitchen (DK)'] == dk].copy()
-                if level != "All Levels":
-                    df = df[df['Educational Level'] == level].copy()
-            
-            cols_to_convert = [
-                'Discarded_Cost', 'Subtotal_Cost', 'Left_Over_Cost', 'Production_Cost_Total',
-                'Left_Over_Total', 'Offered_Total', 'Served_Total', 'Discarded_Total'
-            ]
-            
-            for col in cols_to_convert:
-                if col in df.columns:
-                    df[col] = pd.to_numeric(df[col].astype(str).str.replace('$', '').str.replace(',', ''), errors='coerce').fillna(0)
-                    
-            df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
-            return df
+    all_schools = sorted(temp_schools_df['school_name'].unique())
+    selected_school = st.sidebar.selectbox("Select a School", ["All Schools"] + all_schools)
 
-    # Apply all filters
-    bf_filtered = preprocess_and_filter(bf_data_map, selected_school, selected_region, selected_dk, selected_level)
-    ln_filtered = preprocess_and_filter(ln_data_map, selected_school, selected_region, selected_dk, selected_level)
+    # Data Filtering for Popularity/EDA Raw Data
+    bf_filtered_raw = dfb.copy() if dfb is not None else pd.DataFrame()
+    ln_filtered_raw = dfl.copy() if dfl is not None else pd.DataFrame()
 
-    # --- Main Dashboard Tabs ---
+    bf_filtered_raw = map_educational_level(bf_filtered_raw)
+    ln_filtered_raw = map_educational_level(ln_filtered_raw)
+
+    # Apply school filter
+    if selected_school != "All Schools":
+        if 'school_name' in bf_filtered_raw.columns:
+             bf_filtered_raw = bf_filtered_raw[bf_filtered_raw['school_name'].str.lower().str.strip() == selected_school.lower().strip()]
+        if 'school_name' in ln_filtered_raw.columns:
+             ln_filtered_raw = ln_filtered_raw[ln_filtered_raw['school_name'].str.lower().str.strip() == selected_school.lower().strip()]
+    # Apply other filters only if "All Schools" is selected
+    else:
+        if 'fcps region' in bf_filtered_raw.columns and selected_region != "All Regions":
+            bf_filtered_raw = bf_filtered_raw[bf_filtered_raw['fcps region'] == selected_region]
+            ln_filtered_raw = ln_filtered_raw[ln_filtered_raw['fcps region'] == selected_region]
+        if 'distribution kitchen (dk)' in bf_filtered_raw.columns and selected_dk != "All Distribution Kitchens":
+            bf_filtered_raw = bf_filtered_raw[bf_filtered_raw['distribution kitchen (dk)'] == selected_dk]
+            ln_filtered_raw = ln_filtered_raw[ln_filtered_raw['distribution kitchen (dk)'] == selected_dk]
+        if 'educational level' in bf_filtered_raw.columns and selected_level != "All Levels":
+            bf_filtered_raw = bf_filtered_raw[bf_filtered_raw['educational level'] == selected_level]
+            ln_filtered_raw = ln_filtered_raw[ln_filtered_raw['educational level'] == selected_level]
+
+    # Clean remaining numeric cols
+    num_cols_raw = ['left_over_total', 'offered_total', 'served_total', 'discarded_total']
+    for col in num_cols_raw:
+        if col in bf_filtered_raw.columns:
+            bf_filtered_raw[col] = pd.to_numeric(bf_filtered_raw[col], errors='coerce').fillna(0)
+        if col in ln_filtered_raw.columns:
+            ln_filtered_raw[col] = pd.to_numeric(ln_filtered_raw[col], errors='coerce').fillna(0)
+    # Ensure date column is datetime
+    if 'date' in bf_filtered_raw.columns:
+        bf_filtered_raw['date'] = pd.to_datetime(bf_filtered_raw['date'], errors='coerce')
+    if 'date' in ln_filtered_raw.columns:
+        ln_filtered_raw['date'] = pd.to_datetime(ln_filtered_raw['date'], errors='coerce')
+
+
+    # Main Dashboard Tabs
     tab_eda, tab_pop, tab_opt, tab_reg, tab_sav = st.tabs([
-        "📈 Exploratory Data Analysis", 
-        "⭐ Popularity", 
-        "⚙️ Optimization", 
+        "📈 Exploratory Data Analysis",
+        "⭐ Popularity",
+        "⚙️ Optimization",
         "📊 Regression",
         "💰 Savings/Loss"
     ])
 
+    # EDA Tab
     with tab_eda:
-        # --- This content is now dynamic based on the sidebar filter ---
+        # Check meal period first
         if selected_meal_period == "Overall":
+            # Overall View
             st.header(f"High-Level Overview for {selected_school}")
-            st.markdown("This section provides a summary of production costs and waste across both breakfast and lunch.")
-            
-            col1, col2, col3, col4 = st.columns(4)
+            st.markdown("Summary of production costs and waste across both breakfast and lunch.")
 
-            total_production_cost = bf_filtered['Production_Cost_Total'].sum() + ln_filtered['Production_Cost_Total'].sum()
-            total_leftover_cost = bf_filtered['Left_Over_Cost'].sum() + ln_filtered['Left_Over_Cost'].sum()
-            total_discarded_cost = bf_filtered['Discarded_Cost'].sum() + ln_filtered['Discarded_Cost'].sum()
-            waste_percentage = ((total_leftover_cost + total_discarded_cost) / total_production_cost * 100) if total_production_cost > 0 else 0
-            
-            col1.metric("Total Production Cost", f"${total_production_cost:,.2f}")
-            col2.metric("Total Leftover Cost", f"${total_leftover_cost:,.2f}")
-            col3.metric("Total Discarded Cost", f"${total_discarded_cost:,.2f}")
-            col4.metric("Waste Percentage", f"{waste_percentage:.2f}%")
+            # Ensure columns exist before summing
+            bf_prod_cost = bf_filtered_raw['production_cost_total'].sum() if 'production_cost_total' in bf_filtered_raw.columns else 0
+            ln_prod_cost = ln_filtered_raw['production_cost_total'].sum() if 'production_cost_total' in ln_filtered_raw.columns else 0
+            bf_lo_cost = bf_filtered_raw['left_over_cost'].sum()
+            ln_lo_cost = ln_filtered_raw['left_over_cost'].sum()
+            bf_disc_cost = bf_filtered_raw['discarded_cost'].sum()
+            ln_disc_cost = ln_filtered_raw['discarded_cost'].sum()
+
+            total_prod_cost = bf_prod_cost + ln_prod_cost
+            total_lo_cost_calc = bf_lo_cost + ln_lo_cost
+            total_disc_cost_calc = bf_disc_cost + ln_disc_cost
+            waste_perc_calc = ((total_lo_cost_calc + total_disc_cost_calc) / total_prod_cost * 100) if total_prod_cost > 0 else 0
+
+            col1, col2, col3, col4 = st.columns(4)
+            col1.metric("Total Production Cost", f"${total_prod_cost:,.2f}")
+            col2.metric("Total Leftover Cost", f"${total_lo_cost_calc:,.2f}")
+            col3.metric("Total Discarded Cost", f"${total_disc_cost_calc:,.2f}")
+            col4.metric("Waste Percentage", f"{waste_perc_calc:.2f}%")
+
 
             st.markdown("---")
-
             st.subheader("Cost Over Time")
-            cost_over_time = pd.concat([
-                bf_filtered[['Date', 'Production_Cost_Total', 'Left_Over_Cost', 'Discarded_Cost']],
-                ln_filtered[['Date', 'Production_Cost_Total', 'Left_Over_Cost', 'Discarded_Cost']]
-            ]).groupby('Date').sum().reset_index()
-            
-            fig_cost_time = px.line(
-                cost_over_time, 
-                x='Date', 
-                y=['Production_Cost_Total', 'Left_Over_Cost', 'Discarded_Cost'],
-                title='Daily Production and Waste Costs',
-                labels={'value': 'Cost (USD)', 'variable': 'Cost Type'}
-            )
-            st.plotly_chart(fig_cost_time, use_container_width=True)
+            cost_cols = ['date', 'production_cost_total', 'left_over_cost', 'discarded_cost']
+            if all(col in bf_filtered_raw.columns for col in cost_cols) and \
+               all(col in ln_filtered_raw.columns for col in cost_cols) and \
+               not bf_filtered_raw.empty and not ln_filtered_raw.empty:
+                cost_over_time = pd.concat([
+                    bf_filtered_raw[cost_cols],
+                    ln_filtered_raw[cost_cols]
+                ])
+                cost_over_time['date'] = pd.to_datetime(cost_over_time['date'])
+                cost_agg = cost_over_time.groupby('date').sum().reset_index()
 
+                if not cost_agg.empty:
+                    fig_cost_time = px.line(cost_agg, x='date',
+                                            y=['production_cost_total', 'left_over_cost', 'discarded_cost'],
+                                            title='Daily Production and Waste Costs',
+                                            labels={'value': 'Cost (USD)', 'variable': 'Cost Type', 'date':'Date'})
+                    st.plotly_chart(fig_cost_time, use_container_width=True)
+                else:
+                    st.warning("No data available for Cost Over Time chart after aggregation.")
+            else:
+                st.warning("Cost over time chart cannot be generated - required columns missing or dataframes empty.")
+
+
+            # EDA Geographical Analysis
             if selected_school == "All Schools":
                 with st.expander("Geographical Analysis of Potential Savings", expanded=True):
-                    st.header("🗺️ Geographical Insights")
-                    
-                    bf_data_map['Left_Over_Cost'] = pd.to_numeric(bf_data_map['Left_Over_Cost'].astype(str).str.replace('$', '').str.replace(',', ''), errors='coerce').fillna(0)
-                    ln_data_map['Left_Over_Cost'] = pd.to_numeric(ln_data_map['Left_Over_Cost'].astype(str).str.replace('$', '').str.replace(',', ''), errors='coerce').fillna(0)
+                     st.header("🗺️ Potential Savings Insights (Based on Leftovers)")
+                     bf_map_filtered = bf_coord_data.copy()
+                     ln_map_filtered = ln_coord_data.copy()
+                     bf_map_filtered = map_educational_level(bf_map_filtered)
+                     ln_map_filtered = map_educational_level(ln_map_filtered)
+                     if selected_region != "All Regions":
+                         bf_map_filtered = bf_map_filtered[bf_map_filtered['fcps region'] == selected_region]
+                         ln_map_filtered = ln_map_filtered[ln_map_filtered['fcps region'] == selected_region]
+                     if selected_dk != "All Distribution Kitchens":
+                         bf_map_filtered = bf_map_filtered[bf_map_filtered['distribution kitchen (dk)'] == selected_dk]
+                         ln_map_filtered = ln_map_filtered[ln_map_filtered['distribution kitchen (dk)'] == selected_dk]
+                     if selected_level != "All Levels":
+                         bf_map_filtered = bf_map_filtered[bf_map_filtered['educational level'] == selected_level]
+                         ln_map_filtered = ln_map_filtered[ln_map_filtered['educational level'] == selected_level]
+                     bf_map_filtered['left_over_cost'] = pd.to_numeric(bf_map_filtered['left_over_cost'].astype(str).str.replace('$', '').str.replace(',', ''), errors='coerce').fillna(0)
+                     ln_map_filtered['left_over_cost'] = pd.to_numeric(ln_map_filtered['left_over_cost'].astype(str).str.replace('$', '').str.replace(',', ''), errors='coerce').fillna(0)
+                     school_savings = prepare_eda_map_data(bf_map_filtered, ln_map_filtered)
+                     base_path_map = Path(__file__).resolve().parent.parent.parent / 'src' / 'data' / 'preprocessed-data'
+                     geojson_path = base_path_map / "School_Regions.geojson"
+                     regional_savings = bf_map_filtered.groupby('fcps region')['left_over_cost'].sum().reset_index()
+                     regional_savings.rename(columns={'left_over_cost': 'total_savings', 'fcps region': 'FCPS Region'}, inplace=True)
+                     regional_savings['region_key'] = regional_savings['FCPS Region'].str.extract('(\d+)').astype(int)
+                     st.subheader("Potential Savings by Region (Choropleth Map)")
+                     regional_map = generate_fcps_region_choropleth(
+                         regional_savings, geojson_path,
+                         columns=['region_key', 'total_savings'], initial_column='total_savings'
+                     )
+                     if regional_map: st_folium(regional_map, use_container_width=True)
+                     if school_savings is not None and not school_savings.empty:
+                         st.subheader("Potential Savings by School (Bubble Map)")
+                         bubble_map = folium.Map(location=[38.8, -77.3], zoom_start=10, tiles="CartoDB positron")
+                         for idx, row in school_savings.iterrows():
+                             popup_text=f"{row.get('School_Name_Display', row.get('school_name','Unknown School'))}<br>Potential Savings: ${row.get('Total Savings', 0):,.2f}"
+                             folium.CircleMarker(
+                                 location=[row['latitude'], row['longitude']],
+                                 radius=max(1, row.get('Total Savings', 0)/1000),
+                                 popup=popup_text,
+                                 color='crimson', fill=True, fill_color='crimson'
+                             ).add_to(bubble_map)
+                         st_folium(bubble_map, use_container_width=True)
+                     else:
+                         st.warning("Could not generate school potential savings bubble map data.")
 
-                    bf_map_filtered = bf_data_map.copy()
-                    ln_map_filtered = ln_data_map.copy()
-
-                    if selected_region != "All Regions":
-                        bf_map_filtered = bf_map_filtered[bf_map_filtered['FCPS Region'] == selected_region]
-                        ln_map_filtered = ln_map_filtered[ln_map_filtered['FCPS Region'] == selected_region]
-                    if selected_dk != "All Distribution Kitchens":
-                        bf_map_filtered = bf_map_filtered[bf_map_filtered['Distribution Kitchen (DK)'] == selected_dk]
-                        ln_map_filtered = ln_map_filtered[ln_map_filtered['Distribution Kitchen (DK)'] == selected_dk]
-                    if selected_level != "All Levels":
-                        bf_map_filtered = bf_map_filtered[bf_map_filtered['Educational Level'] == selected_level]
-                        ln_map_filtered = ln_map_filtered[ln_map_filtered['Educational Level'] == selected_level]
-                    
-                    base_path = Path(__file__).resolve().parent.parent.parent / 'src' / 'data' / 'preprocessed-data'
-                    geojson_path = base_path / "School_Regions.geojson"
-
-                    bf_regional = bf_map_filtered.groupby('FCPS Region')['Left_Over_Cost'].sum().reset_index()
-                    ln_regional = ln_map_filtered.groupby('FCPS Region')['Left_Over_Cost'].sum().reset_index()
-                    regional_savings = pd.merge(bf_regional, ln_regional, on='FCPS Region', suffixes=('_bf', '_ln'))
-                    regional_savings['total_savings'] = regional_savings['Left_Over_Cost_bf'] + regional_savings['Left_Over_Cost_ln']
-                    regional_savings['REGION_KEY'] = regional_savings['FCPS Region'].str.extract('(\d+)').astype(int)
-                    
-                    school_savings = prepare_map_data_from_coordinates(bf_map_filtered, ln_map_filtered)
-                    
-                    st.subheader("Potential Savings by Region (Choropleth Map)")
-                    regional_map = generate_fcps_region_choropleth(
-                        regional_savings, geojson_path,
-                        columns=['total_savings', 'Left_Over_Cost_bf', 'Left_Over_Cost_ln'],
-                        initial_column='total_savings'
-                    )
-                    st_folium(regional_map, use_container_width=True)
-
-                    st.subheader("Potential Savings by School (Bubble Map)")
-                    bubble_map = folium.Map(location=[38.8, -77.3], zoom_start=10, tiles="CartoDB positron")
-                    for idx, row in school_savings.iterrows():
-                        folium.CircleMarker(
-                            location=[row['latitude'], row['longitude']],
-                            radius=row['Total Savings']/1000,
-                            popup=f"{row['School_Name']}<br>Total Savings: ${row['Total Savings']:.2f}",
-                            color='crimson', fill=True, fill_color='crimson'
-                        ).add_to(bubble_map)
-                    st_folium(bubble_map, use_container_width=True)
-        
+        # Specific Meal Period Selected
         else:
-            # Show this message if user selects "Breakfast" or "Lunch"
-            st.info(f"Displaying {selected_meal_period} data in the '⭐ Popularity' tab.")
+            # Check if a specific school is selected
+            if selected_school != "All Schools":
+                st.header(f"{selected_meal_period} Raw Data for {selected_school}")
+                # Display the raw filtered data for the selected school and meal period
+                if selected_meal_period == "Breakfast":
+                    if not bf_filtered_raw.empty:
+                        st.markdown(f"Displaying raw filtered breakfast data for {selected_school}.")
+                        # Display the filtered dataframe
+                        st.dataframe(bf_filtered_raw)
+                    else:
+                        st.warning(f"No raw breakfast data found for {selected_school} matching all selected filters (Region, DK, Level).")
+                elif selected_meal_period == "Lunch":
+                    if not ln_filtered_raw.empty:
+                        st.markdown(f"Displaying raw filtered lunch data for {selected_school}.")
+                        # Display the filtered dataframe
+                        st.dataframe(ln_filtered_raw)
+                    else:
+                         st.warning(f"No raw lunch data found for {selected_school} matching all selected filters (Region, DK, Level).")
+            else:
+                st.info(f"Aggregated {selected_meal_period} data visualizations are shown in the '⭐ Popularity' tab.")
 
+    # Popularity Tab
     with tab_pop:
         st.header("Food Item Popularity Analysis")
-        
-        # --- Check if any filters are active ---
-        filters_active = (selected_region != "All Regions" or 
-                          selected_dk != "All Distribution Kitchens" or 
+        filters_active = (selected_region != "All Regions" or
+                          selected_dk != "All Distribution Kitchens" or
                           selected_level != "All Levels")
-        
+
+        # Get cleaned dataframes from dictionary
+        bf_leftover_static = popularity_files.get('bf_leftover')
+        ln_leftover_static = popularity_files.get('ln_leftover')
+        bf_consumption_static = popularity_files.get('bf_consumption')
+        ln_consumption_static = popularity_files.get('ln_consumption')
+        bf_lr_school_df = popularity_files.get('bf_lr_school')
+        ln_lr_school_df = popularity_files.get('ln_lr_school')
+        bf_nc_school_df = popularity_files.get('bf_nc_school')
+        ln_nc_school_df = popularity_files.get('ln_nc_school')
+
         # --- BREAKFAST SECTION ---
         if selected_meal_period == "Breakfast" or selected_meal_period == "Overall":
             st.subheader(f"Breakfast Insights for: {selected_school}")
-            
-            # Check if "All Schools" or a specific school is selected
             if selected_school == "All Schools":
                 b_col1, b_col2 = st.columns(2)
-                
-                # --- ALL SCHOOLS (Dynamic Data) ---
                 if filters_active:
-                    st.markdown("Showing aggregate data for all schools matching your filters.")
-                    
+                    st.markdown("Showing aggregate data for schools matching filters.")
                     with b_col1:
-                        st.subheader("All Items by Leftover Rate")
-                        # --- Calculate from filtered data ---
-                        bf_lr_agg = bf_filtered.groupby('Name').agg(
-                            Left_Over_Total=('Left_Over_Total', 'sum'),
-                            Offered_Total=('Offered_Total', 'sum')
-                        ).reset_index()
-                        bf_lr_agg = bf_lr_agg[bf_lr_agg['Offered_Total'] > 0] # Avoid division by zero
-                        bf_lr_agg['Leftover Rate (%)'] = (bf_lr_agg['Left_Over_Total'] / bf_lr_agg['Offered_Total']) * 100
-                        bf_leftover_chart = bf_lr_agg.sort_values(by='Leftover Rate (%)', ascending=True)
-                        
-                        chart_height = max(400, len(bf_leftover_chart) * 20)
-                        fig_bf_leftover = px.bar(
-                            bf_leftover_chart, x='Leftover Rate (%)', y='Name', orientation='h',
-                            title='Breakfast Items by Leftover Rates (Filtered)',
-                            labels={'Name': 'Food Item'}, color='Leftover Rate (%)',
-                            color_continuous_scale=px.colors.sequential.Reds, height=chart_height
-                        )
-                        st.plotly_chart(fig_bf_leftover, use_container_width=True)
-                        with st.expander("📋 View Filtered Leftover Rate Data"):
-                            st.dataframe(bf_leftover_chart.sort_values(by='Leftover Rate (%)', ascending=False))
-
+                        st.subheader("Items by Leftover Rate")
+                        bf_lr_agg = bf_filtered_raw.groupby('name').agg(lo=('left_over_total', 'sum'), off=('offered_total', 'sum')).reset_index()
+                        bf_lr_agg = bf_lr_agg[bf_lr_agg['off'] > 0]
+                        bf_lr_agg['rate'] = (bf_lr_agg['lo'] / bf_lr_agg['off']) * 100
+                        bf_lr_chart_data = bf_lr_agg.sort_values(by='rate', ascending=True)
+                        chart_h = max(400, len(bf_lr_chart_data) * 20)
+                        fig = px.bar(bf_lr_chart_data, x='rate', y='name', orientation='h', title='Leftover Rates (Filtered)', labels={'name':'Item', 'rate':'Rate (%)'}, height=chart_h, color='rate', color_continuous_scale=px.colors.sequential.Reds)
+                        st.plotly_chart(fig, use_container_width=True)
+                        with st.expander("View Data"): st.dataframe(bf_lr_chart_data.sort_values(by='rate', ascending=False))
                     with b_col2:
-                        st.subheader("All Items by Net Consumption Rate")
-                        # --- Calculate from filtered data ---
-                        bf_nc_agg = bf_filtered.groupby('Name').agg(
-                            Offered_Total=('Offered_Total', 'sum'),
-                            Left_Over_Total=('Left_Over_Total', 'sum')
-                        ).reset_index()
-                        bf_nc_agg = bf_nc_agg[bf_nc_agg['Offered_Total'] > 0]
-                        bf_nc_agg['Net Consumption'] = bf_nc_agg['Offered_Total'] - bf_nc_agg['Left_Over_Total']
-                        bf_nc_agg['Net Consumption Rate (%)'] = (bf_nc_agg['Net Consumption'] / bf_nc_agg['Offered_Total']) * 100
-                        bf_consumption_chart = bf_nc_agg.sort_values(by='Net Consumption Rate (%)', ascending=True)
-
-                        chart_height = max(400, len(bf_consumption_chart) * 20)
-                        fig_bf_consumption = px.bar(
-                            bf_consumption_chart, x='Net Consumption Rate (%)', y='Name', orientation='h',
-                            title='Breakfast Items by Net Consumption Rate (Filtered)',
-                            labels={'Name': 'Food Item'}, color='Net Consumption Rate (%)',
-                            color_continuous_scale=px.colors.sequential.Greens, height=chart_height
-                        )
-                        st.plotly_chart(fig_bf_consumption, use_container_width=True)
-                        with st.expander("📋 View Filtered Net Consumption Rate Data"):
-                            st.dataframe(bf_consumption_chart.sort_values(by='Net Consumption Rate (%)', ascending=False))
-
-                else:
-                    # --- ALL SCHOOLS (Static County-wide Data) ---
-                    st.markdown("Showing aggregate data for all schools (county-wide).")
+                        st.subheader("Items by Net Consumption Rate")
+                        bf_nc_agg = bf_filtered_raw.groupby('name').agg(off=('offered_total', 'sum'), lo=('left_over_total', 'sum')).reset_index()
+                        bf_nc_agg = bf_nc_agg[bf_nc_agg['off'] > 0]
+                        bf_nc_agg['cons'] = bf_nc_agg['off'] - bf_nc_agg['lo']
+                        bf_nc_agg['rate'] = (bf_nc_agg['cons'] / bf_nc_agg['off']) * 100
+                        bf_nc_chart_data = bf_nc_agg.sort_values(by='rate', ascending=True)
+                        chart_h = max(400, len(bf_nc_chart_data) * 20)
+                        fig = px.bar(bf_nc_chart_data, x='rate', y='name', orientation='h', title='Net Consumption Rate (Filtered)', labels={'name':'Item', 'rate':'Rate (%)'}, height=chart_h, color='rate', color_continuous_scale=px.colors.sequential.Greens)
+                        st.plotly_chart(fig, use_container_width=True)
+                        with st.expander("View Data"): st.dataframe(bf_nc_chart_data.sort_values(by='rate', ascending=False))
+                else: # County-wide static files
+                    st.markdown("Showing aggregate data (county-wide).")
                     with b_col1:
-                        st.subheader("All Items by Leftover Rate")
-                        bf_leftover_chart = bf_leftover.sort_values(by='Leftover Rate (%)', ascending=True)
-                        chart_height = max(400, len(bf_leftover_chart) * 20)
-                        fig_bf_leftover = px.bar(
-                            bf_leftover_chart, x='Leftover Rate (%)', y='Item Name', orientation='h',
-                            title='Breakfast Items by Leftover Rates (County-Wide)',
-                            labels={'Item Name': 'Food Item'}, color='Leftover Rate (%)',
-                            color_continuous_scale=px.colors.sequential.Reds, height=chart_height
-                        )
-                        st.plotly_chart(fig_bf_leftover, use_container_width=True)
-                        with st.expander("📋 View County-Wide Leftover Rate Data"):
-                            st.dataframe(bf_leftover_chart.sort_values(by='Leftover Rate (%)', ascending=False))
-
+                        st.subheader("Items by Leftover Rate")
+                        if bf_leftover_static is not None and 'leftover_rate' in bf_leftover_static.columns and 'name' in bf_leftover_static.columns:
+                            bf_lr_chart_data = bf_leftover_static.sort_values(by='leftover_rate', ascending=True)
+                            chart_h = max(400, len(bf_lr_chart_data) * 20)
+                            fig = px.bar(bf_lr_chart_data, x='leftover_rate', y='name', orientation='h', title='Leftover Rates (County-Wide)', labels={'name':'Item', 'leftover_rate':'Rate (%)'}, height=chart_h, color='leftover_rate', color_continuous_scale=px.colors.sequential.Reds)
+                            st.plotly_chart(fig, use_container_width=True)
+                            with st.expander("View Data"): st.dataframe(bf_lr_chart_data.sort_values(by='leftover_rate', ascending=False))
+                        else: st.warning("Breakfast leftover rate data not loaded or columns incorrect.")
                     with b_col2:
-                        st.subheader("All Items by Net Consumption")
-                        bf_consumption_chart = bf_consumption.sort_values(by='Net Consumption', ascending=True)
-                        chart_height = max(400, len(bf_consumption_chart) * 20)
-                        fig_bf_consumption = px.bar(
-                            bf_consumption_chart, x='Net Consumption', y='Item Name', orientation='h',
-                            title='Most Consumed Breakfast Items (County-Wide)',
-                            labels={'Item Name': 'Food Item'}, color='Net Consumption',
-                            color_continuous_scale=px.colors.sequential.Greens, height=chart_height
-                        )
-                        st.plotly_chart(fig_bf_consumption, use_container_width=True)
-                        with st.expander("📋 View County-Wide Net Consumption Data"):
-                            st.dataframe(bf_consumption_chart.sort_values(by='Net Consumption', ascending=False))
-            
+                         st.subheader("Items by Net Consumption")
+                         if bf_consumption_static is not None and 'net_consumption' in bf_consumption_static.columns and 'name' in bf_consumption_static.columns:
+                             bf_nc_chart_data = bf_consumption_static.sort_values(by='net_consumption', ascending=True)
+                             chart_h = max(400, len(bf_nc_chart_data) * 20)
+                             fig = px.bar(bf_nc_chart_data, x='net_consumption', y='name', orientation='h', title='Net Consumption (County-Wide)', labels={'name':'Item', 'net_consumption':'Count'}, height=chart_h, color='net_consumption', color_continuous_scale=px.colors.sequential.Greens)
+                             st.plotly_chart(fig, use_container_width=True)
+                             with st.expander("View Data"): st.dataframe(bf_nc_chart_data.sort_values(by='net_consumption', ascending=False))
+                         else: st.warning("Breakfast net consumption data not loaded or columns incorrect.")
+
+            # --- SPECIFIC SCHOOL ---
             else:
-                # --- SPECIFIC SCHOOL ---
                 st.markdown(f"Showing data for {selected_school} only.")
-                if bf_filtered.empty:
-                    st.warning("No breakfast data found for this school.")
-                else:
-                    b_col1, b_col2 = st.columns(2)
-                    
-                    with b_col1:
-                        st.subheader("All Items by Leftover Rate")
-                        bf_lr_school_data = bf_lr_school[bf_lr_school['school_name'] == selected_school]
-                        bf_lr_chart = bf_lr_school_data.sort_values(by='leftover_rate', ascending=True)
-                        
-                        if not bf_lr_chart.empty:
-                            chart_height = max(400, len(bf_lr_chart) * 20)
-                            fig_bf_school_leftover = px.bar(
-                                bf_lr_chart, x='leftover_rate', y='name', orientation='h',
-                                title='Breakfast Items with Highest Leftover Rates',
-                                labels={'name': 'Food Item', 'leftover_rate': 'Leftover Rate (%)'}, 
-                                color='leftover_rate',
-                                color_continuous_scale=px.colors.sequential.Reds, height=chart_height
-                            )
-                            st.plotly_chart(fig_bf_school_leftover, use_container_width=True)
+                # --- CORRECTED FILTERING LOGIC ---
+                b_col1, b_col2 = st.columns(2)
+                with b_col1:
+                    st.subheader("Items by Leftover Rate")
+                    # Check if the specific school dataframe is loaded
+                    if bf_lr_school_df is not None and 'school_name' in bf_lr_school_df.columns:
+                        # Filter using lowercase comparison
+                        bf_lr_school_data_filtered = bf_lr_school_df[bf_lr_school_df['school_name'].str.lower() == selected_school.lower()]
+                        bf_lr_chart_data = bf_lr_school_data_filtered.sort_values(by='leftover_rate', ascending=True)
+                        if not bf_lr_chart_data.empty:
+                            chart_h = max(400, len(bf_lr_chart_data) * 20)
+                            fig = px.bar(bf_lr_chart_data, x='leftover_rate', y='name', orientation='h', title='Leftover Rates', labels={'name':'Item', 'leftover_rate':'Rate (%)'}, height=chart_h, color='leftover_rate', color_continuous_scale=px.colors.sequential.Reds)
+                            st.plotly_chart(fig, use_container_width=True)
                         else:
-                            st.info("No pre-computed leftover rate data found for this school.")
-                        
-                        with st.expander("📋 View Leftover Rate Data"):
-                            st.dataframe(bf_lr_chart.sort_values(by='leftover_rate', ascending=False))
-                    
-                    with b_col2:
-                        st.subheader("All Items by Net Consumption Rate")
-                        bf_nc_school_data = bf_nc_school[bf_nc_school['school_name'] == selected_school]
-                        bf_nc_chart = bf_nc_school_data.sort_values(by='net_consumption_rate', ascending=True)
-                        
-                        if not bf_nc_chart.empty:
-                            chart_height = max(400, len(bf_nc_chart) * 20)
-                            fig_bf_school_consumption = px.bar(
-                                bf_nc_chart, x='net_consumption_rate', y='name', orientation='h',
-                                title='Breakfast Items with Highest Consumption Rates',
-                                labels={'name': 'Food Item', 'net_consumption_rate': 'Net Consumption Rate (%)'}, 
-                                color='net_consumption_rate',
-                                color_continuous_scale=px.colors.sequential.Greens, height=chart_height
-                            )
-                            st.plotly_chart(fig_bf_school_consumption, use_container_width=True)
-                        else:
-                            st.info("No pre-computed net consumption data found for this school.")
-                        
-                        with st.expander("📋 View Net Consumption Rate Data"):
-                            st.dataframe(bf_nc_chart.sort_values(by='net_consumption_rate', ascending=False))
-                
-                with st.expander("📋 View Raw Filtered Breakfast Data"):
-                    st.dataframe(bf_filtered)
+                            st.info(f"No pre-computed Breakfast Leftover Rate data found for {selected_school}.")
+                        with st.expander("View Data"): st.dataframe(bf_lr_chart_data.sort_values(by='leftover_rate', ascending=False))
+                    else:
+                        st.warning("Breakfast school leftover rate data not loaded or 'school_name' column missing.")
 
-            st.markdown("---") # Add a separator
+                with b_col2:
+                    st.subheader("Items by Net Consumption Rate")
+                    # Check if the specific school dataframe is loaded
+                    if bf_nc_school_df is not None and 'school_name' in bf_nc_school_df.columns:
+                         # Filter using lowercase comparison
+                        bf_nc_school_data_filtered = bf_nc_school_df[bf_nc_school_df['school_name'].str.lower() == selected_school.lower()]
+                        bf_nc_chart_data = bf_nc_school_data_filtered.sort_values(by='net_consumption_rate', ascending=True)
+                        if not bf_nc_chart_data.empty:
+                            chart_h = max(400, len(bf_nc_chart_data) * 20)
+                            fig = px.bar(bf_nc_chart_data, x='net_consumption_rate', y='name', orientation='h', title='Net Consumption Rate', labels={'name':'Item', 'net_consumption_rate':'Rate (%)'}, height=chart_h, color='net_consumption_rate', color_continuous_scale=px.colors.sequential.Greens)
+                            st.plotly_chart(fig, use_container_width=True)
+                        else:
+                            st.info(f"No pre-computed Breakfast Net Consumption Rate data found for {selected_school}.")
+                        with st.expander("View Data"): st.dataframe(bf_nc_chart_data.sort_values(by='net_consumption_rate', ascending=False))
+                    else:
+                        st.warning("Breakfast school net consumption rate data not loaded or 'school_name' column missing.")
+
+                # Keep raw data expander
+                with st.expander("View Raw Filtered Data (Matching Sidebar Filters)"):
+                    st.dataframe(bf_filtered_raw)
+            st.markdown("---")
+
 
         # --- LUNCH SECTION ---
         if selected_meal_period == "Lunch" or selected_meal_period == "Overall":
             st.subheader(f"Lunch Insights for: {selected_school}")
-            
-            # Check if "All Schools" or a specific school
             if selected_school == "All Schools":
-                l_col1, l_col2 = st.columns(2)
+                 l_col1, l_col2 = st.columns(2)
+                 if filters_active:
+                     st.markdown("Showing aggregate data for schools matching filters.")
+                     with l_col1:
+                         st.subheader("Items by Leftover Rate")
+                         ln_lr_agg = ln_filtered_raw.groupby('name').agg(lo=('left_over_total', 'sum'), off=('offered_total', 'sum')).reset_index()
+                         ln_lr_agg = ln_lr_agg[ln_lr_agg['off'] > 0]
+                         ln_lr_agg['rate'] = (ln_lr_agg['lo'] / ln_lr_agg['off']) * 100
+                         ln_lr_chart_data = ln_lr_agg.sort_values(by='rate', ascending=True)
+                         chart_h = max(400, len(ln_lr_chart_data) * 20)
+                         fig = px.bar(ln_lr_chart_data, x='rate', y='name', orientation='h', title='Leftover Rates (Filtered)', labels={'name':'Item', 'rate':'Rate (%)'}, height=chart_h, color='rate', color_continuous_scale=px.colors.sequential.Reds)
+                         st.plotly_chart(fig, use_container_width=True)
+                         with st.expander("View Data"): st.dataframe(ln_lr_chart_data.sort_values(by='rate', ascending=False))
+                     with l_col2:
+                         st.subheader("Items by Net Consumption Rate")
+                         ln_nc_agg = ln_filtered_raw.groupby('name').agg(off=('offered_total', 'sum'), lo=('left_over_total', 'sum')).reset_index()
+                         ln_nc_agg = ln_nc_agg[ln_nc_agg['off'] > 0]
+                         ln_nc_agg['cons'] = ln_nc_agg['off'] - ln_nc_agg['lo']
+                         ln_nc_agg['rate'] = (ln_nc_agg['cons'] / ln_nc_agg['off']) * 100
+                         ln_nc_chart_data = ln_nc_agg.sort_values(by='rate', ascending=True)
+                         chart_h = max(400, len(ln_nc_chart_data) * 20)
+                         fig = px.bar(ln_nc_chart_data, x='rate', y='name', orientation='h', title='Net Consumption Rate (Filtered)', labels={'name':'Item', 'rate':'Rate (%)'}, height=chart_h, color='rate', color_continuous_scale=px.colors.sequential.Greens)
+                         st.plotly_chart(fig, use_container_width=True)
+                         with st.expander("View Data"): st.dataframe(ln_nc_chart_data.sort_values(by='rate', ascending=False))
 
-                # --- ALL SCHOOLS (Dynamic Data) ---
-                if filters_active:
-                    st.markdown("Showing aggregate data for all schools matching your filters.")
-                    
-                    with l_col1:
-                        st.subheader("All Items by Leftover Rate")
-                        # --- Calculate from filtered data ---
-                        ln_lr_agg = ln_filtered.groupby('Name').agg(
-                            Left_Over_Total=('Left_Over_Total', 'sum'),
-                            Offered_Total=('Offered_Total', 'sum')
-                        ).reset_index()
-                        ln_lr_agg = ln_lr_agg[ln_lr_agg['Offered_Total'] > 0]
-                        ln_lr_agg['Leftover Rate (%)'] = (ln_lr_agg['Left_Over_Total'] / ln_lr_agg['Offered_Total']) * 100
-                        ln_leftover_chart = ln_lr_agg.sort_values(by='Leftover Rate (%)', ascending=True)
-                        
-                        chart_height = max(400, len(ln_leftover_chart) * 20)
-                        fig_ln_leftover = px.bar(
-                            ln_leftover_chart, x='Leftover Rate (%)', y='Name', orientation='h',
-                            title='Lunch Items by Leftover Rates (Filtered)',
-                            labels={'Name': 'Food Item'}, color='Leftover Rate (%)',
-                            color_continuous_scale=px.colors.sequential.Reds, height=chart_height
-                        )
-                        st.plotly_chart(fig_ln_leftover, use_container_width=True)
-                        with st.expander("📋 View Filtered Leftover Rate Data"):
-                            st.dataframe(ln_leftover_chart.sort_values(by='Leftover Rate (%)', ascending=False))
+                 else: # County-wide static files
+                     st.markdown("Showing aggregate data (county-wide).")
+                     with l_col1:
+                         st.subheader("Items by Leftover Rate")
+                         if ln_leftover_static is not None and 'leftover_rate' in ln_leftover_static.columns and 'name' in ln_leftover_static.columns:
+                             ln_lr_chart_data = ln_leftover_static.sort_values(by='leftover_rate', ascending=True)
+                             chart_h = max(400, len(ln_lr_chart_data) * 20)
+                             fig = px.bar(ln_lr_chart_data, x='leftover_rate', y='name', orientation='h', title='Leftover Rates (County-Wide)', labels={'name':'Item', 'leftover_rate':'Rate (%)'}, height=chart_h, color='leftover_rate', color_continuous_scale=px.colors.sequential.Reds)
+                             st.plotly_chart(fig, use_container_width=True)
+                             with st.expander("View Data"): st.dataframe(ln_lr_chart_data.sort_values(by='leftover_rate', ascending=False))
+                         else: st.warning("Lunch leftover rate data not loaded or columns incorrect.")
+                     with l_col2:
+                          st.subheader("Items by Net Consumption")
+                          if ln_consumption_static is not None and 'net_consumption' in ln_consumption_static.columns and 'name' in ln_consumption_static.columns:
+                              ln_nc_chart_data = ln_consumption_static.sort_values(by='net_consumption', ascending=True)
+                              chart_h = max(400, len(ln_nc_chart_data) * 20)
+                              fig = px.bar(ln_nc_chart_data, x='net_consumption', y='name', orientation='h', title='Net Consumption (County-Wide)', labels={'name':'Item', 'net_consumption':'Count'}, height=chart_h, color='net_consumption', color_continuous_scale=px.colors.sequential.Greens)
+                              st.plotly_chart(fig, use_container_width=True)
+                              with st.expander("View Data"): st.dataframe(ln_nc_chart_data.sort_values(by='net_consumption', ascending=False))
+                          else: st.warning("Lunch net consumption data not loaded or columns incorrect.")
 
-                    with l_col2:
-                        st.subheader("All Items by Net Consumption Rate")
-                        # --- Calculate from filtered data ---
-                        ln_nc_agg = ln_filtered.groupby('Name').agg(
-                            Offered_Total=('Offered_Total', 'sum'),
-                            Left_Over_Total=('Left_Over_Total', 'sum')
-                        ).reset_index()
-                        ln_nc_agg = ln_nc_agg[ln_nc_agg['Offered_Total'] > 0]
-                        ln_nc_agg['Net Consumption'] = ln_nc_agg['Offered_Total'] - ln_nc_agg['Left_Over_Total']
-                        ln_nc_agg['Net Consumption Rate (%)'] = (ln_nc_agg['Net Consumption'] / ln_nc_agg['Offered_Total']) * 100
-                        ln_consumption_chart = ln_nc_agg.sort_values(by='Net Consumption Rate (%)', ascending=True)
-
-                        chart_height = max(400, len(ln_consumption_chart) * 20)
-                        fig_ln_consumption = px.bar(
-                            ln_consumption_chart, x='Net Consumption Rate (%)', y='Name', orientation='h',
-                            title='Most Consumed Lunch Items (Filtered)',
-                            labels={'Name': 'Food Item'}, color='Net Consumption Rate (%)',
-                            color_continuous_scale=px.colors.sequential.Greens, height=chart_height
-                        )
-                        st.plotly_chart(fig_ln_consumption, use_container_width=True)
-                        with st.expander("📋 View Filtered Net Consumption Rate Data"):
-                            st.dataframe(ln_consumption_chart.sort_values(by='Net Consumption Rate (%)', ascending=False))
-
-                else:
-                    # --- ALL SCHOOLS (Static County-wide Data) ---
-                    st.markdown("Showing aggregate data for all schools (county-wide).")
-                    with l_col1:
-                        st.subheader("All Items by Leftover Rate")
-                        ln_leftover_chart = ln_leftover.sort_values(by='Leftover Rate (%)', ascending=True)
-                        chart_height = max(400, len(ln_leftover_chart) * 20)
-                        fig_ln_leftover = px.bar(
-                            ln_leftover_chart, x='Leftover Rate (%)', y='Item Name', orientation='h',
-                            title='Lunch Items by Leftover Rates (County-Wide)',
-                            labels={'Item Name': 'Food Item'}, color='Leftover Rate (%)',
-                            color_continuous_scale=px.colors.sequential.Reds, height=chart_height
-                        )
-                        st.plotly_chart(fig_ln_leftover, use_container_width=True)
-                        with st.expander("📋 View County-Wide Leftover Rate Data"):
-                            st.dataframe(ln_leftover_chart.sort_values(by='Leftover Rate (%)', ascending=False))
-
-                    with l_col2:
-                        st.subheader("All Items by Net Consumption")
-                        ln_consumption_chart = ln_consumption.sort_values(by='Net Consumption', ascending=True)
-                        chart_height = max(400, len(ln_consumption_chart) * 20)
-                        fig_ln_consumption = px.bar(
-                            ln_consumption_chart, x='Net Consumption', y='Item Name', orientation='h',
-                            title='Most Consumed Lunch Items (County-Wide)',
-                            labels={'Item Name': 'Food Item'}, color='Net Consumption',
-                            color_continuous_scale=px.colors.sequential.Greens, height=chart_height
-                        )
-                        st.plotly_chart(fig_ln_consumption, use_container_width=True)
-                        with st.expander("📋 View County-Wide Net Consumption Data"):
-                            st.dataframe(ln_consumption_chart.sort_values(by='Net Consumption', ascending=False))
-            
+            # --- SPECIFIC SCHOOL ---
             else:
-                # --- SPECIFIC SCHOOL ---
-                st.markdown(f"Showing data for {selected_school} only.")
-                if ln_filtered.empty:
-                    st.warning("No lunch data found for this school.")
-                else:
-                    l_col1, l_col2 = st.columns(2)
-                    
-                    with l_col1:
-                        st.subheader("All Items by Leftover Rate")
-                        ln_lr_school_data = ln_lr_school[ln_lr_school['school_name'] == selected_school]
-                        ln_lr_chart = ln_lr_school_data.sort_values(by='leftover_rate', ascending=True)
-                        
-                        if not ln_lr_chart.empty:
-                            chart_height = max(400, len(ln_lr_chart) * 20)
-                            fig_ln_school_leftover = px.bar(
-                                ln_lr_chart, x='leftover_rate', y='name', orientation='h',
-                                title='Lunch Items by Leftover Rates',
-                                labels={'name': 'Food Item', 'leftover_rate': 'Leftover Rate (%)'}, 
-                                color='leftover_rate',
-                                color_continuous_scale=px.colors.sequential.Reds, height=chart_height
-                            )
-                            st.plotly_chart(fig_ln_school_leftover, use_container_width=True)
-                        else:
-                            st.info("No pre-computed leftover rate data found for this school.")
-                        
-                        with st.expander("📋 View Leftover Rate Data"):
-                            st.dataframe(ln_lr_chart.sort_values(by='leftover_rate', ascending=False))
-                    
-                    with l_col2:
-                        st.subheader("All Items by Net Consumption Rate")
-                        ln_nc_school_data = ln_nc_school[ln_nc_school['school_name'] == selected_school]
-                        ln_nc_chart = ln_nc_school_data.sort_values(by='net_consumption_rate', ascending=True)
-                        
-                        if not ln_nc_chart.empty:
-                            chart_height = max(400, len(ln_nc_chart) * 20)
-                            fig_ln_school_consumption = px.bar(
-                                ln_nc_chart, x='net_consumption_rate', y='name', orientation='h',
-                                title='Lunch Items with Highest Consumption Rates',
-                                labels={'name': 'Food Item', 'net_consumption_rate': 'Net Consumption Rate (%)'}, 
-                                color='net_consumption_rate',
-                                color_continuous_scale=px.colors.sequential.Greens, height=chart_height
-                            )
-                            st.plotly_chart(fig_ln_school_consumption, use_container_width=True)
-                        else:
-                            st.info("No pre-computed net consumption data found for this school.")
-                        
-                        with st.expander("📋 View Net Consumption Rate Data"):
-                            st.dataframe(ln_nc_chart.sort_values(by='net_consumption_rate', ascending=False))
-                
-                with st.expander("📋 View Raw Filtered Lunch Data"):
-                    st.dataframe(ln_filtered)
+                 st.markdown(f"Showing data for {selected_school} only.")
+                 l_col1, l_col2 = st.columns(2)
+                 with l_col1:
+                     st.subheader("Items by Leftover Rate")
+                     # Check if the specific school dataframe is loaded
+                     if ln_lr_school_df is not None and 'school_name' in ln_lr_school_df.columns:
+                         # Filter using lowercase comparison
+                         ln_lr_school_data_filtered = ln_lr_school_df[ln_lr_school_df['school_name'].str.lower() == selected_school.lower()]
+                         ln_lr_chart_data = ln_lr_school_data_filtered.sort_values(by='leftover_rate', ascending=True)
+                         if not ln_lr_chart_data.empty:
+                             chart_h = max(400, len(ln_lr_chart_data) * 20)
+                             fig = px.bar(ln_lr_chart_data, x='leftover_rate', y='name', orientation='h', title='Leftover Rates', labels={'name':'Item', 'leftover_rate':'Rate (%)'}, height=chart_h, color='leftover_rate', color_continuous_scale=px.colors.sequential.Reds)
+                             st.plotly_chart(fig, use_container_width=True)
+                         else:
+                             st.info(f"No pre-computed Lunch Leftover Rate data found for {selected_school}.")
+                         with st.expander("View Data"): st.dataframe(ln_lr_chart_data.sort_values(by='leftover_rate', ascending=False))
+                     else:
+                          st.warning("Lunch school leftover rate data not loaded or 'school_name' column missing.")
 
-        # Handle case where no meal period is selected
+                 with l_col2:
+                     st.subheader("Items by Net Consumption Rate")
+                     # Check if the specific school dataframe is loaded
+                     if ln_nc_school_df is not None and 'school_name' in ln_nc_school_df.columns:
+                         # Filter using lowercase comparison
+                         ln_nc_school_data_filtered = ln_nc_school_df[ln_nc_school_df['school_name'].str.lower() == selected_school.lower()]
+                         ln_nc_chart_data = ln_nc_school_data_filtered.sort_values(by='net_consumption_rate', ascending=True)
+                         if not ln_nc_chart_data.empty:
+                             chart_h = max(400, len(ln_nc_chart_data) * 20)
+                             fig = px.bar(ln_nc_chart_data, x='net_consumption_rate', y='name', orientation='h', title='Net Consumption Rate', labels={'name':'Item', 'net_consumption_rate':'Rate (%)'}, height=chart_h, color='net_consumption_rate', color_continuous_scale=px.colors.sequential.Greens)
+                             st.plotly_chart(fig, use_container_width=True)
+                         else:
+                             st.info(f"No pre-computed Lunch Net Consumption Rate data found for {selected_school}.")
+                         with st.expander("View Data"): st.dataframe(ln_nc_chart_data.sort_values(by='net_consumption_rate', ascending=False))
+                     else:
+                          st.warning("Lunch school net consumption rate data not loaded or 'school_name' column missing.")
+
+                 # Keep raw data expander
+                 with st.expander("View Raw Filtered Data (Matching Sidebar Filters)"): st.dataframe(ln_filtered_raw)
+
         if selected_meal_period not in ["Breakfast", "Lunch", "Overall"]:
             st.info("Select a meal period (Breakfast, Lunch, or Overall) from the sidebar to see popularity data.")
-                
+
+    # Optimization Tab
     with tab_opt:
         st.header("Optimization Recommendations")
+        opt_display_data = school_opt_data.copy() if school_opt_data is not None else pd.DataFrame()
 
-        # A specific school is selected
-        if selected_school != "All Schools":
-            st.subheader(f"Recommendations for: {selected_school}")
-            
-            # Filter optimization data for the selected school
-            school_opt_data = opt_data[opt_data['School_Name'] == selected_school].copy()
+        if not opt_display_data.empty:
+            # Filter by Meal Period first
+            if selected_meal_period == "Breakfast":
+                if 'meal_type' in opt_display_data.columns:
+                    opt_display_data = opt_display_data[opt_display_data['meal_type'] == 'Breakfast']
+                else: st.warning("Cannot filter by meal type - 'meal_type' column missing.")
+            elif selected_meal_period == "Lunch":
+                if 'meal_type' in opt_display_data.columns:
+                    opt_display_data = opt_display_data[opt_display_data['meal_type'] == 'Lunch']
+                else: st.warning("Cannot filter by meal type - 'meal_type' column missing.")
 
-            if school_opt_data.empty:
-                st.warning("No optimization data found for this school.")
+            # Specific School Logic
+            if selected_school != "All Schools":
+                st.subheader(f"Recommendations for: {selected_school}")
+                if 'school_name' in opt_display_data.columns:
+                    selected_school_clean = selected_school.lower().strip()
+                    school_opt_filtered = opt_display_data[
+                        opt_display_data['school_name'].astype(str).str.lower().str.strip() == selected_school_clean
+                    ].copy()
+                else:
+                    st.warning("Cannot filter optimization data by school - 'school_name' column missing (merge may have failed).")
+                    school_opt_filtered = pd.DataFrame()
+
+                # Display data if filtering was successful
+                if not school_opt_filtered.empty:
+                    total_items = int(school_opt_filtered['recommended_quantity'].sum())
+                    st.metric("Total Recommended Monthly Items", f"{total_items:,}")
+                    st.subheader("Breakdown by Sub-Category")
+                    if 'sub-category' in school_opt_filtered.columns:
+                        subcat_totals = school_opt_filtered.groupby('sub-category')['recommended_quantity'].sum().reset_index().sort_values(by='recommended_quantity', ascending=False)
+                        c1, c2 = st.columns(2)
+                        with c1:
+                            fig = px.bar(subcat_totals, x='recommended_quantity', y='sub-category', orientation='h', title=f"Sub-Category Breakdown", labels={'recommended_quantity': 'Qty', 'sub-category': 'Category'})
+                            fig.update_layout(yaxis={'categoryorder':'total ascending'})
+                            st.plotly_chart(fig, use_container_width=True)
+                        with c2:
+                            fig_pie = px.pie(subcat_totals, values='recommended_quantity', names='sub-category', title=f"Sub-Category Proportions")
+                            fig_pie.update_traces(textposition='inside', textinfo='percent+label')
+                            st.plotly_chart(fig_pie, use_container_width=True)
+                    else: st.warning("Cannot show sub-category breakdown - 'sub-category' column missing.")
+                    st.markdown("---")
+                    st.subheader("Recommended Item List")
+                    table_cols = ['food_item', 'sub-category', 'recommended_quantity']
+                    if all(col in school_opt_filtered.columns for col in table_cols):
+                         display_table = school_opt_filtered[table_cols].rename(columns={'food_item': 'Item', 'sub-category': 'Category', 'recommended_quantity': 'Qty'}).sort_values(by='Qty', ascending=False)
+                         st.dataframe(display_table, use_container_width=True, hide_index=True)
+                    else: st.warning(f"Cannot display item list - missing one or more columns: {table_cols}")
+                else:
+                    st.warning(f"No specific optimization data found for {selected_school} and {selected_meal_period} after filtering.")
+
+            # --- All Schools Logic ---
             else:
-                # Calculate and display total items
-                total_items = int(school_opt_data['recommended_quantity'].sum())
-                st.metric("Total Recommended Weekly Items", f"{total_items:,}")
+                filtered_opt_agg = opt_display_data.copy()
+                title = "Aggregated Recommendations"
+                filters_applied_list = []
+                if 'fcps region' in filtered_opt_agg.columns and selected_region != "All Regions":
+                    filtered_opt_agg = filtered_opt_agg[filtered_opt_agg['fcps region'] == selected_region]
+                    filters_applied_list.append(selected_region)
+                if 'distribution kitchen (dk)' in filtered_opt_agg.columns and selected_dk != "All Distribution Kitchens":
+                    filtered_opt_agg = filtered_opt_agg[filtered_opt_agg['distribution kitchen (dk)'] == selected_dk]
+                    filters_applied_list.append(selected_dk)
+                if 'educational level' in filtered_opt_agg.columns and selected_level != "All Levels":
+                    filtered_opt_agg = filtered_opt_agg[filtered_opt_agg['educational level'] == selected_level]
+                    filters_applied_list.append(selected_level)
 
-                # Create sub-category breakdown
-                st.subheader("Breakdown by Sub-Category")
-                subcat_totals = school_opt_data.groupby('Sub-Category')['recommended_quantity'].sum().reset_index().sort_values(by='recommended_quantity', ascending=False)
-                
-                # --- Create columns for charts ---
-                c1, c2 = st.columns(2)
-                
-                with c1:
-                    fig_opt_subcat = px.bar(
-                        subcat_totals,
-                        x='recommended_quantity',
-                        y='Sub-Category',
-                        orientation='h',
-                        title=f"Sub-Category Breakdown for {selected_school}",
-                        labels={'recommended_quantity': 'Recommended Weekly Quantity', 'Sub-Category': 'Sub-Category'}
-                    )
-                    fig_opt_subcat.update_layout(yaxis={'categoryorder':'total ascending'})
-                    st.plotly_chart(fig_opt_subcat, use_container_width=True)
-                
-                with c2:
-                    fig_opt_pie = px.pie(
-                        subcat_totals,
-                        values='recommended_quantity',
-                        names='Sub-Category',
-                        title=f"Sub-Category Proportions for {selected_school}"
-                    )
-                    fig_opt_pie.update_traces(textposition='inside', textinfo='percent+label')
-                    st.plotly_chart(fig_opt_pie, use_container_width=True)
+                title = f"Agg. Recommendations for: {', '.join(filters_applied_list)}" if filters_applied_list else "County-Wide Recommendations"
+                st.subheader(title)
 
-                st.markdown("---") # Add a separator
-                st.subheader("Recommended Item List")
-                
-                # Prepare the table for display
-                display_table = school_opt_data[['food_item', 'Sub-Category', 'recommended_quantity']].copy()
-                display_table.rename(columns={
-                    'food_item': 'Food Item',
-                    'Sub-Category': 'Category',
-                    'recommended_quantity': 'Recommended Weekly Quantity'
-                }, inplace=True)
-                
-                # Sort by quantity for readability
-                display_table = display_table.sort_values(by='Recommended Weekly Quantity', ascending=False)
-                
-                # Use st.dataframe to display
-                st.dataframe(
-                    display_table,
-                    use_container_width=True,
-                    hide_index=True # Hides the pandas index for a cleaner look
-                )
-
-        # "All Schools" is selected (aggregate view)
+                if filtered_opt_agg.empty: st.warning("No optimization data found for the selected filters.")
+                else:
+                    total_items = int(filtered_opt_agg['recommended_quantity'].sum())
+                    st.metric("Total Recommended Monthly Items", f"{total_items:,}")
+                    st.subheader("Breakdown by Sub-Category")
+                    if 'sub-category' in filtered_opt_agg.columns:
+                        subcat_totals = filtered_opt_agg.groupby('sub-category')['recommended_quantity'].sum().reset_index().sort_values(by='recommended_quantity', ascending=False)
+                        c1, c2 = st.columns(2)
+                        with c1:
+                            fig = px.bar(subcat_totals, x='recommended_quantity', y='sub-category', orientation='h', title=f"Sub-Category Breakdown (Agg.)", labels={'recommended_quantity': 'Qty', 'sub-category': 'Category'})
+                            fig.update_layout(yaxis={'categoryorder':'total ascending'})
+                            st.plotly_chart(fig, use_container_width=True)
+                        with c2:
+                            fig_pie = px.pie(subcat_totals, values='recommended_quantity', names='sub-category', title="Sub-Category Proportions (Agg.)")
+                            fig_pie.update_traces(textposition='inside', textinfo='percent+label')
+                            st.plotly_chart(fig_pie, use_container_width=True)
+                    else: st.warning("Cannot show sub-category breakdown - 'sub-category' column missing.")
         else:
-            # Start with a copy of all optimization data
-            filtered_opt_data = opt_data.copy()
-            
-            # Build the title based on filters
-            title = "Aggregated Recommendations"
-            filters_applied = []
-            if selected_region != "All Regions":
-                filtered_opt_data = filtered_opt_data[filtered_opt_data['FCPS Region'] == selected_region]
-                filters_applied.append(selected_region)
-            if selected_dk != "All Distribution Kitchens":
-                filtered_opt_data = filtered_opt_data[filtered_opt_data['Distribution Kitchen (DK)'] == selected_dk]
-                filters_applied.append(selected_dk)
-            if selected_level != "All Levels":
-                filtered_opt_data = filtered_opt_data[filtered_opt_data['Educational Level'] == selected_level]
-                filters_applied.append(selected_level)
-
-            if filters_applied:
-                title = f"Aggregated Recommendations for: {', '.join(filters_applied)}"
-            else:
-                title = "County-Wide Recommendations"
-            
-            st.subheader(title)
-
-            if filtered_opt_data.empty:
-                st.warning("No optimization data found for the selected filters.")
-            else:
-                # Calculate and display total items
-                total_items = int(filtered_opt_data['recommended_quantity'].sum())
-                st.metric("Total Recommended Weekly Items", f"{total_items:,}")
-
-                # Create sub-category breakdown
-                st.subheader("Breakdown by Sub-Category")
-                subcat_totals = filtered_opt_data.groupby('Sub-Category')['recommended_quantity'].sum().reset_index().sort_values(by='recommended_quantity', ascending=False)
-                
-                # --- Create columns for charts ---
-                c1, c2 = st.columns(2)
-
-                with c1:
-                    fig_opt_subcat = px.bar(
-                        subcat_totals,
-                        x='recommended_quantity',
-                        y='Sub-Category',
-                        orientation='h',
-                        title=f"Sub-Category Breakdown (Aggregate)",
-                        labels={'recommended_quantity': 'Recommended Weekly Quantity', 'Sub-Category': 'Sub-Category'}
-                    )
-                    fig_opt_subcat.update_layout(yaxis={'categoryorder':'total ascending'})
-                    st.plotly_chart(fig_opt_subcat, use_container_width=True)
-
-                with c2:
-                    fig_opt_pie = px.pie(
-                        subcat_totals,
-                        values='recommended_quantity',
-                        names='Sub-Category',
-                        title="Sub-Category Proportions (Aggregate)"
-                    )
-                    fig_opt_pie.update_traces(textposition='inside', textinfo='percent+label')
-                    st.plotly_chart(fig_opt_pie, use_container_width=True)
-
+             st.warning("Optimization data could not be loaded or processed correctly.")
+    
+    # Regression Tab
     with tab_reg:
         st.header("Regression Analysis")
         st.markdown("Content to be added here.")
-        pass
 
+    # Savings/Loss Tab
     with tab_sav:
         st.header("Savings/Loss from Optimization")
-        st.markdown("Content to be added here.")
-        pass
+        st.info("Map reflects savings calculated using notebook logic. Chart compares budget vs. optimized cost by size.")
+
+        try:
+            # Prepare inputs based on opt_data_loaded
+            dfb_lower = opt_data_loaded.get('dfb')
+            dfl_lower = opt_data_loaded.get('dfl')
+            df_sizes_lower = opt_data_loaded.get('df_sizes')
+            monthly_meal_costs = opt_data_loaded.get('meal_costs', [0, 0])
+            all_schools_list = opt_data_loaded.get('schools', [])
+
+            savings_input_data = {'dfb': dfb_lower, 'dfl': dfl_lower, 'df_sizes': df_sizes_lower}
+
+            # Mimic monthly_results_df
+            aggregated_opt_results = None
+            if school_opt_data is not None and 'school' in school_opt_data.columns and 'meal_type' in school_opt_data.columns and 'recommended_quantity' in school_opt_data.columns:
+                 aggregated_opt_results = school_opt_data.groupby(['school', 'meal_type'], as_index=False)['recommended_quantity'].sum()
+                 aggregated_opt_results = aggregated_opt_results.rename(columns={'recommended_quantity': 'optimal_quantity'})
+            else:
+                 st.error("Cannot aggregate optimization results - required columns missing.")
+
+            # Calculate Savings Dataframe
+            savings_df = None
+            if aggregated_opt_results is not None:
+                savings_df = prepare_savings_analysis_df(savings_input_data, aggregated_opt_results, monthly_meal_costs)
+
+            # Generate Savings by Size Chart
+            st.subheader("Budget vs. Optimized Cost by School Size")
+            agg_savings_by_size = None
+            if aggregated_opt_results is not None and df_sizes_lower is not None:
+                # Replicate Proportional Budget Calculation
+                total_budget = 139144760 # Default total budget from optimization.py
+                relevant_schools_df = df_sizes_lower[df_sizes_lower['school_name'].isin(all_schools_list)].copy()
+                total_population = relevant_schools_df['count'].sum()
+                school_budgets = {}
+                if total_population > 0:
+                    for index, row in relevant_schools_df.iterrows():
+                        proportion = row['count'] / total_population
+                        school_budgets[row['school_name']] = total_budget * proportion
+                else:
+                     st.warning("Total student population is zero, cannot calculate proportional budgets.")
+
+                # Call analyze_savings_by_school_size
+                agg_savings_by_size = analyze_savings_by_school_size(
+                    aggregated_opt_results,
+                    school_budgets,
+                    monthly_meal_costs,
+                    df_sizes_lower
+                )
+
+                if agg_savings_by_size is not None and not agg_savings_by_size.empty:
+                    agg_melted = pd.melt(agg_savings_by_size,
+                                         id_vars=['size_category'],
+                                         value_vars=['proportional_annual_budget', 'annual_food_cost'],
+                                         var_name='Cost Type', value_name='Amount (USD)')
+                    agg_melted['Cost Type'] = agg_melted['Cost Type'].replace({
+                        'proportional_annual_budget': 'Proportional Budget',
+                        'annual_food_cost': 'Optimized Food Cost'
+                    })
+
+                    # Define category order
+                    category_order = ['xxs', 'xs', 's', 'm', 'l', 'xl', 'xxl', 'xxxl']
+                    agg_melted['size_category'] = pd.Categorical(agg_melted['size_category'], categories=category_order, ordered=True)
+                    agg_melted = agg_melted.sort_values('size_category')
+
+
+                    # Create the Plotly bar chart
+                    fig_size_savings = px.bar(
+                        agg_melted,
+                        x='size_category',
+                        y='Amount (USD)',
+                        color='Cost Type',
+                        barmode='group',
+                        title='Annual Budget vs. Optimized Food Cost by School Size',
+                        labels={'size_category': 'School Size Category'},
+                        category_orders={'size_category': category_order} # Ensure correct order
+                    )
+                    fig_size_savings.update_layout(yaxis_title='Amount (USD)', xaxis_title='School Size Category')
+                    st.plotly_chart(fig_size_savings, use_container_width=True)
+
+                    # Display the aggregated data table
+                    with st.expander("View Aggregated Data by Size"):
+                        display_agg = agg_savings_by_size[['size_category', 'proportional_annual_budget', 'annual_food_cost', 'total_savings', 'percent_savings']].copy()
+                        st.dataframe(display_agg, hide_index=True)
+
+                else:
+                    st.warning("Could not generate aggregated savings data by school size.")
+            else:
+                 st.warning("Missing data required for savings by size analysis (Optimization results or School sizes).")
+
+
+            st.markdown("---") # Separator
+
+
+            # Prepare and Generate Savings Map
+            map_df = None
+            if savings_df is not None and not savings_df.empty:
+                coords_for_map = bf_coord_data[['school_name', 'latitude', 'longitude']].drop_duplicates(subset='school_name').copy()
+                coords_for_map.rename(columns={'school_name': 'school'}, inplace=True)
+
+                savings_df['school'] = savings_df['school'].astype(str).str.lower().str.strip()
+                coords_for_map['school'] = coords_for_map['school'].astype(str).str.lower().str.strip()
+
+                map_df = pd.merge(savings_df, coords_for_map, on='school', how='inner')
+                map_df.dropna(subset=['latitude', 'longitude'], inplace=True)
+
+            if map_df is not None and not map_df.empty:
+                st.subheader("Savings/Loss per School (Bubble Map)")
+                map_center = [38.83, -77.27]
+                m = folium.Map(location=map_center, zoom_start=10, tiles="cartodbpositron")
+                if df_sizes_lower is not None:
+                     map_df = pd.merge(map_df, df_sizes_lower[['school_name', 'size_category']], left_on='school', right_on='school_name', how='left')
+
+                max_abs_savings = map_df['savings_magnitude'].max() if 'savings_magnitude' in map_df.columns and not map_df['savings_magnitude'].empty else 1
+                def scale_radius(val):
+                    if pd.isna(val) or max_abs_savings == 0: return 2
+                    magnitude = abs(val)
+                    return (magnitude / max_abs_savings)**(1/3) * 20 + 2 if magnitude > 0 else 2
+
+                for _, row in map_df.iterrows():
+                    if pd.isna(row['latitude']) or pd.isna(row['longitude']): continue
+                    color = 'green' if row.get('outcome', 'Savings') == 'Savings' else 'red'
+                    popup_txt = f"<strong>School:</strong> {row['school'].title()}<br><strong>Annual Savings:</strong> ${row['savings']:,.2f}"
+                    size_cat = row.get('size_category', None)
+                    if size_cat and pd.notna(size_cat): popup_txt += f"<br><strong>Size:</strong> {size_cat.upper()}"
+                    folium.CircleMarker(location=[row['latitude'], row['longitude']], radius=scale_radius(row.get('savings_magnitude', 0)), color=color, fill=True, fill_color=color, fill_opacity=0.6, popup=folium.Popup(popup_txt, max_width=300)).add_to(m)
+                st_folium(m, use_container_width=True)
+            elif savings_df is not None: st.warning("Could not generate map data. Check coordinate matching.")
+            else: st.warning("Could not calculate savings data needed for the map.")
+
+        except NameError as ne: st.error(f"Required variable/function missing: {ne}. Import issue?")
+        except Exception as e: st.error(f"Error generating savings map or chart: {e}"); import traceback; st.text(traceback.format_exc())
 
 else:
-    st.warning("⚠️ Could not load data. Please check file paths and availability.")
-
+    st.warning("⚠️ Could not load primary data required for the application. Please check file paths and availability.")
