@@ -485,8 +485,6 @@ if opt_data_loaded and school_opt_data is not None and popularity_files and bf_c
                 st.dataframe(bf_filtered_raw)
                 st.markdown("#### Lunch")
                 st.dataframe(ln_filtered_raw)
-        else:
-            st.info(f"Aggregated food item visualizations are available in the '⭐ Popularity' tab.")
 
     # Popularity Tab
     with tab_pop:
@@ -787,16 +785,15 @@ if opt_data_loaded and school_opt_data is not None and popularity_files and bf_c
         st.header("Savings/Loss from Optimization")
 
         try:
-            # Prepare inputs based on opt_data_loaded
+            # Load Base Data
             dfb_lower = opt_data_loaded.get('dfb')
             dfl_lower = opt_data_loaded.get('dfl')
             df_sizes_lower = opt_data_loaded.get('df_sizes')
             monthly_meal_costs = opt_data_loaded.get('meal_costs', [0, 0])
             all_schools_list = opt_data_loaded.get('schools', [])
-
             savings_input_data = {'dfb': dfb_lower, 'dfl': dfl_lower, 'df_sizes': df_sizes_lower}
 
-            # Mimic monthly_results_df
+            # Create Base DataFrames for Filtering
             aggregated_opt_results = None
             if school_opt_data is not None and 'school' in school_opt_data.columns and 'meal_type' in school_opt_data.columns and 'recommended_quantity' in school_opt_data.columns:
                  aggregated_opt_results = school_opt_data.groupby(['school', 'meal_type'], as_index=False)['recommended_quantity'].sum()
@@ -804,153 +801,341 @@ if opt_data_loaded and school_opt_data is not None and popularity_files and bf_c
             else:
                  st.error("Cannot aggregate optimization results - required columns missing.")
 
-            # Calculate Savings Dataframe
+            # Create savings_df
             savings_df = None
             if aggregated_opt_results is not None:
                 savings_df = prepare_savings_analysis_df(savings_input_data, aggregated_opt_results, monthly_meal_costs)
 
-            st.subheader("Actual vs. Optimized Cost by School Size")
-            
-            if savings_df is not None:
-                
-                # Aggregate actual vs. optimized cost by size
-                actual_vs_opt_size_df = savings_df.groupby('size_category')[
-                    ['actual_annual_cost', 'optimized_annual_cost']
-                ].sum().reset_index()
-
-                # Melt this new dataframe for plotting
-                actual_vs_opt_melted = pd.melt(
-                    actual_vs_opt_size_df,
-                    id_vars=['size_category'],
-                    value_vars=['actual_annual_cost', 'optimized_annual_cost'],
-                    var_name='Cost Type', 
-                    value_name='Amount (USD)'
-                )
-                actual_vs_opt_melted['Cost Type'] = actual_vs_opt_melted['Cost Type'].replace({
-                    'actual_annual_cost': 'Actual Annual Cost',
-                    'optimized_annual_cost': 'Optimized Annual Cost'
-                })
-                
-                # Define category order
-                category_order = ['xxs', 'xs', 's', 'm', 'l', 'xl', 'xxl', 'xxxl']
-                actual_vs_opt_melted['size_category'] = pd.Categorical(
-                    actual_vs_opt_melted['size_category'], 
-                    categories=category_order, 
-                    ordered=True
-                )
-                actual_vs_opt_melted = actual_vs_opt_melted.sort_values('size_category')
-
-                # Create the Plotly bar chart
-                fig_actual_vs_opt = px.bar(
-                    actual_vs_opt_melted,
-                    x='size_category',
-                    y='Amount (USD)',
-                    color='Cost Type',
-                    barmode='group',
-                    title='Actual Annual Cost vs. Optimized Annual Cost by School Size',
-                    labels={'size_category': 'School Size Category'},
-                    category_orders={'size_category': category_order},
-                    color_discrete_map={
-                         'Actual Annual Cost': '#d62728', # Red
-                         'Optimized Annual Cost': '#2ca02c' # Green
-                    }
-                )
-                fig_actual_vs_opt.update_layout(yaxis_title='Amount (USD)', xaxis_title='School Size Category')
-                
-                st.plotly_chart(fig_actual_vs_opt, use_container_width=True)
-                st.info("Graph represents the actual costs incurred from May data provided, Optimized costs is what our model produced considering budgetary and production constraints")
-            else:
-                st.warning("Could not generate Actual vs. Optimized cost chart. Missing savings or size data.")
-
-
-            # --- Budget vs. Optimized Cost Chart ---
-            st.markdown("---") # Separator
-            st.subheader("Budget vs. Optimized Cost by School Size")
-            agg_savings_by_size = None
-            if aggregated_opt_results is not None and df_sizes_lower is not None:
-                # Replicate Proportional Budget Calculation
-                total_budget = 139144760 # Default total budget
+            # Create school_budgets
+            total_budget = 139144760 # Default total budget
+            school_budgets = {}
+            if df_sizes_lower is not None:
                 relevant_schools_df = df_sizes_lower[df_sizes_lower['school_name'].isin(all_schools_list)].copy()
                 total_population = relevant_schools_df['count'].sum()
-                school_budgets = {}
                 if total_population > 0:
                     for index, row in relevant_schools_df.iterrows():
                         proportion = row['count'] / total_population
                         school_budgets[row['school_name']] = total_budget * proportion
                 else:
                      st.warning("Total student population is zero, cannot calculate proportional budgets.")
+            
+            # Create Metadata and Filter All Data
+            metadata_df = pd.DataFrame()
+            if bf_coord_data is not None:
+                metadata_cols = ['school_name', 'fcps region', 'distribution kitchen (dk)', 'level']
+                if all(col in bf_coord_data.columns for col in metadata_cols):
+                    metadata_df = bf_coord_data[metadata_cols].drop_duplicates(subset=['school_name']).copy()
+                    metadata_df = map_educational_level(metadata_df)
+                    metadata_df['school_name'] = metadata_df['school_name'].astype(str).str.lower().str.strip()
+                else:
+                    st.warning("Cannot apply filters: Metadata columns missing from coordinate data.")
 
-                # Call analyze_savings_by_school_size
-                agg_savings_by_size = analyze_savings_by_school_size(
-                    aggregated_opt_results,
-                    school_budgets,
-                    monthly_meal_costs,
-                    df_sizes_lower
-                )
+            # Initialize filtered dataframes
+            filtered_savings_df = savings_df.copy() if savings_df is not None else pd.DataFrame()
+            filtered_opt_results = aggregated_opt_results.copy() if aggregated_opt_results is not None else pd.DataFrame()
+            filtered_df_sizes = df_sizes_lower.copy() if df_sizes_lower is not None else pd.DataFrame()
 
-                if agg_savings_by_size is not None and not agg_savings_by_size.empty:
-                    agg_melted = pd.melt(agg_savings_by_size,
-                                         id_vars=['size_category'],
-                                         value_vars=['proportional_annual_budget', 'annual_food_cost'],
-                                         var_name='Cost Type', value_name='Amount (USD)')
-                    agg_melted['Cost Type'] = agg_melted['Cost Type'].replace({
-                        'proportional_annual_budget': 'Proportional Budget',
-                        'annual_food_cost': 'Optimized Food Cost'
+            # Merge metadata for filtering
+            if not metadata_df.empty:
+                if not filtered_savings_df.empty:
+                    filtered_savings_df = pd.merge(filtered_savings_df, metadata_df, left_on='school', right_on='school_name', how='left')
+                if not filtered_opt_results.empty:
+                    filtered_opt_results = pd.merge(filtered_opt_results, metadata_df, left_on='school', right_on='school_name', how='left')
+                if not filtered_df_sizes.empty:
+                    filtered_df_sizes = pd.merge(filtered_df_sizes, metadata_df, on='school_name', how='left')
+
+            # Apply sidebar filters
+            if selected_school != "All Schools":
+                filtered_savings_df = filtered_savings_df[filtered_savings_df['school'].str.lower() == selected_school.lower()]
+                filtered_opt_results = filtered_opt_results[filtered_opt_results['school'].str.lower() == selected_school.lower()]
+                filtered_df_sizes = filtered_df_sizes[filtered_df_sizes['school_name'].str.lower() == selected_school.lower()]
+            else:
+                # Apply group filters only if "All Schools" is selected
+                if selected_region != "All Regions" and 'fcps region' in filtered_savings_df.columns:
+                    filtered_savings_df = filtered_savings_df[filtered_savings_df['fcps region'] == selected_region]
+                    filtered_opt_results = filtered_opt_results[filtered_opt_results['fcps region'] == selected_region]
+                    filtered_df_sizes = filtered_df_sizes[filtered_df_sizes['fcps region'] == selected_region]
+
+                if selected_level != "All Levels" and 'educational level' in filtered_savings_df.columns:
+                    filtered_savings_df = filtered_savings_df[filtered_savings_df['educational level'] == selected_level]
+                    filtered_opt_results = filtered_opt_results[filtered_opt_results['educational level'] == selected_level]
+                    filtered_df_sizes = filtered_df_sizes[filtered_df_sizes['educational level'] == selected_level]
+                
+                if selected_dk != "All Distribution Kitchens" and 'distribution kitchen (dk)' in filtered_savings_df.columns:
+                    filtered_savings_df = filtered_savings_df[filtered_savings_df['distribution kitchen (dk)'] == selected_dk]
+                    filtered_opt_results = filtered_opt_results[filtered_opt_results['distribution kitchen (dk)'] == selected_dk]
+                    filtered_df_sizes = filtered_df_sizes[filtered_df_sizes['distribution kitchen (dk)'] == selected_dk]
+
+            # Filter school_budgets
+            filtered_schools_list = filtered_df_sizes['school_name'].unique()
+            filtered_school_budgets = {k: v for k, v in school_budgets.items() if k in filtered_schools_list}
+
+            if selected_school != "All Schools":
+                st.subheader(f"Cost Comparison for: {selected_school}")
+                
+                # --- Chart 1 (Actual vs. Opt) ---
+                if not filtered_savings_df.empty:
+                    school_data = filtered_savings_df.iloc[0]
+                    actual_vs_opt_data = {
+                        'Cost Type': ['Actual Annual Cost', 'Optimized Annual Cost'],
+                        'Amount (USD)': [school_data['actual_annual_cost'], school_data['optimized_annual_cost']]
+                    }
+                    actual_vs_opt_df = pd.DataFrame(actual_vs_opt_data)
+                    
+                    fig_actual_vs_opt = px.bar(
+                        actual_vs_opt_df,
+                        x='Cost Type',
+                        y='Amount (USD)',
+                        color='Cost Type',
+                        title=f'Actual vs. Optimized Cost for {selected_school}',
+                        color_discrete_map={'Actual Annual Cost': '#d62728', 'Optimized Annual Cost': '#2ca02c'}
+                    )
+                    st.plotly_chart(fig_actual_vs_opt, use_container_width=True)
+                else:
+                    st.warning("No savings data found for this school.")
+
+                st.markdown("---")
+
+                # Budget vs. Opt
+                st.subheader(f"Budget vs. Optimized Cost for: {selected_school}")
+                if not filtered_opt_results.empty and selected_school.lower() in filtered_school_budgets:
+                    school_opt_cost_df = filtered_opt_results.copy()
+                    meal_cost_map = {'Breakfast': monthly_meal_costs[0], 'Lunch': monthly_meal_costs[1]}
+                    school_opt_cost_df['monthly_food_cost'] = school_opt_cost_df.apply(
+                        lambda row: row['optimal_quantity'] * meal_cost_map.get(row['meal_type'], 0),
+                        axis=1
+                    )
+                    optimized_annual_cost = school_opt_cost_df['monthly_food_cost'].sum() * 10
+                    
+                    budget_data = {
+                        'Cost Type': ['Proportional Budget', 'Optimized Food Cost'],
+                        'Amount (USD)': [filtered_school_budgets[selected_school.lower()], optimized_annual_cost]
+                    }
+                    budget_vs_opt_df = pd.DataFrame(budget_data)
+                    
+                    fig_budget_vs_opt = px.bar(
+                        budget_vs_opt_df,
+                        x='Cost Type',
+                        y='Amount (USD)',
+                        color='Cost Type',
+                        title=f'Budget vs. Optimized Cost for {selected_school}'
+                    )
+                    st.plotly_chart(fig_budget_vs_opt, use_container_width=True)
+                else:
+                    st.warning("No budget or optimization data found for this school.")
+
+            else:
+                filters_applied_list = []
+                if selected_region != "All Regions": filters_applied_list.append(selected_region)
+                if selected_level != "All Levels": filters_applied_list.append(selected_level)
+                if selected_dk != "All Distribution Kitchens": filters_applied_list.append(selected_dk) # --- NEW ---
+                filter_title_suffix = f" for: {', '.join(filters_applied_list)}" if filters_applied_list else " (County-Wide)"
+
+                st.subheader(f"Actual vs. Optimized Annual Cost per School{filter_title_suffix}")
+
+                bubble_df = filtered_savings_df.copy()
+
+                if filtered_school_budgets:
+                    budget_df = pd.DataFrame(filtered_school_budgets.items(), columns=['school', 'proportional_annual_budget'])
+                    bubble_df = pd.merge(
+                        bubble_df,
+                        budget_df,
+                        on='school',
+                        how='left'
+                    )
+                else:
+                    bubble_df['proportional_annual_budget'] = 1
+                
+                # Clean NAs for plotting
+                bubble_df.dropna(subset=['actual_annual_cost', 'optimized_annual_cost', 'proportional_annual_budget', 'outcome'], inplace=True)
+                bubble_df['school'] = bubble_df['school'].str.title()
+                
+                if not bubble_df.empty:
+                    fig_bubble = px.scatter(
+                        bubble_df,
+                        x="actual_annual_cost",
+                        y="optimized_annual_cost",
+                        size="proportional_annual_budget",
+                        color="outcome", # Use 'outcome' for red/green
+                        color_discrete_map={
+                            'Savings': '#2ca02c', # Green
+                            'Loss': '#d62728'     # Red
+                        },
+                        hover_name="school",
+                        hover_data=["size_category", "savings", "actual_annual_cost", "optimized_annual_cost", "proportional_annual_budget"],
+                        title=f"Actual vs. Optimized Cost per School{filter_title_suffix}",
+                        labels={
+                            "actual_annual_cost": "Actual Annual Food Cost",
+                            "optimized_annual_cost": "Optimized Annual Food Cost",
+                            "proportional_annual_budget": "Proportional Annual Budget",
+                            "outcome": "Outcome"
+                        }
+                    )
+                    
+                    # Add the y=x dashed line
+                    fig_bubble.add_shape(
+                        type="line",
+                        x0=0, y0=0,
+                        x1=1000000, y1=1000000,
+                        line=dict(color="black", width=2, dash="dash")
+                    )
+                    
+                    # Set linear ranges and tick marks
+                    fig_bubble.update_layout(
+                        xaxis=dict(
+                            range=[0, 1000000],
+                            tickmode='linear',
+                            tick0=0,
+                            dtick=200000
+                        ),
+                        yaxis=dict(
+                            range=[0, 1000000],
+                            tickmode='linear',
+                            tick0=0,
+                            dtick=200000
+                        )
+                    )
+
+                    st.plotly_chart(fig_bubble, use_container_width=True)
+
+                else:
+                    st.warning(f"Not enough data to display the savings bubble chart for the selected filters: {', '.join(filters_applied_list)}")
+                
+                st.markdown("---")
+
+                st.subheader(f"Actual vs. Optimized Cost by School Size{filter_title_suffix}")
+                if filtered_savings_df is not None and not filtered_savings_df.empty:
+                    actual_vs_opt_size_df = filtered_savings_df.groupby('size_category')[
+                        ['actual_annual_cost', 'optimized_annual_cost']
+                    ].sum().reset_index()
+
+                    actual_vs_opt_melted = pd.melt(
+                        actual_vs_opt_size_df,
+                        id_vars=['size_category'],
+                        value_vars=['actual_annual_cost', 'optimized_annual_cost'],
+                        var_name='Cost Type', 
+                        value_name='Amount (USD)'
+                    )
+                    actual_vs_opt_melted['Cost Type'] = actual_vs_opt_melted['Cost Type'].replace({
+                        'actual_annual_cost': 'Actual Annual Cost',
+                        'optimized_annual_cost': 'Optimized Annual Cost'
                     })
-
-                    # Define category order
+                    
                     category_order = ['xxs', 'xs', 's', 'm', 'l', 'xl', 'xxl', 'xxxl']
-                    agg_melted['size_category'] = pd.Categorical(agg_melted['size_category'], categories=category_order, ordered=True)
-                    agg_melted = agg_melted.sort_values('size_category')
+                    actual_vs_opt_melted['size_category'] = pd.Categorical(
+                        actual_vs_opt_melted['size_category'], 
+                        categories=category_order, 
+                        ordered=True
+                    )
+                    actual_vs_opt_melted = actual_vs_opt_melted.sort_values('size_category')
 
-
-                    # Create the Plotly bar chart
-                    fig_size_savings = px.bar(
-                        agg_melted,
+                    fig_actual_vs_opt = px.bar(
+                        actual_vs_opt_melted,
                         x='size_category',
                         y='Amount (USD)',
                         color='Cost Type',
                         barmode='group',
-                        title='Annual Budget vs. Optimized Food Cost by School Size',
+                        title=f'Actual vs. Optimized Cost by School Size{filter_title_suffix}',
                         labels={'size_category': 'School Size Category'},
-                        category_orders={'size_category': category_order}
+                        category_orders={'size_category': category_order},
+                        color_discrete_map={
+                             'Actual Annual Cost': '#d62728', # Red
+                             'Optimized Annual Cost': '#2ca02c' # Green
+                        }
                     )
-                    fig_size_savings.update_layout(yaxis_title='Amount (USD)', xaxis_title='School Size Category')
-                    st.plotly_chart(fig_size_savings, use_container_width=True)
-                    st.info("This graph represents the optimized costs compared to the annual approved budget which is divided and allocated based on school size")
-
-                    # Display the aggregated data table
-                    with st.expander("View Aggregated Data by Size"):
-                        display_agg = agg_savings_by_size[['size_category', 'proportional_annual_budget', 'annual_food_cost', 'total_savings', 'percent_savings']].copy()
-                        st.dataframe(display_agg, hide_index=True)
-
+                    fig_actual_vs_opt.update_layout(yaxis_title='Amount (USD)', xaxis_title='School Size Category')
+                    st.plotly_chart(fig_actual_vs_opt, use_container_width=True)
+                    st.info("Graph represents the actual costs incurred from May data provided, Optimized costs is what our model produced considering budgetary and production constraints")
                 else:
-                    st.warning("Could not generate aggregated savings data by school size.")
-            else:
-                 st.warning("Missing data required for savings by size analysis (Optimization results or School sizes).")
+                    st.warning(f"Could not generate Actual vs. Optimized cost chart. No savings data for selected filters: {', '.join(filters_applied_list)}")
 
-            st.markdown("---") # Separator
+                st.markdown("---")
+                st.subheader(f"Budget vs. Optimized Cost by School Size{filter_title_suffix}")
+                
+                if filtered_opt_results is not None and not filtered_opt_results.empty and \
+                   filtered_df_sizes is not None and not filtered_df_sizes.empty and filtered_school_budgets:
+                    
+                    agg_savings_by_size = analyze_savings_by_school_size(
+                        filtered_opt_results,
+                        filtered_school_budgets,
+                        monthly_meal_costs,
+                        filtered_df_sizes
+                    )
 
+                    if agg_savings_by_size is not None and not agg_savings_by_size.empty:
+                        agg_melted = pd.melt(agg_savings_by_size,
+                                             id_vars=['size_category'],
+                                             value_vars=['proportional_annual_budget', 'annual_food_cost'],
+                                             var_name='Cost Type', value_name='Amount (USD)')
+                        agg_melted['Cost Type'] = agg_melted['Cost Type'].replace({
+                            'proportional_annual_budget': 'Proportional Budget',
+                            'annual_food_cost': 'OptimZized Food Cost'
+                        })
 
-            # Prepare and Generate Savings Map
+                        category_order = ['xxs', 'xs', 's', 'm', 'l', 'xl', 'xxl', 'xxxl']
+                        agg_melted['size_category'] = pd.Categorical(agg_melted['size_category'], categories=category_order, ordered=True)
+                        agg_melted = agg_melted.sort_values('size_category')
+
+                        fig_size_savings = px.bar(
+                            agg_melted,
+                            x='size_category',
+                            y='Amount (USD)',
+                            color='Cost Type',
+                            barmode='group',
+                            title=f'Annual Budget vs. Optimized Food Cost by School Size{filter_title_suffix}',
+                            labels={'size_category': 'School Size Category'},
+                            category_orders={'size_category': category_order}
+                        )
+                        fig_size_savings.update_layout(yaxis_title='Amount (USD)', xaxis_title='School Size Category')
+                        st.plotly_chart(fig_size_savings, use_container_width=True)
+                        st.info("This graph represents the optimized costs compared to the annual approved budget which is divided and allocated based on school size")
+
+                        with st.expander("View Aggregated Data by Size"):
+                            display_agg = agg_savings_by_size[['size_category', 'proportional_annual_budget', 'annual_food_cost', 'total_savings', 'percent_savings']].copy()
+                            st.dataframe(display_agg, hide_index=True)
+                        
+                        with st.expander("View Schools by Size Category"):
+                            if filtered_df_sizes is not None and not filtered_df_sizes.empty and 'size_category' in filtered_df_sizes.columns and 'school_name' in filtered_df_sizes.columns:
+                                display_school_list = filtered_df_sizes[['size_category', 'school_name']].sort_values(by=['size_category', 'school_name'])
+                                
+                                for size_cat in category_order:
+                                    # Get list of schools for this category
+                                    schools_in_cat = display_school_list[
+                                        display_school_list['size_category'] == size_cat
+                                    ]['school_name'].unique().tolist()
+                                    
+                                    if schools_in_cat:
+                                        st.markdown(f"**{size_cat.upper()}** ({len(schools_in_cat)} schools)")
+                                        cols = st.columns(3)
+                                        for i, school in enumerate(sorted(schools_in_cat)):
+                                            cols[i % 3].markdown(f"- {school.title()}")
+                            else:
+                                st.warning("No school size data available to display.")
+
+                    else:
+                        st.warning("Could not generate aggregated savings data by school size.")
+                else:
+                     st.warning(f"Missing data for savings by size analysis for selected filters: {', '.join(filters_applied_list)}")
+
+            # Savings Map
+            st.markdown("---")
             map_df = None
-            if savings_df is not None and not savings_df.empty:
+            if filtered_savings_df is not None and not filtered_savings_df.empty:
                 coords_for_map = bf_coord_data[['school_name', 'latitude', 'longitude']].drop_duplicates(subset='school_name').copy()
                 coords_for_map.rename(columns={'school_name': 'school'}, inplace=True)
-
-                savings_df['school'] = savings_df['school'].astype(str).str.lower().str.strip()
+                
+                map_data_base = filtered_savings_df.copy() # Use filtered data
+                map_data_base['school'] = map_data_base['school'].astype(str).str.lower().str.strip()
                 coords_for_map['school'] = coords_for_map['school'].astype(str).str.lower().str.strip()
 
-                map_df = pd.merge(savings_df, coords_for_map, on='school', how='inner')
+                map_df = pd.merge(map_data_base, coords_for_map, on='school', how='left')
                 map_df.dropna(subset=['latitude', 'longitude'], inplace=True)
 
             if map_df is not None and not map_df.empty:
                 st.subheader("Savings/Loss per School (Bubble Map)")
-                map_center = [38.83, -77.27]
+                map_center = [map_df['latitude'].mean(), map_df['longitude'].mean()]
                 m = folium.Map(location=map_center, zoom_start=10, tiles="cartodbpositron")
-                if df_sizes_lower is not None:
-                     map_df = pd.merge(map_df, df_sizes_lower[['school_name', 'size_category']], left_on='school', right_on='school_name', how='left')
-
+                
                 max_abs_savings = map_df['savings_magnitude'].max() if 'savings_magnitude' in map_df.columns and not map_df['savings_magnitude'].empty else 1
                 def scale_radius(val):
                     if pd.isna(val) or max_abs_savings == 0: return 2
@@ -970,5 +1155,6 @@ if opt_data_loaded and school_opt_data is not None and popularity_files and bf_c
 
         except NameError as ne: st.error(f"Required variable/function missing: {ne}. Import issue?")
         except Exception as e: st.error(f"Error generating savings map or chart: {e}"); import traceback; st.text(traceback.format_exc())
+    
 else:
     st.warning("⚠️ Could not load primary data required for the application. Please check file paths and availability.")
