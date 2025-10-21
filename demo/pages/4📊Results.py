@@ -223,7 +223,25 @@ if opt_data_loaded and school_opt_data is not None and popularity_files and bf_c
     # Extract dfb, dfl for filtering popularity data
     dfb = opt_data_loaded.get('dfb')
     dfl = opt_data_loaded.get('dfl')
-    df_sizes = opt_data_loaded.get('df_sizes') # Get df_sizes from the loaded dict
+    df_sizes = opt_data_loaded.get('df_sizes')
+
+    # --- Create metadata and merge into raw dfb and dfl ---
+    school_metadata_df = pd.DataFrame()
+    if bf_coord_data is not None:
+        metadata_cols = ['school_name', 'fcps region', 'distribution kitchen (dk)', 'level']
+        if all(col in bf_coord_data.columns for col in metadata_cols):
+            school_metadata_df = bf_coord_data[metadata_cols].drop_duplicates(subset=['school_name']).copy()
+            school_metadata_df['school_name'] = school_metadata_df['school_name'].astype(str).str.lower().str.strip()
+        else:
+            st.warning("Coordinate data is missing required metadata columns (e.g., 'fcps region'). Filters may not work.")
+
+    if dfb is not None and not school_metadata_df.empty:
+        dfb['school_name'] = dfb['school_name'].astype(str).str.lower().str.strip()
+        dfb = pd.merge(dfb, school_metadata_df, on='school_name', how='left')
+    
+    if dfl is not None and not school_metadata_df.empty:
+        dfl['school_name'] = dfl['school_name'].astype(str).str.lower().str.strip()
+        dfl = pd.merge(dfl, school_metadata_df, on='school_name', how='left')
 
     # prepare_optimization_data only cleans production_cost_total and served_reimbursable
     cost_cols_to_clean = ['left_over_cost', 'discarded_cost']
@@ -276,22 +294,32 @@ if opt_data_loaded and school_opt_data is not None and popularity_files and bf_c
     bf_filtered_raw = map_educational_level(bf_filtered_raw)
     ln_filtered_raw = map_educational_level(ln_filtered_raw)
 
+    # --- Apply ALL filters sequentially ---
+    
     # Apply school filter
     if selected_school != "All Schools":
         if 'school_name' in bf_filtered_raw.columns:
              bf_filtered_raw = bf_filtered_raw[bf_filtered_raw['school_name'].str.lower().str.strip() == selected_school.lower().strip()]
         if 'school_name' in ln_filtered_raw.columns:
              ln_filtered_raw = ln_filtered_raw[ln_filtered_raw['school_name'].str.lower().str.strip() == selected_school.lower().strip()]
-    # Apply other filters only if "All Schools" is selected
-    else:
-        if 'fcps region' in bf_filtered_raw.columns and selected_region != "All Regions":
+    
+    # Apply other filters
+    if selected_region != "All Regions":
+        if 'fcps region' in bf_filtered_raw.columns:
             bf_filtered_raw = bf_filtered_raw[bf_filtered_raw['fcps region'] == selected_region]
+        if 'fcps region' in ln_filtered_raw.columns:
             ln_filtered_raw = ln_filtered_raw[ln_filtered_raw['fcps region'] == selected_region]
-        if 'distribution kitchen (dk)' in bf_filtered_raw.columns and selected_dk != "All Distribution Kitchens":
+    
+    if selected_dk != "All Distribution Kitchens":
+        if 'distribution kitchen (dk)' in bf_filtered_raw.columns:
             bf_filtered_raw = bf_filtered_raw[bf_filtered_raw['distribution kitchen (dk)'] == selected_dk]
+        if 'distribution kitchen (dk)' in ln_filtered_raw.columns:
             ln_filtered_raw = ln_filtered_raw[ln_filtered_raw['distribution kitchen (dk)'] == selected_dk]
-        if 'educational level' in bf_filtered_raw.columns and selected_level != "All Levels":
+    
+    if selected_level != "All Levels":
+        if 'educational level' in bf_filtered_raw.columns:
             bf_filtered_raw = bf_filtered_raw[bf_filtered_raw['educational level'] == selected_level]
+        if 'educational level' in ln_filtered_raw.columns:
             ln_filtered_raw = ln_filtered_raw[ln_filtered_raw['educational level'] == selected_level]
 
     # Clean remaining numeric cols
@@ -319,13 +347,64 @@ if opt_data_loaded and school_opt_data is not None and popularity_files and bf_c
 
     # EDA Tab
     with tab_eda:
-        # Check meal period first
-        if selected_meal_period == "Overall":
-            # Overall View
-            st.header(f"High-Level Overview for {selected_school}")
-            st.markdown("Summary of production costs and waste across both breakfast and lunch.")
+        
+        # --- NEW: Map and Student Count Logic ---
+        student_count_val = None # Initialize
+        if selected_school != "All Schools":
+            school_info = None
+            school_count_info = None
+            
+            # Get School Coordinates from bf_coord_data
+            if bf_coord_data is not None and 'school_name' in bf_coord_data.columns:
+                school_info = bf_coord_data[
+                    bf_coord_data['school_name'].str.lower() == selected_school.lower()
+                ].iloc[0] if not bf_coord_data[bf_coord_data['school_name'].str.lower() == selected_school.lower()].empty else None
 
-            # Ensure columns exist before summing
+            # Get Student Count from df_sizes
+            if df_sizes is not None and 'school_name' in df_sizes.columns:
+                school_count_info = df_sizes[
+                    df_sizes['school_name'].str.lower() == selected_school.lower()
+                ].iloc[0] if not df_sizes[df_sizes['school_name'].str.lower() == selected_school.lower()].empty else None
+            
+            # Set student count for the metric
+            student_count_val = school_count_info['count'] if school_count_info is not None and 'count' in school_count_info else "N/A"
+
+            # Display the Map
+            if school_info is not None and 'latitude' in school_info and 'longitude' in school_info:
+                st.subheader(f"{selected_school}")
+                school_lat = school_info['latitude']
+                school_lon = school_info['longitude']
+                
+                if pd.notna(school_lat) and pd.notna(school_lon):
+                    m = folium.Map(location=[school_lat, school_lon], zoom_start=15, tiles="cartodbpositron")
+                    folium.Marker(
+                        [school_lat, school_lon],
+                        popup=f"{selected_school}",
+                        tooltip=f"{selected_school}"
+                    ).add_to(m)
+                    st_folium(m, use_container_width=True, height=300)
+                else:
+                    st.warning(f"Map cannot be displayed: Missing coordinate data for {selected_school}.")
+            else:
+                st.warning(f"Map cannot be displayed: Location data not found for {selected_school}.")
+
+        st.header(f"High-Level Overview")
+        st.markdown("Summary of production costs and waste based on all active filters.")
+
+        # --- DYNAMIC METRIC CALCULATION ---
+        prod_cost, lo_cost, disc_cost = 0, 0, 0
+        
+        if selected_meal_period == "Breakfast":
+            prod_cost = bf_filtered_raw['production_cost_total'].sum() if 'production_cost_total' in bf_filtered_raw.columns else 0
+            lo_cost = bf_filtered_raw['left_over_cost'].sum()
+            disc_cost = bf_filtered_raw['discarded_cost'].sum()
+        
+        elif selected_meal_period == "Lunch":
+            prod_cost = ln_filtered_raw['production_cost_total'].sum() if 'production_cost_total' in ln_filtered_raw.columns else 0
+            lo_cost = ln_filtered_raw['left_over_cost'].sum()
+            disc_cost = ln_filtered_raw['discarded_cost'].sum()
+        
+        else: # "Overall"
             bf_prod_cost = bf_filtered_raw['production_cost_total'].sum() if 'production_cost_total' in bf_filtered_raw.columns else 0
             ln_prod_cost = ln_filtered_raw['production_cost_total'].sum() if 'production_cost_total' in ln_filtered_raw.columns else 0
             bf_lo_cost = bf_filtered_raw['left_over_cost'].sum()
@@ -333,111 +412,81 @@ if opt_data_loaded and school_opt_data is not None and popularity_files and bf_c
             bf_disc_cost = bf_filtered_raw['discarded_cost'].sum()
             ln_disc_cost = ln_filtered_raw['discarded_cost'].sum()
 
-            total_prod_cost = bf_prod_cost + ln_prod_cost
-            total_lo_cost_calc = bf_lo_cost + ln_lo_cost
-            total_disc_cost_calc = bf_disc_cost + ln_disc_cost
-            waste_perc_calc = ((total_lo_cost_calc + total_disc_cost_calc) / total_prod_cost * 100) if total_prod_cost > 0 else 0
+            prod_cost = bf_prod_cost + ln_prod_cost
+            lo_cost = bf_lo_cost + ln_lo_cost
+            disc_cost = bf_disc_cost + ln_disc_cost
+        
+        waste_perc = ((lo_cost + disc_cost) / prod_cost * 100) if prod_cost > 0 else 0
 
+        if student_count_val is not None:
+            col1, col2, col3, col4, col5 = st.columns(5)
+            col1.metric(f"{selected_meal_period} Production Cost", f"${prod_cost:,.2f}")
+            col2.metric(f"{selected_meal_period} Leftover Cost", f"${lo_cost:,.2f}")
+            col3.metric(f"{selected_meal_period} Discarded Cost", f"${disc_cost:,.2f}")
+            col4.metric(f"{selected_meal_period} Waste Percentage", f"{waste_perc:.2f}%")
+            col5.metric("Student Population", student_count_val)
+        else:
             col1, col2, col3, col4 = st.columns(4)
-            col1.metric("Total Production Cost", f"${total_prod_cost:,.2f}")
-            col2.metric("Total Leftover Cost", f"${total_lo_cost_calc:,.2f}")
-            col3.metric("Total Discarded Cost", f"${total_disc_cost_calc:,.2f}")
-            col4.metric("Waste Percentage", f"{waste_perc_calc:.2f}%")
+            col1.metric(f"{selected_meal_period} Production Cost", f"${prod_cost:,.2f}")
+            col2.metric(f"{selected_meal_period} Leftover Cost", f"${lo_cost:,.2f}")
+            col3.metric(f"{selected_meal_period} Discarded Cost", f"${disc_cost:,.2f}")
+            col4.metric(f"{selected_meal_period} Waste Percentage", f"{waste_perc:.2f}%")
 
+        st.markdown("---")
 
-            st.markdown("---")
-            st.subheader("Cost Over Time")
-            cost_cols = ['date', 'production_cost_total', 'left_over_cost', 'discarded_cost']
-            if all(col in bf_filtered_raw.columns for col in cost_cols) and \
-               all(col in ln_filtered_raw.columns for col in cost_cols) and \
-               not bf_filtered_raw.empty and not ln_filtered_raw.empty:
-                cost_over_time = pd.concat([
-                    bf_filtered_raw[cost_cols],
-                    ln_filtered_raw[cost_cols]
-                ])
+        # --- DYNAMIC CHART ---
+        st.subheader("Cost Over Time")
+        cost_cols = ['date', 'production_cost_total', 'left_over_cost', 'discarded_cost']
+        cost_agg = pd.DataFrame()
+
+        if selected_meal_period == "Breakfast":
+            if all(col in bf_filtered_raw.columns for col in cost_cols) and not bf_filtered_raw.empty:
+                cost_agg = bf_filtered_raw.groupby('date')[cost_cols[1:]].sum().reset_index()
+        
+        elif selected_meal_period == "Lunch":
+             if all(col in ln_filtered_raw.columns for col in cost_cols) and not ln_filtered_raw.empty:
+                cost_agg = ln_filtered_raw.groupby('date')[cost_cols[1:]].sum().reset_index()
+        
+        else: # "Overall"
+            bf_valid = all(col in bf_filtered_raw.columns for col in cost_cols) and not bf_filtered_raw.empty
+            ln_valid = all(col in ln_filtered_raw.columns for col in cost_cols) and not ln_filtered_raw.empty
+
+            if bf_valid or ln_valid:
+                dfs_to_concat = []
+                if bf_valid:
+                    dfs_to_concat.append(bf_filtered_raw[cost_cols])
+                if ln_valid:
+                    dfs_to_concat.append(ln_filtered_raw[cost_cols])
+                
+                cost_over_time = pd.concat(dfs_to_concat)
                 cost_over_time['date'] = pd.to_datetime(cost_over_time['date'])
                 cost_agg = cost_over_time.groupby('date').sum().reset_index()
 
-                if not cost_agg.empty:
-                    fig_cost_time = px.line(cost_agg, x='date',
-                                            y=['production_cost_total', 'left_over_cost', 'discarded_cost'],
-                                            title='Daily Production and Waste Costs',
-                                            labels={'value': 'Cost (USD)', 'variable': 'Cost Type', 'date':'Date'})
-                    st.plotly_chart(fig_cost_time, use_container_width=True)
-                else:
-                    st.warning("No data available for Cost Over Time chart after aggregation.")
-            else:
-                st.warning("Cost over time chart cannot be generated - required columns missing or dataframes empty.")
-
-
-            # EDA Geographical Analysis
-            if selected_school == "All Schools":
-                with st.expander("Geographical Analysis of Potential Savings", expanded=True):
-                     st.header("🗺️ Potential Savings Insights (Based on Leftovers)")
-                     bf_map_filtered = bf_coord_data.copy()
-                     ln_map_filtered = ln_coord_data.copy()
-                     bf_map_filtered = map_educational_level(bf_map_filtered)
-                     ln_map_filtered = map_educational_level(ln_map_filtered)
-                     if selected_region != "All Regions":
-                         bf_map_filtered = bf_map_filtered[bf_map_filtered['fcps region'] == selected_region]
-                         ln_map_filtered = ln_map_filtered[ln_map_filtered['fcps region'] == selected_region]
-                     if selected_dk != "All Distribution Kitchens":
-                         bf_map_filtered = bf_map_filtered[bf_map_filtered['distribution kitchen (dk)'] == selected_dk]
-                         ln_map_filtered = ln_map_filtered[ln_map_filtered['distribution kitchen (dk)'] == selected_dk]
-                     if selected_level != "All Levels":
-                         bf_map_filtered = bf_map_filtered[bf_map_filtered['educational level'] == selected_level]
-                         ln_map_filtered = ln_map_filtered[ln_map_filtered['educational level'] == selected_level]
-                     bf_map_filtered['left_over_cost'] = pd.to_numeric(bf_map_filtered['left_over_cost'].astype(str).str.replace('$', '').str.replace(',', ''), errors='coerce').fillna(0)
-                     ln_map_filtered['left_over_cost'] = pd.to_numeric(ln_map_filtered['left_over_cost'].astype(str).str.replace('$', '').str.replace(',', ''), errors='coerce').fillna(0)
-                     school_savings = prepare_eda_map_data(bf_map_filtered, ln_map_filtered)
-                     base_path_map = Path(__file__).resolve().parent.parent.parent / 'src' / 'data' / 'preprocessed-data'
-                     geojson_path = base_path_map / "School_Regions.geojson"
-                     regional_savings = bf_map_filtered.groupby('fcps region')['left_over_cost'].sum().reset_index()
-                     regional_savings.rename(columns={'left_over_cost': 'total_savings', 'fcps region': 'FCPS Region'}, inplace=True)
-                     regional_savings['region_key'] = regional_savings['FCPS Region'].str.extract('(\d+)').astype(int)
-                     st.subheader("Potential Savings by Region (Choropleth Map)")
-                     regional_map = generate_fcps_region_choropleth(
-                         regional_savings, geojson_path,
-                         columns=['region_key', 'total_savings'], initial_column='total_savings'
-                     )
-                     if regional_map: st_folium(regional_map, use_container_width=True)
-                     if school_savings is not None and not school_savings.empty:
-                         st.subheader("Potential Savings by School (Bubble Map)")
-                         bubble_map = folium.Map(location=[38.8, -77.3], zoom_start=10, tiles="CartoDB positron")
-                         for idx, row in school_savings.iterrows():
-                             popup_text=f"{row.get('School_Name_Display', row.get('school_name','Unknown School'))}<br>Potential Savings: ${row.get('Total Savings', 0):,.2f}"
-                             folium.CircleMarker(
-                                 location=[row['latitude'], row['longitude']],
-                                 radius=max(1, row.get('Total Savings', 0)/1000),
-                                 popup=popup_text,
-                                 color='crimson', fill=True, fill_color='crimson'
-                             ).add_to(bubble_map)
-                         st_folium(bubble_map, use_container_width=True)
-                     else:
-                         st.warning("Could not generate school potential savings bubble map data.")
-
-        # Specific Meal Period Selected
+        if not cost_agg.empty:
+            fig_cost_time = px.line(cost_agg, x='date',
+                                    y=['production_cost_total', 'left_over_cost', 'discarded_cost'],
+                                    title=f'Daily Production and Waste Costs ({selected_meal_period})',
+                                    labels={'value': 'Cost (USD)', 'variable': 'Cost Type', 'date':'Date'})
+            st.plotly_chart(fig_cost_time, use_container_width=True)
         else:
-            # Check if a specific school is selected
-            if selected_school != "All Schools":
-                st.header(f"{selected_meal_period} Raw Data for {selected_school}")
-                # Display the raw filtered data for the selected school and meal period
-                if selected_meal_period == "Breakfast":
-                    if not bf_filtered_raw.empty:
-                        st.markdown(f"Displaying raw filtered breakfast data for {selected_school}.")
-                        # Display the filtered dataframe
-                        st.dataframe(bf_filtered_raw)
-                    else:
-                        st.warning(f"No raw breakfast data found for {selected_school} matching all selected filters (Region, DK, Level).")
-                elif selected_meal_period == "Lunch":
-                    if not ln_filtered_raw.empty:
-                        st.markdown(f"Displaying raw filtered lunch data for {selected_school}.")
-                        # Display the filtered dataframe
-                        st.dataframe(ln_filtered_raw)
-                    else:
-                         st.warning(f"No raw lunch data found for {selected_school} matching all selected filters (Region, DK, Level).")
-            else:
-                st.info(f"Aggregated {selected_meal_period} data visualizations are shown in the '⭐ Popularity' tab.")
+            st.warning(f"No cost data available for the selected filters to plot a time-series chart.")
+
+        # --- RAW DATA DISPLAY ---
+        if selected_school != "All Schools":
+            st.markdown("---")
+            st.subheader(f"Raw Filtered Data for {selected_school}")
+            
+            if selected_meal_period == "Breakfast":
+                st.dataframe(bf_filtered_raw)
+            elif selected_meal_period == "Lunch":
+                st.dataframe(ln_filtered_raw)
+            else: # Overall
+                st.markdown("#### Breakfast")
+                st.dataframe(bf_filtered_raw)
+                st.markdown("#### Lunch")
+                st.dataframe(ln_filtered_raw)
+        else:
+            st.info(f"Aggregated food item visualizations are available in the '⭐ Popularity' tab.")
 
     # Popularity Tab
     with tab_pop:
@@ -508,13 +557,10 @@ if opt_data_loaded and school_opt_data is not None and popularity_files and bf_c
             # --- SPECIFIC SCHOOL ---
             else:
                 st.markdown(f"Showing data for {selected_school} only.")
-                # --- CORRECTED FILTERING LOGIC ---
                 b_col1, b_col2 = st.columns(2)
                 with b_col1:
                     st.subheader("Items by Leftover Rate")
-                    # Check if the specific school dataframe is loaded
                     if bf_lr_school_df is not None and 'school_name' in bf_lr_school_df.columns:
-                        # Filter using lowercase comparison
                         bf_lr_school_data_filtered = bf_lr_school_df[bf_lr_school_df['school_name'].str.lower() == selected_school.lower()]
                         bf_lr_chart_data = bf_lr_school_data_filtered.sort_values(by='leftover_rate', ascending=True)
                         if not bf_lr_chart_data.empty:
@@ -529,9 +575,7 @@ if opt_data_loaded and school_opt_data is not None and popularity_files and bf_c
 
                 with b_col2:
                     st.subheader("Items by Net Consumption Rate")
-                    # Check if the specific school dataframe is loaded
                     if bf_nc_school_df is not None and 'school_name' in bf_nc_school_df.columns:
-                         # Filter using lowercase comparison
                         bf_nc_school_data_filtered = bf_nc_school_df[bf_nc_school_df['school_name'].str.lower() == selected_school.lower()]
                         bf_nc_chart_data = bf_nc_school_data_filtered.sort_values(by='net_consumption_rate', ascending=True)
                         if not bf_nc_chart_data.empty:
@@ -606,9 +650,7 @@ if opt_data_loaded and school_opt_data is not None and popularity_files and bf_c
                  l_col1, l_col2 = st.columns(2)
                  with l_col1:
                      st.subheader("Items by Leftover Rate")
-                     # Check if the specific school dataframe is loaded
                      if ln_lr_school_df is not None and 'school_name' in ln_lr_school_df.columns:
-                         # Filter using lowercase comparison
                          ln_lr_school_data_filtered = ln_lr_school_df[ln_lr_school_df['school_name'].str.lower() == selected_school.lower()]
                          ln_lr_chart_data = ln_lr_school_data_filtered.sort_values(by='leftover_rate', ascending=True)
                          if not ln_lr_chart_data.empty:
@@ -623,9 +665,7 @@ if opt_data_loaded and school_opt_data is not None and popularity_files and bf_c
 
                  with l_col2:
                      st.subheader("Items by Net Consumption Rate")
-                     # Check if the specific school dataframe is loaded
                      if ln_nc_school_df is not None and 'school_name' in ln_nc_school_df.columns:
-                         # Filter using lowercase comparison
                          ln_nc_school_data_filtered = ln_nc_school_df[ln_nc_school_df['school_name'].str.lower() == selected_school.lower()]
                          ln_nc_chart_data = ln_nc_school_data_filtered.sort_values(by='net_consumption_rate', ascending=True)
                          if not ln_nc_chart_data.empty:
@@ -745,7 +785,6 @@ if opt_data_loaded and school_opt_data is not None and popularity_files and bf_c
     # Savings/Loss Tab
     with tab_sav:
         st.header("Savings/Loss from Optimization")
-        st.info("Map reflects savings calculated using notebook logic. Chart compares budget vs. optimized cost by size.")
 
         try:
             # Prepare inputs based on opt_data_loaded
@@ -770,12 +809,67 @@ if opt_data_loaded and school_opt_data is not None and popularity_files and bf_c
             if aggregated_opt_results is not None:
                 savings_df = prepare_savings_analysis_df(savings_input_data, aggregated_opt_results, monthly_meal_costs)
 
-            # Generate Savings by Size Chart
+            st.subheader("Actual vs. Optimized Cost by School Size")
+            
+            if savings_df is not None:
+                
+                # Aggregate actual vs. optimized cost by size
+                actual_vs_opt_size_df = savings_df.groupby('size_category')[
+                    ['actual_annual_cost', 'optimized_annual_cost']
+                ].sum().reset_index()
+
+                # Melt this new dataframe for plotting
+                actual_vs_opt_melted = pd.melt(
+                    actual_vs_opt_size_df,
+                    id_vars=['size_category'],
+                    value_vars=['actual_annual_cost', 'optimized_annual_cost'],
+                    var_name='Cost Type', 
+                    value_name='Amount (USD)'
+                )
+                actual_vs_opt_melted['Cost Type'] = actual_vs_opt_melted['Cost Type'].replace({
+                    'actual_annual_cost': 'Actual Annual Cost',
+                    'optimized_annual_cost': 'Optimized Annual Cost'
+                })
+                
+                # Define category order
+                category_order = ['xxs', 'xs', 's', 'm', 'l', 'xl', 'xxl', 'xxxl']
+                actual_vs_opt_melted['size_category'] = pd.Categorical(
+                    actual_vs_opt_melted['size_category'], 
+                    categories=category_order, 
+                    ordered=True
+                )
+                actual_vs_opt_melted = actual_vs_opt_melted.sort_values('size_category')
+
+                # Create the Plotly bar chart
+                fig_actual_vs_opt = px.bar(
+                    actual_vs_opt_melted,
+                    x='size_category',
+                    y='Amount (USD)',
+                    color='Cost Type',
+                    barmode='group',
+                    title='Actual Annual Cost vs. Optimized Annual Cost by School Size',
+                    labels={'size_category': 'School Size Category'},
+                    category_orders={'size_category': category_order},
+                    color_discrete_map={
+                         'Actual Annual Cost': '#d62728', # Red
+                         'Optimized Annual Cost': '#2ca02c' # Green
+                    }
+                )
+                fig_actual_vs_opt.update_layout(yaxis_title='Amount (USD)', xaxis_title='School Size Category')
+                
+                st.plotly_chart(fig_actual_vs_opt, use_container_width=True)
+                st.info("Graph represents the actual costs incurred from May data provided, Optimized costs is what our model produced considering budgetary and production constraints")
+            else:
+                st.warning("Could not generate Actual vs. Optimized cost chart. Missing savings or size data.")
+
+
+            # --- Budget vs. Optimized Cost Chart ---
+            st.markdown("---") # Separator
             st.subheader("Budget vs. Optimized Cost by School Size")
             agg_savings_by_size = None
             if aggregated_opt_results is not None and df_sizes_lower is not None:
                 # Replicate Proportional Budget Calculation
-                total_budget = 139144760 # Default total budget from optimization.py
+                total_budget = 139144760 # Default total budget
                 relevant_schools_df = df_sizes_lower[df_sizes_lower['school_name'].isin(all_schools_list)].copy()
                 total_population = relevant_schools_df['count'].sum()
                 school_budgets = {}
@@ -819,10 +913,11 @@ if opt_data_loaded and school_opt_data is not None and popularity_files and bf_c
                         barmode='group',
                         title='Annual Budget vs. Optimized Food Cost by School Size',
                         labels={'size_category': 'School Size Category'},
-                        category_orders={'size_category': category_order} # Ensure correct order
+                        category_orders={'size_category': category_order}
                     )
                     fig_size_savings.update_layout(yaxis_title='Amount (USD)', xaxis_title='School Size Category')
                     st.plotly_chart(fig_size_savings, use_container_width=True)
+                    st.info("This graph represents the optimized costs compared to the annual approved budget which is divided and allocated based on school size")
 
                     # Display the aggregated data table
                     with st.expander("View Aggregated Data by Size"):
@@ -833,7 +928,6 @@ if opt_data_loaded and school_opt_data is not None and popularity_files and bf_c
                     st.warning("Could not generate aggregated savings data by school size.")
             else:
                  st.warning("Missing data required for savings by size analysis (Optimization results or School sizes).")
-
 
             st.markdown("---") # Separator
 
@@ -876,6 +970,5 @@ if opt_data_loaded and school_opt_data is not None and popularity_files and bf_c
 
         except NameError as ne: st.error(f"Required variable/function missing: {ne}. Import issue?")
         except Exception as e: st.error(f"Error generating savings map or chart: {e}"); import traceback; st.text(traceback.format_exc())
-
 else:
     st.warning("⚠️ Could not load primary data required for the application. Please check file paths and availability.")
