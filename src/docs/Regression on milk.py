@@ -119,7 +119,7 @@ def run_regression(dependent_var, independent_vars, data, title):
     model = sm.OLS(y_clean, X_sm).fit()
     print(model.summary())
 
-# --- Run Regressions (NO meal_type) ---
+# --- Run Regressions ---
 run_regression(
     dependent_var='production_cost_total',
     independent_vars=[
@@ -182,6 +182,88 @@ if len(df_viz) > 0:
     plt.axhline(y=0, color='r', linestyle='--')
     plt.title('Residuals vs Predicted')
     plt.xlabel('Predicted'); plt.ylabel('Residuals')
+
+    plt.tight_layout()
+    plt.show()
+else:
+    print("Not enough data for visualization.")
+
+
+
+
+# --- Visualization Example (for Regression 2 , sklearn-based) ---
+print("\n" + "="*100)
+print("Regression 2 Visualization (sklearn)")
+print("="*100)
+
+Y = pd.to_numeric(combined['discarded_cost'], errors='coerce')
+X = combined[['served_reimbursable', 'offered_reimbursable', 'planned_reimbursable',
+        'left_over_total', 'student_count']].copy()
+
+X = X.apply(pd.to_numeric, errors='coerce').replace([np.inf, -np.inf], np.nan)
+df_viz = pd.concat([Y.rename('discarded_cost'), X], axis=1).dropna()
+
+if len(df_viz) > 0:
+    y = df_viz['discarded_cost']
+    X = df_viz.drop('discarded_cost', axis=1)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    model = LinearRegression().fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+
+    plt.figure(figsize=(14, 6))
+    plt.subplot(1, 2, 1)
+    sns.scatterplot(x=y_test, y=y_pred, alpha=0.6)
+    plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--')
+    plt.title('Actual vs Predicted Discarded Cost')
+    plt.xlabel('Actual'); plt.ylabel('Predicted')
+
+    plt.subplot(1, 2, 2)
+    residuals = y_test - y_pred
+    sns.scatterplot(x=y_pred, y=residuals, alpha=0.6)
+    plt.axhline(y=0, color='r', linestyle='--')
+    plt.title('Residuals vs Predicted')
+    plt.xlabel('Predicted'); plt.ylabel('Residuals')
+
+    plt.tight_layout()
+    plt.show()
+else:
+    print("Not enough data for visualization.")
+
+# --- Visualization Example (for Regression 3 , sklearn-based) ---
+print("\n" + "=" * 100)
+print("Regression 3 Visualization (sklearn)")
+print("=" * 100)
+
+Y = pd.to_numeric(combined['served_reimbursable'], errors='coerce')
+X = combined[['planned_reimbursable', 'offered_reimbursable', 'student_count']].copy()
+
+X = X.apply(pd.to_numeric, errors='coerce').replace([np.inf, -np.inf], np.nan)
+df_viz = pd.concat([Y.rename('served_reimbursable'), X], axis=1).dropna()
+
+if len(df_viz) > 0:
+    y = df_viz['served_reimbursable']
+    X = df_viz.drop('served_reimbursable', axis=1)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    model = LinearRegression().fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+
+    plt.figure(figsize=(14, 6))
+    plt.subplot(1, 2, 1)
+    sns.scatterplot(x=y_test, y=y_pred, alpha=0.6)
+    plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--')
+    plt.title('Actual vs Predicted Reimbursable')
+    plt.xlabel('Actual');
+    plt.ylabel('Predicted')
+
+    plt.subplot(1, 2, 2)
+    residuals = y_test - y_pred
+    sns.scatterplot(x=y_pred, y=residuals, alpha=0.6)
+    plt.axhline(y=0, color='r', linestyle='--')
+    plt.title('Residuals vs Predicted')
+    plt.xlabel('Predicted');
+    plt.ylabel('Residuals')
 
     plt.tight_layout()
     plt.show()
