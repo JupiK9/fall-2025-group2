@@ -16,9 +16,10 @@ try:
     from component.optimization import (
         prepare_optimization_data,
         prepare_savings_analysis_df,
-        prepare_map_data_from_coordinates,
         analyze_savings_by_school_size
     )
+
+    from component.regression_analysis import perform_regression_analysis
 
 except ImportError as e:
     st.error(f"Could not import functions from optimization.py: {e}.")
@@ -27,6 +28,7 @@ except ImportError as e:
     def prepare_savings_analysis_df(*args, **kwargs): return None
     def prepare_map_data_from_coordinates(*args, **kwargs): return None
     def analyze_savings_by_school_size(*args, **kwargs): return None
+    def perform_regression_analysis(*args, **kwargs): return None
 
 # --- Page Configuration ---
 st.set_page_config(
@@ -35,6 +37,38 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+st.markdown("""
+<style>
+[data-testid="stSidebar"] {
+    background-color: #07677F;
+}
+
+[data-testid="stSidebar"] * {
+    color: white;
+}
+
+[data-testid="stSelectbox"] div[data-baseweb="select"] > div:first-child {
+    background-color: #00AEC8 !important; /* Force the background color */
+    color: white !important; /* Force the text color */
+    border-radius: 0.25rem; /* Optional */
+    border: none; /* Remove potential default border */
+}
+
+[data-testid="stSelectbox"] div[data-baseweb="select"] > div:first-child div {
+    color: white !important;
+}
+
+[data-testid="stSelectbox"] label {
+    color: white !important;
+}
+
+[data-testid="stSelectbox"] svg {
+    fill: white !important; /* Force arrow color */
+}
+
+</style>
+""", unsafe_allow_html=True)
 
 st.title("📊 FCPS Waste & Food Management Analysis")
 st.markdown("An exploratory data analysis of food production, consumption, and waste within the Fairfax County Public Schools system.")
@@ -56,13 +90,13 @@ def load_data():
     popularity_files = {}
     bf_data_map_coords = None
     ln_data_map_coords = None
-    nutrition_df = None # Initialize nutrition_df
+    nutrition_df = None
 
     try:
         base_path = Path(__file__).resolve().parent.parent.parent / 'src' / 'data' / 'preprocessed-data'
         breakfast_path = base_path / "breakfast_combined.csv"
         lunch_path = base_path / "lunch_combined.csv"
-        student_counts_path = base_path / "2022-2025 Fairfax County School Student Count.csv" # Check filename
+        student_counts_path = base_path / "2022-2025 Fairfax County School Student Count.csv"
 
         # --- Call prepare_optimization_data ---
         opt_data_dict = prepare_optimization_data(str(breakfast_path), str(lunch_path), str(student_counts_path))
@@ -73,7 +107,6 @@ def load_data():
         # --- Load other needed files ---
         school_opt_items_df = pd.read_csv(base_path / "school_food_item_optimization.csv")
         nutrition_df = pd.read_csv(base_path / "fcps_nutrition_values.csv")
-        # Ensure nutrition_df columns are lowercase immediately
         if nutrition_df is not None:
             nutrition_df.columns = nutrition_df.columns.str.lower()
 
@@ -153,13 +186,18 @@ def load_data():
         st.text(traceback.format_exc())
         return None, None, {}, None, None
 
+@st.cache_data
+def load_regression_results():
+    """Loads and runs all regression models"""
+    return perform_regression_analysis()
+
 # --- Load all data ---
 opt_data_loaded, school_opt_data, popularity_files, bf_coord_data, ln_coord_data = load_data()
+regression_results = load_regression_results()
 
 # Local Mapping Functions
 def generate_fcps_region_choropleth(regional_map_df, geojson_path, columns, initial_column):
     """Generates choropleth map."""
-    # Ensure input keys match the expected format
     regional_map_df.rename(columns={'fcps region': 'FCPS Region'}, inplace=True, errors='ignore')
 
     try:
@@ -348,7 +386,7 @@ if opt_data_loaded and school_opt_data is not None and popularity_files and bf_c
     # EDA Tab
     with tab_eda:
         
-        # --- NEW: Map and Student Count Logic ---
+        # Map and Student Count Logic
         student_count_val = None # Initialize
         if selected_school != "All Schools":
             school_info = None
@@ -728,7 +766,7 @@ if opt_data_loaded and school_opt_data is not None and popularity_files and bf_c
                             st.plotly_chart(fig_pie, use_container_width=True)
                     else: st.warning("Cannot show sub-category breakdown - 'sub-category' column missing.")
                     st.markdown("---")
-                    st.subheader("Recommended Item List")
+                    st.subheader("Recommended Monthly Item List")
                     table_cols = ['food_item', 'sub-category', 'recommended_quantity']
                     if all(col in school_opt_filtered.columns for col in table_cols):
                          display_table = school_opt_filtered[table_cols].rename(columns={'food_item': 'Item', 'sub-category': 'Category', 'recommended_quantity': 'Qty'}).sort_values(by='Qty', ascending=False)
@@ -778,7 +816,44 @@ if opt_data_loaded and school_opt_data is not None and popularity_files and bf_c
     # Regression Tab
     with tab_reg:
         st.header("Regression Analysis")
-        st.markdown("Content to be added here.")
+
+        if "error" in regression_results:
+            st.error(f"Could not run regression analysis: {regression_results['error']}")
+        
+        elif not regression_results:
+             st.error("Regression analysis returned no results.")
+
+        else:
+            st.markdown("""
+            This analysis attempts to model the relationships between key variables in the milk dataset. 
+            Below are three Ordinary Least Squares (OLS) regression models.
+            """)
+            
+            st.subheader("Regression 1: Predicting Production Cost")
+            st.markdown("This model predicts the `production_cost_total` based on served, planned, discarded, leftover, and student counts.")
+            st.code(regression_results.get('summary1', 'Error: Summary 1 not found.'))
+            
+            st.subheader("Regression 2: Predicting Discarded Cost")
+            st.markdown("This model predicts the `discarded_cost` based on served, offered, planned, leftover, and student counts.")
+            st.code(regression_results.get('summary2', 'Error: Summary 2 not found.'))
+            
+            st.subheader("Regression 3: Predicting Served Reimbursable")
+            st.markdown("This model predicts the `served_reimbursable` (number of meals) based on planned, offered, and student counts.")
+            st.code(regression_results.get('summary3', 'Error: Summary 3 not found.'))
+            
+            st.markdown("---")
+            
+            st.subheader("Visualization for Regression 1 (Production Cost)")
+            st.markdown("""
+            The plots below show the performance of a simple linear regression model 
+            (trained on 80% of the data) in predicting production cost.
+            """)
+            
+            plot_fig = regression_results.get('plot')
+            if plot_fig:
+                st.pyplot(plot_fig)
+            else:
+                st.warning("Could not generate the regression plot (not enough data).")
 
     # Savings/Loss Tab
     with tab_sav:
@@ -1132,7 +1207,7 @@ if opt_data_loaded and school_opt_data is not None and popularity_files and bf_c
                 map_df.dropna(subset=['latitude', 'longitude'], inplace=True)
 
             if map_df is not None and not map_df.empty:
-                st.subheader("Savings/Loss per School (Bubble Map)")
+                st.subheader("Regional Map of Savings/Loss per School")
                 map_center = [map_df['latitude'].mean(), map_df['longitude'].mean()]
                 m = folium.Map(location=map_center, zoom_start=10, tiles="cartodbpositron")
                 
