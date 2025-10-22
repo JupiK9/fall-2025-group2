@@ -120,19 +120,15 @@ Note: Use Markdown Cheat Sheet download in the directory as needed.
 * [ ] All: presentation practice session
 ---
 
-## Date: Week 9 - Month Day Year 
+## Date: Week 9 - October 22, 2025
 - Topics of discussion
-    - Item1
-    - Item2
-    - Item3
+    - Interim Presentation
 
 - Action Items:
 
-* [ ] Action Item 1
-* [ ] Action Item 2
-* [ ] Action Item 3
-* [ ] Action Item 4
-* [ ] Action Item 5
+* [ ] Alonso: continue refining UI
+* [ ] Jupiter: do more tests on regression and run regression on more items
+* [ ] Crystal: come up with savings action plan
 ---
 ## Date: Week 10 - Month Day Year 
 - Topics of discussion
