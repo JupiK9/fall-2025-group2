@@ -10,8 +10,8 @@ import matplotlib.pyplot as plt
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from statsmodels.tsa.stattools import adfuller, kpss
 from sklearn.preprocessing import MinMaxScaler
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense
+#from tensorflow.keras.models import Sequential
+#from tensorflow.keras.layers import LSTM, Dense
 from sklearn.metrics import mean_squared_error, r2_score
 
 #%%
@@ -79,7 +79,7 @@ print(f"Test set size: {len(test_data_ar)} ({(1-split_ratio)*100:.0f}%)")
 #%% Regression ( on milk, in may)
 # %% Regression on milk sales for top 5 largest schools
 # Load student counts
-student_counts_path = 'raw_data/Student_counts.csv' # Assuming this path
+student_counts_path = '../data/preprocessed-data/2022-2025 Fairfax County Student Count.csv' # Assuming this path
 top_N_schools = 5  # Changed from 4 back to 5 as requested
 
 try:
@@ -248,3 +248,4 @@ else:
         f"\nSkipping milk regression by school size due to issues with loading student count data or identifying top {top_N_schools} schools.")
 
 print("\n--- Regression Analysis Attempt Complete ---")
+#%%
