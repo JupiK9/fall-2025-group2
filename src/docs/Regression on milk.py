@@ -9,9 +9,9 @@ import seaborn as sns
 import os
 
 # --- File Paths ---
-BREAKFAST_CSV = './data/preprocessed-data/milk_b.csv'
-LUNCH_CSV = './data/preprocessed-data/milk_l.csv'
-STUDENT_COUNTS_CSV = './data/preprocessed-data/student_counts.csv'
+BREAKFAST_CSV = 'raw_data/milk_b.csv'
+LUNCH_CSV = 'raw_data/milk_l.csv'
+STUDENT_COUNTS_CSV = 'raw_data/student_counts.csv'
 
 # --- Helper: Clean Numeric Columns ---
 def clean_numeric_cols(df, cols_to_clean):
