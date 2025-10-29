@@ -5,59 +5,39 @@ import glob
 from bs4 import BeautifulSoup
 
 def parse_school_table(school_name, table, date):
-    
     print(f"Parsing table for school: {school_name}")
 
-    # Define column names
-    columns = [
-        'School_Name', 'Date', 'Identifier', 'Name',
-        'Planned_Reimbursable', 'Planned_Non-Reimbursable', 'Planned_Total',
-        'Offered_Reimbursable', 'Offered_Non-Reimbursable', 'Offered_Total',
-        'Served_Reimbursable', 'Served_Non-Reimbursable', 'Served_Total',
-        'Discarded_Total', 'Discarded_Cost', 'Subtotal_Cost',
-        'Left_Over_Total', 'Left_Over_Percent_of_Offered', 'Left_Over_Cost',
-        'Production_Cost_Total'
-    ]
-
-    data = []
+    # Extract header names dynamically
+    headers = [th.get_text(strip=True) for th in table.find_all('th')]
+    print(f"Detected {len(headers)} columns: {headers}")
 
     rows = table.find('tbody').find_all('tr')
+    data = []
 
     for idx, row in enumerate(rows):
-        # Skip footer rows
+        # Skip footer rows or empty rows
         if row.get('class') and 'footer' in row.get('class'):
             continue
 
-        cells = row.find_all('td')
-        if len(cells) >= 18:
-            try:
-                # More robust name extraction
-                identifier = cells[0].get_text(strip=True)
-                name = cells[1].get_text(separator=' ', strip=True)
+        cells = [c.get_text(strip=True) for c in row.find_all('td')]
+        if not cells or len(cells) < 3:
+            continue  # skip bad rows
 
-                row_data = [
-                    school_name, date,
-                    identifier, name,
-                    cells[2].get_text(strip=True), cells[3].get_text(strip=True), cells[4].get_text(strip=True),
-                    cells[5].get_text(strip=True), cells[6].get_text(strip=True), cells[7].get_text(strip=True),
-                    cells[8].get_text(strip=True), cells[9].get_text(strip=True), cells[10].get_text(strip=True),
-                    cells[11].get_text(strip=True), cells[12].get_text(strip=True), cells[13].get_text(strip=True),
-                    cells[14].get_text(strip=True), cells[15].get_text(strip=True), cells[16].get_text(strip=True),
-                    cells[17].get_text(strip=True)
-                ]
-                data.append(row_data)
-            except Exception as e:
-                print(f"Error parsing row {idx} in {school_name}: {e}")
-        else:
-            print(
-                f"Skipping malformed row ({len(cells)} cells) in {school_name}: {[c.get_text(strip=True) for c in cells]}")
+        # Pad missing cells so all rows align
+        while len(cells) < len(headers):
+            cells.append("")
+
+        data.append([school_name, date] + cells)
 
     if not data:
         print(f"No valid data rows found for school: {school_name}")
         return None
 
+    # Create dynamic column names
+    columns = ['School_Name', 'Date'] + headers
     df = pd.DataFrame(data, columns=columns)
-    print(f"Created DataFrame for {school_name} with {len(df)} rows")
+    print(f"Created DataFrame for {school_name} with {len(df)} rows and {len(df.columns)} columns")
+
     return df
 
 def parse_html_file(file_path):

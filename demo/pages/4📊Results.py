@@ -7,28 +7,7 @@ from streamlit_folium import st_folium
 import numpy as np
 import sys
 import json
-
-src_path = str(Path(__file__).resolve().parent.parent.parent / 'src')
-if src_path not in sys.path:
-    sys.path.append(src_path)
-
-try:
-    from component.optimization import (
-        prepare_optimization_data,
-        prepare_savings_analysis_df,
-        analyze_savings_by_school_size
-    )
-
-    from component.regression_analysis import perform_regression_analysis
-
-except ImportError as e:
-    st.error(f"Could not import functions from optimization.py: {e}.")
-    # Define dummy functions
-    def prepare_optimization_data(*args, **kwargs): return None
-    def prepare_savings_analysis_df(*args, **kwargs): return None
-    def prepare_map_data_from_coordinates(*args, **kwargs): return None
-    def analyze_savings_by_school_size(*args, **kwargs): return None
-    def perform_regression_analysis(*args, **kwargs): return None
+import traceback
 
 # --- Page Configuration ---
 st.set_page_config(
@@ -70,6 +49,31 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+src_path = str(Path(__file__).resolve().parent.parent.parent / 'src')
+if src_path not in sys.path:
+    sys.path.append(src_path)
+
+try:
+    from component.optimization import (
+        prepare_optimization_data,
+        prepare_savings_analysis_df,
+        analyze_savings_by_school_size
+    )
+
+    from component.regression_analysis import perform_regression_analysis
+
+    from component.pdf_generator import generate_pdf
+
+except ImportError as e:
+    st.error(f"Could not import functions from optimization.py: {e}.")
+    # Define dummy functions
+    def prepare_optimization_data(*args, **kwargs): return None
+    def prepare_savings_analysis_df(*args, **kwargs): return None
+    def prepare_map_data_from_coordinates(*args, **kwargs): return None
+    def analyze_savings_by_school_size(*args, **kwargs): return None
+    def perform_regression_analysis(*args, **kwargs): return None
+    def generate_pdf(*args, **kwargs): return None
+
 st.title("📊 FCPS Waste & Food Management Analysis")
 st.markdown("An exploratory data analysis of food production, consumption, and waste within the Fairfax County Public Schools system.")
 
@@ -91,34 +95,44 @@ def load_data():
     bf_data_map_coords = None
     ln_data_map_coords = None
     nutrition_df = None
+    school_list_df = None
 
     try:
-        base_path = Path(__file__).resolve().parent.parent.parent / 'src' / 'data' / 'preprocessed-data'
-        breakfast_path = base_path / "breakfast_combined.csv"
-        lunch_path = base_path / "lunch_combined.csv"
-        student_counts_path = base_path / "2022-2025 Fairfax County School Student Count.csv"
+        current_dir = Path(__file__).resolve().parent # Directory of this results script
+        src_dir = current_dir.parent.parent # Navigate up to 'src' directory
+        data_dir = src_dir / 'data' # Base data directory
+        preprocessed_data_dir = data_dir / 'preprocessed-data' # Preprocessed data
+
+
+        breakfast_path = preprocessed_data_dir / "breakfast_combined.csv"
+        lunch_path = preprocessed_data_dir / "lunch_combined.csv"
+        student_counts_path = preprocessed_data_dir / "2022-2025 Fairfax County School Student Count.csv"
 
         # --- Call prepare_optimization_data ---
         opt_data_dict = prepare_optimization_data(str(breakfast_path), str(lunch_path), str(student_counts_path))
         if opt_data_dict is None:
              st.error("Failed to prepare optimization data from optimization.py.")
-             return None, None, {}, None, None
+             return None, None, {}, None, None, None
 
         # --- Load other needed files ---
-        school_opt_items_df = pd.read_csv(base_path / "school_food_item_optimization.csv")
-        nutrition_df = pd.read_csv(base_path / "fcps_nutrition_values.csv")
+        school_opt_items_df = pd.read_csv(data_dir / "school_food_item_optimization.csv")
+        nutrition_df = pd.read_csv(preprocessed_data_dir / "fcps_nutrition_values.csv")
         if nutrition_df is not None:
             nutrition_df.columns = nutrition_df.columns.str.lower()
+        bf_coords_file = preprocessed_data_dir / "data_breakfast_with_coordinates.csv"
+        ln_coords_file = preprocessed_data_dir / "data_lunch_with_coordinates.csv"
+
+        school_list_df = school_opt_items_df.copy()
 
         # Popularity Files
-        popularity_files['bf_leftover'] = pd.read_csv(base_path / "breakfast_leftover_rate.csv")
-        popularity_files['ln_leftover'] = pd.read_csv(base_path / "lunch_leftover_rate.csv")
-        popularity_files['bf_consumption'] = pd.read_csv(base_path / "breakfast_net_consumption.csv")
-        popularity_files['ln_consumption'] = pd.read_csv(base_path / "lunch_net_consumption.csv")
-        popularity_files['bf_lr_school'] = pd.read_csv(base_path / "breakfast_leftover_rate_by_school.csv")
-        popularity_files['ln_lr_school'] = pd.read_csv(base_path / "lunch_leftover_rate_by_school.csv")
-        popularity_files['bf_nc_school'] = pd.read_csv(base_path / "breakfast_net_consumption_by_school.csv")
-        popularity_files['ln_nc_school'] = pd.read_csv(base_path / "lunch_net_consumption_by_school.csv")
+        popularity_files['bf_leftover'] = pd.read_csv(preprocessed_data_dir / "breakfast_leftover_rate.csv")
+        popularity_files['ln_leftover'] = pd.read_csv(preprocessed_data_dir / "lunch_leftover_rate.csv")
+        popularity_files['bf_consumption'] = pd.read_csv(preprocessed_data_dir / "breakfast_net_consumption.csv")
+        popularity_files['ln_consumption'] = pd.read_csv(preprocessed_data_dir / "lunch_net_consumption.csv")
+        popularity_files['bf_lr_school'] = pd.read_csv(preprocessed_data_dir / "breakfast_leftover_rate_by_school.csv")
+        popularity_files['ln_lr_school'] = pd.read_csv(preprocessed_data_dir / "lunch_leftover_rate_by_school.csv")
+        popularity_files['bf_nc_school'] = pd.read_csv(preprocessed_data_dir / "breakfast_net_consumption_by_school.csv")
+        popularity_files['ln_nc_school'] = pd.read_csv(preprocessed_data_dir / "lunch_net_consumption_by_school.csv")
 
         # Clean column names for popularity files
         for name, df in popularity_files.items():
@@ -127,9 +141,9 @@ def load_data():
                 df.rename(columns={'leftover_rate_(%)': 'leftover_rate', 'item_name': 'name'}, inplace=True, errors='ignore')
 
         # Coordinate data
-        bf_data_map_coords = pd.read_csv(base_path / "data_breakfast_with_coordinates.csv")
+        bf_data_map_coords = pd.read_csv(bf_coords_file)
         if bf_data_map_coords is not None: bf_data_map_coords.columns = bf_data_map_coords.columns.str.lower()
-        ln_data_map_coords = pd.read_csv(base_path / "data_lunch_with_coordinates.csv")
+        ln_data_map_coords = pd.read_csv(ln_coords_file)
         if ln_data_map_coords is not None: ln_data_map_coords.columns = ln_data_map_coords.columns.str.lower()
 
         # --- Perform merges needed for school_opt_items_df ---
@@ -175,16 +189,16 @@ def load_data():
               st.warning("Could not perform merges for optimization tab as required dataframes were not loaded correctly.")
 
 
-        return opt_data_dict, school_opt_items_df, popularity_files, bf_data_map_coords, ln_data_map_coords
+        return opt_data_dict, school_opt_items_df, popularity_files, bf_data_map_coords, ln_data_map_coords, school_list_df
 
     except FileNotFoundError as e:
         st.error(f"Error loading data file: {e}.")
-        return None, None, {}, None, None
+        return None, None, {}, None, None, None
     except Exception as e:
         st.error(f"An unexpected error occurred during data loading: {e}")
         import traceback
         st.text(traceback.format_exc())
-        return None, None, {}, None, None
+        return None, None, {}, None, None, None
 
 @st.cache_data
 def load_regression_results():
@@ -192,7 +206,7 @@ def load_regression_results():
     return perform_regression_analysis()
 
 # --- Load all data ---
-opt_data_loaded, school_opt_data, popularity_files, bf_coord_data, ln_coord_data = load_data()
+opt_data_loaded, school_opt_data, popularity_files, bf_coord_data, ln_coord_data, school_list_df = load_data()
 regression_results = load_regression_results()
 
 # Local Mapping Functions
@@ -375,12 +389,13 @@ if opt_data_loaded and school_opt_data is not None and popularity_files and bf_c
 
 
     # Main Dashboard Tabs
-    tab_eda, tab_pop, tab_opt, tab_reg, tab_sav = st.tabs([
+    tab_eda, tab_pop, tab_opt, tab_reg, tab_sav, tab_pdf = st.tabs([
         "📈 Exploratory Data Analysis",
         "⭐ Popularity",
         "⚙️ Optimization",
         "📊 Regression",
         "💰 Savings/Loss"
+        "🧾 Generate Recommendation"
     ])
 
     # EDA Tab
@@ -1231,5 +1246,50 @@ if opt_data_loaded and school_opt_data is not None and popularity_files and bf_c
         except NameError as ne: st.error(f"Required variable/function missing: {ne}. Import issue?")
         except Exception as e: st.error(f"Error generating savings map or chart: {e}"); import traceback; st.text(traceback.format_exc())
     
+    with tab_pdf:
+        st.header("Recommendation Report Generator")
+        st.markdown("Generate a PDF food order recommendation based on the school and meal type selected in the sidebar and below.")
+        st.markdown("---")
+
+        if not selected_school or 'All Schools' in selected_school:
+            st.warning("Please select one or more specific schools from the sidebar filter to generate a report.")
+        else:
+            school_for_pdf = selected_school[0]
+            if len(selected_school) > 1:
+                st.info(f"You have selected multiple schools. A report will be generated for the first school in your selection: **{school_for_pdf.title()}**.")
+
+            st.write(f"**Selected School for Report:** {school_for_pdf.title()}")
+
+            meal_type_selection = st.radio(
+                "Select Meal Type for Report:",
+                ('Both', 'Breakfast', 'Lunch'),
+                horizontal=True,
+                key='pdf_meal_type'
+            )
+
+            if st.button(f"Generate PDF Report", use_container_width=True):
+                if generate_pdf:
+                    with st.spinner(f"Creating {meal_type_selection} report for {school_for_pdf.title()}..."):
+                        try:
+                            pdf_bytes = generate_pdf(school_for_pdf.lower(), meal_type_selection)
+                            if pdf_bytes:
+                                st.success("PDF generated successfully!")
+                                file_name_school = school_for_pdf.replace(' ', '_').lower()
+                                file_name_meal = meal_type_selection.lower()
+                                st.download_button(
+                                    label="⬇️ Download PDF Report",
+                                    data=pdf_bytes,
+                                    file_name=f"recommendation_{file_name_school}_{file_name_meal}.pdf",
+                                    mime="application/pdf",
+                                    use_container_width=True
+                                )
+                            else:
+                                st.error(f"Could not generate a report. There may be no optimization data for '{school_for_pdf.title()}' with meal type '{meal_type_selection}'.")
+                        except Exception as e:
+                            st.error(f"An unexpected error occurred: {e}")
+                            st.text(traceback.format_exc())
+                else:
+                    st.error("The PDF generation function is not available due to an import error.")
+
 else:
     st.warning("⚠️ Could not load primary data required for the application. Please check file paths and availability.")
