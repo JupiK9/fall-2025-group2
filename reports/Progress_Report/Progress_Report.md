@@ -130,19 +130,17 @@ Note: Use Markdown Cheat Sheet download in the directory as needed.
 * [ ] Jupiter: do more tests on regression and run regression on more items
 * [ ] Crystal: come up with savings action plan
 ---
-## Date: Week 10 - Month Day Year 
+## Date: Week 10 - October 29, 2025
 - Topics of discussion
-    - Item1
-    - Item2
-    - Item3
+    - issue with html file pull
+    - presentation refinement
+    - regression updates
 
 - Action Items:
 
-* [ ] Action Item 1
-* [ ] Action Item 2
-* [ ] Action Item 3
-* [ ] Action Item 4
-* [ ] Action Item 5
+* [ ] Crystal: clean up script and rename columns for a rerun
+* [ ] Jupiter: run regression on aggregate groups
+* [ ] Alonso: refine UI and add to report
 ---
 ## Date: Week 11 - Month Day Year 
 - Topics of discussion
