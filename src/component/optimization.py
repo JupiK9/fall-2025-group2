@@ -370,12 +370,12 @@ def run_size_based_optimization(schools_to_optimize, meal_types, meal_costs, dem
 
     # --- Generate the Food Item Breakdown and Save to a CSV file ---
     if results_df is not None:
-        bf_popularity = dfb.groupby('Name')['Served_Reimbursable'].sum()
+        bf_popularity = dfb.groupby('name')['served_reimbursable'].sum()
         bf_total_served = bf_popularity.sum()
         bf_popularity_prop = (bf_popularity / bf_total_served).reset_index(name='proportion')
         bf_popularity_prop['meal_type'] = 'Breakfast'
 
-        ln_popularity = dfl.groupby('Name')['Served_Reimbursable'].sum()
+        ln_popularity = dfl.groupby('name')['served_reimbursable'].sum()
         ln_total_served = ln_popularity.sum()
         ln_popularity_prop = (ln_popularity / ln_total_served).reset_index(name='proportion')
         ln_popularity_prop['meal_Type'] = 'Lunch'
@@ -384,7 +384,7 @@ def run_size_based_optimization(schools_to_optimize, meal_types, meal_costs, dem
         item_df = pd.merge(results_df, item_popularity_df, on='meal_type')
         item_df['recommended_quantity'] = (item_df['optimal_quantity'] * item_df['proportion']).round().astype(int)
 
-        optimized_df = item_df[item_df['recommended_quantity'] > 0][['school', 'meal_type', 'Name', 'recommended_quantity']].rename(columns={'Name': 'food_item'})
+        optimized_df = item_df[item_df['recommended_quantity'] > 0][['school', 'meal_type', 'name', 'recommended_quantity']].rename(columns={'name': 'food_item'})
         optimized_df = optimized_df.sort_values(['school', 'meal_type', 'recommended_quantity'], ascending=[True, True, False])
 
         # Save to a CSV file
@@ -901,7 +901,11 @@ def generate_fcps_region_choropleth(
 
         edges = np.array(sorted(set(edges)))
         if edges.size >= 3:
+            # Ensure all data fits inside bins
+            edges[0] = min(edges[0], np.nanmin(vals)) - 1e-9
+            edges[-1] = max(edges[-1], np.nanmax(vals)) + 1e-9
             choropleth_kwargs["bins"] = edges.tolist()
+
 
     folium.Choropleth(**choropleth_kwargs).add_to(m)
 

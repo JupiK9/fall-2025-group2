@@ -158,17 +158,17 @@ def leftover_rate(breakfast_df, lunch_df):
     # Breakfast
     b_item_waste = breakfast_df.groupby("name").agg(
         left_over_total=("left_over_total", "sum"),
-        offered_reimbursable=("offered_reimbursable", "sum"),
+        offered=("offered", "sum"),
     )
     b_item_waste["leftover_rate"] = (
-        b_item_waste["left_over_total"] / b_item_waste["offered_reimbursable"]
+        b_item_waste["left_over_total"] / b_item_waste["offered"]
     ) * 100
-    b_item_waste = b_item_waste[b_item_waste["offered_reimbursable"] > 0]  # Avoid division by zero
+    b_item_waste = b_item_waste[b_item_waste["offered"] > 0]  # Avoid division by zero
     b_item_waste = b_item_waste.sort_values("leftover_rate", ascending=False)
     
     print("Top 15 Breakfast Items (Highest Leftover Rate - Most Waste):")
     print("=" * 100)
-    breakfast_display = b_item_waste[['leftover_rate', 'left_over_total', 'offered_reimbursable']].head(15)
+    breakfast_display = b_item_waste[['leftover_rate', 'left_over_total', 'offered']].head(15)
     breakfast_display.columns = ['Leftover Rate (%)', 'Total Left Over', 'Total Offered']
     breakfast_display['Leftover Rate (%)'] = breakfast_display['Leftover Rate (%)'].round(2)
     print(breakfast_display)
@@ -177,17 +177,17 @@ def leftover_rate(breakfast_df, lunch_df):
     # Lunch
     l_item_waste = lunch_df.groupby("name").agg(
         left_over_total=("left_over_total", "sum"),
-        offered_reimbursable=("offered_reimbursable", "sum"),
+        offered=("offered", "sum"),
     )
     l_item_waste["leftover_rate"] = (
-        l_item_waste["left_over_total"] / l_item_waste["offered_reimbursable"]
+        l_item_waste["left_over_total"] / l_item_waste["offered"]
     ) * 100
-    l_item_waste = l_item_waste[l_item_waste["offered_reimbursable"] > 0]
+    l_item_waste = l_item_waste[l_item_waste["offered"] > 0]
     l_item_waste = l_item_waste.sort_values("leftover_rate", ascending=False)
     
     print("\nTop 15 Lunch Items (Highest Leftover Rate - Most Waste):")
     print("=" * 100)
-    lunch_display = l_item_waste[['leftover_rate', 'left_over_total', 'offered_reimbursable']].head(15)
+    lunch_display = l_item_waste[['leftover_rate', 'left_over_total', 'offered']].head(15)
     lunch_display.columns = ['Leftover Rate (%)', 'Total Left Over', 'Total Offered']
     lunch_display['Leftover Rate (%)'] = lunch_display['Leftover Rate (%)'].round(2)
     print(lunch_display)
@@ -195,7 +195,7 @@ def leftover_rate(breakfast_df, lunch_df):
     # Calculate overall statistics
     print("\n=== OVERALL LEFTOVER STATISTICS ===")
     breakfast_total_leftover = breakfast_df['left_over_total'].sum()
-    breakfast_total_offered = breakfast_df['offered_reimbursable'].sum()
+    breakfast_total_offered = breakfast_df['offered'].sum()
     if breakfast_total_offered > 0:
         breakfast_overall_rate = (breakfast_total_leftover / breakfast_total_offered) * 100
         print(f"Breakfast Overall Leftover Rate: {breakfast_overall_rate:.2f}%")
@@ -205,7 +205,7 @@ def leftover_rate(breakfast_df, lunch_df):
         print("Breakfast: No offered items to calculate overall rate.")
 
     lunch_total_leftover = lunch_df['left_over_total'].sum()
-    lunch_total_offered = lunch_df['offered_reimbursable'].sum()
+    lunch_total_offered = lunch_df['offered'].sum()
     if lunch_total_offered > 0:
         lunch_overall_rate = (lunch_total_leftover / lunch_total_offered) * 100
         print(f"\nLunch Overall Leftover Rate: {lunch_overall_rate:.2f}%")
@@ -229,14 +229,14 @@ def leftover_rate(breakfast_df, lunch_df):
 def get_net_consumption_by_school(df, meal_type):
     """
     Calculates the net consumption rate for each food item at each school.
-    Assumes 'offered_reimbursable' and 'left_over_total' are already numeric.
+    Assumes 'offered' and 'left_over_total' are already numeric.
     Net Consumption Rate = (Offered - Left Over) / Offered
     """
     print(f"Calculating Net Consumption Rate by Item and School for {meal_type}...")
     
     # Group by school AND item name
     item_summary = df.groupby(['school_name', 'name']).agg(
-        total_offered=('offered_reimbursable', 'sum'),
+        total_offered=('offered', 'sum'),
         total_left_over=('left_over_total', 'sum')
     ).reset_index()
 
@@ -256,7 +256,7 @@ def get_net_consumption_by_school(df, meal_type):
 def get_leftover_rate_by_school(df, meal_type):
     """
     Calculates the leftover rate for each food item at each school.
-    Assumes 'left_over_total' and 'offered_reimbursable' are already numeric.
+    Assumes 'left_over_total' and 'offered' are already numeric.
     Leftover Rate = (Left Over / Offered) * 100
     """
     print(f"Calculating Leftover Rate by Item and School for {meal_type}...")
@@ -264,12 +264,12 @@ def get_leftover_rate_by_school(df, meal_type):
     # Group by school and item name, then sum up totals
     item_summary = df.groupby(['school_name', 'name']).agg(
         left_over_total=('left_over_total', 'sum'),
-        offered_reimbursable=('offered_reimbursable', 'sum')
+        offered=('offered', 'sum')
     ).reset_index()
 
     # Calculate leftover rate for each item at each school
     item_summary['leftover_rate'] = (
-        (item_summary['left_over_total'] / item_summary['offered_reimbursable']) * 100
+        (item_summary['left_over_total'] / item_summary['offered']) * 100
     )
     
     # Handle division by zero (if offered is 0)
