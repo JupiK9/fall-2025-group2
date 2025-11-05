@@ -11,33 +11,33 @@ from pathlib import Path
 # ==============================================================================
 # Data Preparation for Optimization
 # ==============================================================================
-def prepare_optimization_data(breakfast_path, lunch_path, student_counts_path):
+def prepare_optimization_data(df_breakfast, df_lunch, df_sizes):
     """
-    Loads and prepares all necessary data for the optimization models.
+    Prepares all necessary data for the optimization models.
+    ASSUMES DATA IS ALREADY CLEANED in the Streamlit app.
     """
     print("--- Preparing Optimization Data ---")
     try:
-        dfb = pd.read_csv(breakfast_path, low_memory=False)
-        dfl = pd.read_csv(lunch_path, low_memory=False)
-        dfb.columns = dfb.columns.str.lower()
-        dfl.columns = dfl.columns.str.lower()
-
-        dfb['school_name'] = dfb['school_name'].str.lower()
-        dfl['school_name'] = dfl['school_name'].str.lower()
-
-        # Clean relevant numeric columns
-        num_cols = ["served_reimbursable", "production_cost_total"]
-        for col in num_cols:
-            dfb[col] = pd.to_numeric(dfb[col].astype(str).str.replace(r'[$,]', '', regex=True), errors='coerce').fillna(0)
-            dfl[col] = pd.to_numeric(dfl[col].astype(str).str.replace(r'[$,]', '', regex=True), errors='coerce').fillna(0)
+        # 1. Use the *already cleaned* DataFrames from Streamlit
+        # We use .copy() to avoid any downstream modification warnings
+        dfb = df_breakfast.copy()
+        dfl = df_lunch.copy()
         
+        # 2. Get school list
+        # We can trust the data is clean (e.g., 'school_name' exists)
         schools = sorted(dfb['school_name'].unique().tolist())
         meal_types = ['Breakfast', 'Lunch']
         
-        avg_bf_cost = dfb['production_cost_total'].sum() / dfb['served_reimbursable'].sum()
-        avg_ln_cost = dfl['production_cost_total'].sum() / dfl['served_reimbursable'].sum()
+        # 3. Calculate costs
+        # (Add checks for division by zero)
+        bf_sum = dfb['served_reimbursable'].sum()
+        ln_sum = dfl['served_reimbursable'].sum()
+
+        avg_bf_cost = (dfb['production_cost_total'].sum() / bf_sum) if bf_sum > 0 else 0
+        avg_ln_cost = (dfl['production_cost_total'].sum() / ln_sum) if ln_sum > 0 else 0
         meal_costs = [avg_bf_cost, avg_ln_cost]
 
+        # 4. Calculate demand
         demand = {}
         for school in schools:
             bf_school = dfb[dfb['school_name'] == school]
@@ -49,19 +49,13 @@ def prepare_optimization_data(breakfast_path, lunch_path, student_counts_path):
             avg_ln_demand = ln_school['served_reimbursable'].sum() / ln_dates if ln_dates > 0 else 0
             demand[school] = [avg_bf_demand, avg_ln_demand]
         
+        # 5. Get school lists by size
+        # The df_sizes is already cleaned and binned by 5_Final.py
         all_school_lists = None
-        try:
-            student_counts_df = pd.read_csv(student_counts_path)
-            df_sizes = student_counts_df[['School_Name', '2024-2025']].dropna().copy()
-            df_sizes.columns = ['school_name', 'count']
-            df_sizes['school_name'] = df_sizes['school_name'].str.lower().str.strip()
-            df_sizes['count'] = df_sizes['count'].astype(int)
-            bins = [-float('inf'), 499, 999, 1499, 1999, 2499, 2999, 3499, float('inf')]
-            labels = ['xxs', 'xs', 's', 'm', 'l', 'xl', 'xxl', 'xxxl']
-            df_sizes['size_category'] = pd.cut(df_sizes['count'], bins=bins, labels=labels, right=True)
+        if df_sizes is not None and 'size_category' in df_sizes.columns:
             all_school_lists = {size: group['school_name'].tolist() for size, group in df_sizes.groupby('size_category', observed=False)}
-        except FileNotFoundError:
-            print("Warning: Student count file not found.")
+        else:
+            print("Warning: Student size data or 'size_category' column not found in `prepare_optimization_data`.")
         
         print("Data preparation complete.")
         return {
@@ -70,7 +64,9 @@ def prepare_optimization_data(breakfast_path, lunch_path, student_counts_path):
             "df_sizes": df_sizes
         }
     except Exception as e:
+        # This will print the *actual* error to your terminal
         print(f"Error during data preparation: {e}")
+        traceback.print_exc() 
         return None
 
 # ==============================================================================

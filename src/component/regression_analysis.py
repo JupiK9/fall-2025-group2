@@ -7,13 +7,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
 
-# --- File Paths ---
-# Use Pathlib to find the data folder relative to this file
-base_path = Path(__file__).resolve().parent.parent.parent / 'src' / 'data' / 'preprocessed-data'
-BREAKFAST_CSV = base_path / 'milk_b.csv'
-LUNCH_CSV = base_path / 'milk_l.csv'
-STUDENT_COUNTS_CSV = base_path / 'student_counts.csv'
-
 # --- Helper: Clean Numeric Columns ---
 def clean_numeric_cols(df, cols_to_clean):
     for col in cols_to_clean:
@@ -72,130 +65,135 @@ def run_regression_sm(dependent_var, independent_vars, data, title):
     return model.summary().as_text()
 
 # --- Helper Function to Generate Plot ---
-def generate_regression_plot(combined_data):
+def generate_regression_plot(data):
     """
-    Generates the regression visualization and returns the matplotlib figure.
+    Trains a simple model and plots its predictions vs actuals.
+    Uses UPDATED column names.
     """
-    Y = pd.to_numeric(combined_data['production_cost_total'], errors='coerce')
-    X = combined_data[['served_reimbursable', 'planned_reimbursable', 'discarded_total',
-                      'left_over_total', 'student_count']].copy()
+    try:
+        # Use 'planned' instead of 'planned_reimbursable'
+        X = data[['planned', 'offered', 'student_count']]
+        y = data['production_cost_total']
 
-    X = X.apply(pd.to_numeric, errors='coerce').replace([np.inf, -np.inf], np.nan)
-    df_viz = pd.concat([Y.rename('production_cost_total'), X], axis=1).dropna()
+        # Fill any remaining NaNs just in case
+        X = X.fillna(0)
+        y = y.fillna(0)
+        
+        if X.empty or y.empty:
+            print("No data for regression plot.")
+            return None
 
-    if len(df_viz) == 0:
-        return None # Return None if no data
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        
+        model = LinearRegression()
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
+        
+        plot_df = pd.DataFrame({'Actual': y_test, 'Predicted': y_pred})
+        
+        # --- Create Plot ---
+        fig, ax = plt.subplots(figsize=(10, 6))
+        
+        # Scatter plot of Actual vs. Predicted
+        sns.scatterplot(x='Actual', y='Predicted', data=plot_df, ax=ax, alpha=0.6, label='Predicted vs. Actual')
+        
+        # Add a 45-degree line (perfect prediction)
+        min_val = min(y_test.min(), y_pred.min())
+        max_val = max(y_test.max(), y_pred.max())
+        ax.plot([min_val, max_val], [min_val, max_val], 'r--', lw=2, label='Perfect Prediction')
+        
+        ax.set_title('Model 1 Performance: Actual vs. Predicted Production Cost')
+        ax.set_xlabel('Actual Production Cost')
+        ax.set_ylabel('Predicted Production Cost')
+        ax.legend()
+        ax.grid(True)
+        
+        return fig
 
-    y = df_viz['production_cost_total']
-    X = df_viz.drop('production_cost_total', axis=1)
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-    model = LinearRegression().fit(X_train, y_train)
-    y_pred = model.predict(X_test)
-
-    # *** KEY CHANGE: Explicitly create a figure to return it ***
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
-    
-    sns.scatterplot(x=y_test, y=y_pred, alpha=0.6, ax=ax1)
-    ax1.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--')
-    ax1.set_title('Actual vs Predicted Production Cost')
-    ax1.set_xlabel('Actual'); ax1.set_ylabel('Predicted')
-
-    residuals = y_test - y_pred
-    sns.scatterplot(x=y_pred, y=residuals, alpha=0.6, ax=ax2)
-    ax2.axhline(y=0, color='r', linestyle='--')
-    ax2.set_title('Residuals vs Predicted')
-    ax2.set_xlabel('Predicted'); ax2.set_ylabel('Residuals')
-
-    plt.tight_layout()
-    
-    return fig # Return the figure object
+    except Exception as e:
+        print(f"Error generating regression plot: {e}")
+        return None
 
 # --- Main Controller Function (to be called by Streamlit) ---
-def perform_regression_analysis():
+def perform_regression_analysis(df_breakfast, df_lunch, student_counts_df):
     """
-    Loads all data, runs all regressions, and returns a dictionary of results.
+    Runs regression analyses on the *already cleaned* data from Streamlit.
     """
-    # --- 1. Load and Preprocess ---
-    try:
-        df_breakfast_raw = pd.read_csv(BREAKFAST_CSV)
-        df_lunch_raw = pd.read_csv(LUNCH_CSV)
-    except FileNotFoundError as e:
-        return {"error": f"Missing regression file: {e}"}
-
-    df_breakfast_raw.columns = df_breakfast_raw.columns.str.lower().str.strip()
-    df_lunch_raw.columns = df_lunch_raw.columns.str.lower().str.strip()
-
-    df_breakfast = clean_numeric_cols(df_breakfast_raw.copy(), numeric_obj_cols)
-    df_lunch = clean_numeric_cols(df_lunch_raw.copy(), numeric_obj_cols)
-
-    df_breakfast['school_name'] = df_breakfast['school_name'].str.lower().str.strip()
-    df_lunch['school_name'] = df_lunch['school_name'].str.lower().str.strip()
-
-    # --- Load Student Counts ---
-    try:
-        df_sizes = pd.read_csv(STUDENT_COUNTS_CSV)
-        df_sizes.columns = df_sizes.columns.str.lower().str.strip()
-        df_sizes = df_sizes[['school_name', '2024-2025']].rename(columns={'2024-2025': 'student_count'})
-        df_sizes['school_name'] = df_sizes['school_name'].str.lower().str.strip()
-        df_sizes['student_count'] = pd.to_numeric(df_sizes['student_count'], errors='coerce').fillna(0)
-    except Exception as e:
-        df_sizes = None
-
-    # --- Combine Datasets ---
-    combined = pd.concat([df_breakfast, df_lunch], ignore_index=True)
-
-    if df_sizes is not None:
-        combined = combined.merge(df_sizes, on='school_name', how='left')
-    else:
-        combined['student_count'] = np.nan
-
-    combined['student_count'] = pd.to_numeric(combined['student_count'], errors='coerce').fillna(0)
-
-    # --- Universal Conversion ---
-    for col in numeric_obj_cols:
-        if col in combined.columns:
-            combined[col] = pd.to_numeric(combined[col], errors='coerce')
-
-    combined = combined.replace([np.inf, -np.inf], np.nan)
-
-    # --- 2. Run Regressions ---
-    summary1 = run_regression_sm(
-        dependent_var='production_cost_total',
-        independent_vars=[
-            'served_reimbursable', 'planned_reimbursable', 'discarded_total',
-            'left_over_total', 'student_count'
-        ],
-        data=combined,
-        title="Regression 1: Predicting Production Cost"
-    )
-
-    summary2 = run_regression_sm(
-        dependent_var='discarded_cost',
-        independent_vars=[
-            'served_reimbursable', 'offered_reimbursable', 'planned_reimbursable',
-            'left_over_total', 'student_count'
-        ],
-        data=combined,
-        title="Regression 2: Predicting Discarded Cost"
-    )
-
-    summary3 = run_regression_sm(
-        dependent_var='served_reimbursable',
-        independent_vars=[
-            'planned_reimbursable', 'offered_reimbursable', 'student_count'
-        ],
-        data=combined,
-        title="Regression 3: Predicting Served Reimbursable"
-    )
-
-    # --- 3. Generate Plot ---
-    plot_fig = generate_regression_plot(combined)
-
-    # --- 4. Return all results ---
-    return {
-        "summary1": summary1,
-        "summary2": summary2,
-        "summary3": summary3,
-        "plot": plot_fig
+    results = {
+        "summary1": "Model 1 failed to run.",
+        "summary2": "Model 2 failed to run.",
+        "summary3": "Model 3 failed to run.",
+        "plot": None
     }
+
+    try:
+        # 1. Use DataFrames passed from Streamlit
+        dfb = df_breakfast.copy()
+        dfl = df_lunch.copy()
+        student_counts_df = student_counts_df.copy() # Already clean
+
+        # 2. Merge Student Counts
+        # The 'student_counts_df' is already cleaned and binned in 5_Final.py
+        # We just need to merge the 'count' column
+        if 'school_name' in student_counts_df.columns and 'count' in student_counts_df.columns:
+            school_counts = student_counts_df[['school_name', 'count']].drop_duplicates()
+            dfb = pd.merge(dfb, school_counts, on='school_name', how='left')
+            dfl = pd.merge(dfl, school_counts, on='school_name', how='left')
+            # Rename 'count' to 'student_count' to match original regression script
+            dfb.rename(columns={'count': 'student_count'}, inplace=True)
+            dfl.rename(columns={'count': 'student_count'}, inplace=True)
+        else:
+            print("Warning: Could not merge student counts in regression_analysis.py")
+            dfb['student_count'] = np.nan
+            dfl['student_count'] = np.nan
+
+        # 3. Combine DataFrames
+        combined = pd.concat([dfb, dfl], ignore_index=True)
+        
+        # 4. Fill NaNs for regression
+        # Data is already clean, just fill NaNs from merge
+        combined['student_count'] = combined['student_count'].fillna(0)
+        combined = combined.replace([np.inf, -np.inf], np.nan).dropna()
+        
+        # --- 5. Run Regressions with CORRECTED column names ---
+        results["summary1"] = run_regression_sm(
+            dependent_var='production_cost_total',
+            # Use 'planned', 'discarded', 'leftover'
+            independent_vars=[
+                'served_reimbursable', 'planned', 'discarded',
+                'leftover', 'student_count'
+            ],
+            data=combined,
+            title="Regression 1: Predicting Production Cost"
+        )
+
+        results["summary2"] = run_regression_sm(
+            dependent_var='discarded_cost',
+            # Use 'planned', 'leftover'
+            independent_vars=[
+                'served_reimbursable', 'offered', 'planned',
+                'leftover', 'student_count'
+            ],
+            data=combined,
+            title="Regression 2: Predicting Discarded Cost"
+        )
+
+        results["summary3"] = run_regression_sm(
+            dependent_var='served_reimbursable',
+            # Use 'planned'
+            independent_vars=[
+                'planned', 'offered', 'student_count'
+            ],
+            data=combined,
+            title="Regression 3: Predicting Served Reimbursable"
+        )
+
+        # --- 6. Generate Plot ---
+        results["plot"] = generate_regression_plot(combined)
+
+    except Exception as e:
+        print(f"Error in perform_regression_analysis: {e}")
+        import traceback
+        traceback.print_exc()
+
+    return results

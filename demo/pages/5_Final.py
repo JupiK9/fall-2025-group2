@@ -149,7 +149,7 @@ def load_data():
             st.error(f"Lunch file has {df_lunch_raw.shape[1]} columns, expected 20. Stopping.")
             return None, None, {}, None, None, None
 
-        # --- 3. Standardize and Clean Numeric Data (as expected by optimization.py) ---
+        # --- Standardize and Clean Numeric Data ---
         dfb_cleaned.columns = dfb_cleaned.columns.str.lower()
         dfl_cleaned.columns = dfl_cleaned.columns.str.lower()
 
@@ -157,11 +157,17 @@ def load_data():
         dfl_cleaned['school_name'] = dfl_cleaned['school_name'].str.lower()
 
         # NOTE: Renamed columns to match what optimization.py expects
+        
+        # 1. Rename 'production_cost' (from new_columns) to 'production_cost_total'
         dfb_cleaned.rename(columns={"production_cost": "production_cost_total"}, inplace=True)
         dfl_cleaned.rename(columns={"production_cost": "production_cost_total"}, inplace=True)
-        dfb_cleaned.rename(columns={"served_nonreimbursable": "served_reimbursable"}, inplace=True) # Check if this is correct
-        dfl_cleaned.rename(columns={"served_nonreimbursable": "served_reimbursable"}, inplace=True) # Check if this is correct
+        
+        # 2. Rename 'served' (from new_columns) to 'served_reimbursable'
+        #    This was the main bug.
+        dfb_cleaned.rename(columns={"served": "served_reimbursable"}, inplace=True)
+        dfl_cleaned.rename(columns={"served": "served_reimbursable"}, inplace=True)
 
+        # 3. NOW, clean the numeric columns using their final, correct names
         num_cols = ["served_reimbursable", "production_cost_total", "leftover_cost", "discarded_cost"]
         for col in num_cols:
             if col in dfb_cleaned.columns:
@@ -277,13 +283,23 @@ def load_data():
         return None, None, {}, None, None, None
 
 @st.cache_data
-def load_regression_results():
+def load_regression_results(df_breakfast, df_lunch, df_student_counts):
     """Loads and runs all regression models"""
-    return perform_regression_analysis()
+    return perform_regression_analysis(df_breakfast, df_lunch, df_student_counts)
 
 # --- Load all data ---
 opt_data_loaded, school_opt_data, popularity_files, bf_coord_data, ln_coord_data, school_list_df = load_data()
-regression_results = load_regression_results()
+
+# --- Only run regression if data is loaded ---
+regression_results = {} # Initialize
+if opt_data_loaded:
+    regression_results = load_regression_results(
+        opt_data_loaded.get('dfb'), 
+        opt_data_loaded.get('dfl'),
+        opt_data_loaded.get('df_sizes')
+    )
+else:
+    regression_results = {"error": "Primary data failed to load, regression not run."}
 
 # Local Mapping Functions
 def generate_fcps_region_choropleth(regional_map_df, geojson_path, columns, initial_column):
