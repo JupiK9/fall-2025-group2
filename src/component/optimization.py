@@ -4,7 +4,6 @@ from scipy.optimize import linprog, milp, LinearConstraint, Bounds
 import geopandas as gpd
 import folium
 import json
-from sklearn.model_selection import train_test_split
 import traceback # Import for error logging
 from pathlib import Path
 
