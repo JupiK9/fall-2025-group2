@@ -4,37 +4,40 @@ from scipy.optimize import linprog, milp, LinearConstraint, Bounds
 import geopandas as gpd
 import folium
 import json
+from sklearn.model_selection import train_test_split
+import traceback # Import for error logging
+from pathlib import Path
 
 # ==============================================================================
 # Data Preparation for Optimization
 # ==============================================================================
-def prepare_optimization_data(breakfast_path, lunch_path, student_counts_path):
+def prepare_optimization_data(df_breakfast, df_lunch, df_sizes):
     """
-    Loads and prepares all necessary data for the optimization models.
+    Prepares all necessary data for the optimization models.
+    ASSUMES DATA IS ALREADY CLEANED in the Streamlit app.
     """
     print("--- Preparing Optimization Data ---")
     try:
-        dfb = pd.read_csv(breakfast_path, low_memory=False)
-        dfl = pd.read_csv(lunch_path, low_memory=False)
-        dfb.columns = dfb.columns.str.lower()
-        dfl.columns = dfl.columns.str.lower()
-
-        dfb['school_name'] = dfb['school_name'].str.lower()
-        dfl['school_name'] = dfl['school_name'].str.lower()
-
-        # Clean relevant numeric columns
-        num_cols = ["served_reimbursable", "production_cost_total"]
-        for col in num_cols:
-            dfb[col] = pd.to_numeric(dfb[col].astype(str).str.replace(r'[$,]', '', regex=True), errors='coerce').fillna(0)
-            dfl[col] = pd.to_numeric(dfl[col].astype(str).str.replace(r'[$,]', '', regex=True), errors='coerce').fillna(0)
+        # 1. Use the *already cleaned* DataFrames from Streamlit
+        # We use .copy() to avoid any downstream modification warnings
+        dfb = df_breakfast.copy()
+        dfl = df_lunch.copy()
         
+        # 2. Get school list
+        # We can trust the data is clean (e.g., 'school_name' exists)
         schools = sorted(dfb['school_name'].unique().tolist())
         meal_types = ['Breakfast', 'Lunch']
         
-        avg_bf_cost = dfb['production_cost_total'].sum() / dfb['served_reimbursable'].sum()
-        avg_ln_cost = dfl['production_cost_total'].sum() / dfl['served_reimbursable'].sum()
+        # 3. Calculate costs
+        # (Add checks for division by zero)
+        bf_sum = dfb['served_reimbursable'].sum()
+        ln_sum = dfl['served_reimbursable'].sum()
+
+        avg_bf_cost = (dfb['production_cost_total'].sum() / bf_sum) if bf_sum > 0 else 0
+        avg_ln_cost = (dfl['production_cost_total'].sum() / ln_sum) if ln_sum > 0 else 0
         meal_costs = [avg_bf_cost, avg_ln_cost]
 
+        # 4. Calculate demand
         demand = {}
         for school in schools:
             bf_school = dfb[dfb['school_name'] == school]
@@ -46,19 +49,13 @@ def prepare_optimization_data(breakfast_path, lunch_path, student_counts_path):
             avg_ln_demand = ln_school['served_reimbursable'].sum() / ln_dates if ln_dates > 0 else 0
             demand[school] = [avg_bf_demand, avg_ln_demand]
         
+        # 5. Get school lists by size
+        # The df_sizes is already cleaned and binned by 5_Final.py
         all_school_lists = None
-        try:
-            student_counts_df = pd.read_csv(student_counts_path)
-            df_sizes = student_counts_df[['School_Name', '2024-2025']].dropna().copy()
-            df_sizes.columns = ['school_name', 'count']
-            df_sizes['school_name'] = df_sizes['school_name'].str.lower().str.strip()
-            df_sizes['count'] = df_sizes['count'].astype(int)
-            bins = [-float('inf'), 499, 999, 1499, 1999, 2499, 2999, 3499, float('inf')]
-            labels = ['xxs', 'xs', 's', 'm', 'l', 'xl', 'xxl', 'xxxl']
-            df_sizes['size_category'] = pd.cut(df_sizes['count'], bins=bins, labels=labels, right=True)
+        if df_sizes is not None and 'size_category' in df_sizes.columns:
             all_school_lists = {size: group['school_name'].tolist() for size, group in df_sizes.groupby('size_category', observed=False)}
-        except FileNotFoundError:
-            print("Warning: Student count file not found.")
+        else:
+            print("Warning: Student size data or 'size_category' column not found in `prepare_optimization_data`.")
         
         print("Data preparation complete.")
         return {
@@ -67,7 +64,9 @@ def prepare_optimization_data(breakfast_path, lunch_path, student_counts_path):
             "df_sizes": df_sizes
         }
     except Exception as e:
+        # This will print the *actual* error to your terminal
         print(f"Error during data preparation: {e}")
+        traceback.print_exc() 
         return None
 
 # ==============================================================================
@@ -298,6 +297,7 @@ def generate_item_breakdown(optimization_results_df, dfb, dfl, output_filename):
     # Generate Food Item Breakdown
     if optimization_results_df is not None:
         # Calculate popularity proportion for each itm within its meal type
+        # Columns are already lowercase from load_data
         bf_popularity = dfb.groupby('name')['served_reimbursable'].sum()
         bf_total_served = bf_popularity.sum()
         bf_popularity_prop = (bf_popularity / bf_total_served).reset_index(name='proportion')
@@ -324,8 +324,15 @@ def generate_item_breakdown(optimization_results_df, dfb, dfl, output_filename):
         optimized_df = optimized_df.sort_values(['school', 'meal_type', 'recommended_quantity'], ascending=[True, True, False])
 
         # Save as csv file
-        output_filename = '../data/school_food_item_optimization.csv'
-        optimized_df.to_csv(output_filename, index=False)
+        # Build the path correctly. Assumes this file is in 'component' folder, one level down from 'src'
+        script_dir = Path(__file__).resolve().parent
+        src_dir = script_dir.parent
+        project_root = src_dir.parent
+        output_file_path = project_root / 'src' / 'data' / 'school_food_item_optimization.csv'
+        
+        optimized_df.to_csv(output_file_path, index=False)
+        print(f"Saved item breakdown to {output_file_path}")
+
 
     else:
         print("Optimization did not produce a result")
@@ -333,22 +340,24 @@ def generate_item_breakdown(optimization_results_df, dfb, dfl, output_filename):
 # ==============================================================================
 # Size based and monthly optimization
 # ==============================================================================
-def run_size_based_optimization(schools_to_optimize, meal_types, meal_costs, demand, school_budgets, total_budget, waste_penalty, all_school_lists):
+def run_size_based_optimization(schools_to_optimize, meal_types, meal_costs, demand, school_budgets, total_budget, waste_penalty, all_school_lists, dfb, dfl):
     """
     Runs the linear programming model using predefined school size lists
     and saves the output to a separate CSV file.
+    (Accepts dfb and dfl as arguments)
     """
-
-    dfb = pd.read_csv('../data/preprocessed-data/breakfast_combined.csv', low_memory=False)
-    dfl = pd.read_csv('../data/preprocessed-data/lunch_combined.csv', low_memory=False)
 
     # --- Create the school_sizes dictionary ---
     school_sizes = {}
-    for size, school_list in all_school_lists.items():
-        for school in school_list:
-            school_sizes[school] = size
-    print("--- Starting Size-Based Optimization ---")
-    print(f"Categorized {len(school_sizes)} schools based on your lists.")
+    if all_school_lists:
+        for size, school_list in all_school_lists.items():
+            for school in school_list:
+                school_sizes[school] = size
+        print("--- Starting Size-Based Optimization ---")
+        print(f"Categorized {len(school_sizes)} schools based on your lists.")
+    else:
+        print("Warning: all_school_lists is empty. Cannot run size-based optimization.")
+        return
 
     # --- Define and set production bounds based on school size ---
     size_bounds_config = {
@@ -378,7 +387,7 @@ def run_size_based_optimization(schools_to_optimize, meal_types, meal_costs, dem
         ln_popularity = dfl.groupby('name')['served_reimbursable'].sum()
         ln_total_served = ln_popularity.sum()
         ln_popularity_prop = (ln_popularity / ln_total_served).reset_index(name='proportion')
-        ln_popularity_prop['meal_Type'] = 'Lunch'
+        ln_popularity_prop['meal_type'] = 'Lunch' # Corrected typo
 
         item_popularity_df = pd.concat([bf_popularity_prop, ln_popularity_prop])
         item_df = pd.merge(results_df, item_popularity_df, on='meal_type')
@@ -388,7 +397,11 @@ def run_size_based_optimization(schools_to_optimize, meal_types, meal_costs, dem
         optimized_df = optimized_df.sort_values(['school', 'meal_type', 'recommended_quantity'], ascending=[True, True, False])
 
         # Save to a CSV file
-        output_filename = '../data/school_food_item_optimization_by_size.csv'
+        script_dir = Path(__file__).resolve().parent
+        src_dir = script_dir.parent
+        project_root = src_dir.parent
+        output_filename = project_root / 'src' / 'data' / 'school_food_item_optimization_by_size.csv'
+        
         optimized_df.to_csv(output_filename, index=False)
         print(f"\nSaved the size-based optimization results to '{output_filename}'")
     else:
@@ -502,11 +515,17 @@ def run_proportional_monthly_optimization_ilp(data, total_budget=139144760):
     
     # --- Generate the item breakdown CSV ---
     if results_df is not None:
+        # Build the path correctly
+        script_dir = Path(__file__).resolve().parent
+        src_dir = script_dir.parent
+        project_root = src_dir.parent
+        output_file_path = project_root / 'src' / 'data' / 'preprocessed-data' / 'monthly_proportional_to_size.csv'
+
         generate_item_breakdown(
             results_df,
             dfb,
             dfl,
-            '../data/preprocessed-data/monthly_proportional_to_size.csv'
+            output_file_path 
         )
     return results_df, school_budgets, meal_costs
 
@@ -634,7 +653,11 @@ def prepare_savings_analysis_df(data, results_df, meal_costs):
     savings_df['savings_magnitude'] = savings_df['savings'].abs()
     
     # Add size category for additional hover data
-    savings_df = pd.merge(savings_df, df_sizes[['school_name', 'size_category']], left_on='school', right_on='school_name', how='left')
+    if df_sizes is not None:
+        savings_df = pd.merge(savings_df, df_sizes[['school_name', 'size_category']], left_on='school', right_on='school_name', how='left')
+    else:
+        savings_df['size_category'] = 'N/A'
+
 
     return savings_df
 
@@ -668,7 +691,7 @@ def analyze_savings_by_school_size(results_df, school_budgets, meal_costs, df_si
     analysis_df = pd.merge(analysis_df, df_sizes[['school_name', 'size_category']], left_on='school', right_on='school_name', how='left')
 
     # Group by size category and sum the totals
-    agg_df = analysis_df.groupby('size_category')[['proportional_annual_budget', 'annual_food_cost']].sum().reset_index()
+    agg_df = analysis_df.groupby('size_category')[['proportional_annual_budget', 'annual_food_cost']].sum(numeric_only=True).reset_index()
     
     # Calculate savings in dollars and as a percentage
     agg_df['total_savings'] = agg_df['proportional_annual_budget'] - agg_df['annual_food_cost']

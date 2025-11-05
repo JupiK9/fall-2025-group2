@@ -5,37 +5,48 @@ import glob
 from bs4 import BeautifulSoup
 
 def parse_school_table(school_name, table, date):
+    """
+    Parses an HTML table for a single school and returns a DataFrame
+    with a predefined, flattened column structure.
+    """
     print(f"Parsing table for school: {school_name}")
 
-    # Extract header names dynamically
-    headers = [th.get_text(strip=True) for th in table.find_all('th')]
-    print(f"Detected {len(headers)} columns: {headers}")
+    # Define the correct, flattened column names for the final DataFrame.
+    final_columns = [
+        "school_name", "date", "identifier", "name", "planned_reimbursable",
+        "planned_non-reimbursable", "planned_total", "offered", "served_reimbursable", 
+        "served_non-reimbursable", "served_total", "served_cost", "discarded_total", 
+        "discarded_percent_of_offered", "discarded_cost", "subtotal_cost", "left_over_total", 
+        "left_over_percent_of_offered", "left_over_cost", "production_cost_total"
+    ]
+    # Number of expected data columns in the HTML table (total columns - 2)
+    num_data_columns = len(final_columns) - 2
 
     rows = table.find('tbody').find_all('tr')
     data = []
 
-    for idx, row in enumerate(rows):
-        # Skip footer rows or empty rows
+    for row in rows:
+        # Skip footer rows which are sometimes used for totals
         if row.get('class') and 'footer' in row.get('class'):
             continue
 
+        # Extract all data cells from the current row
         cells = [c.get_text(strip=True) for c in row.find_all('td')]
-        if not cells or len(cells) < 3:
-            continue  # skip bad rows
 
-        # Pad missing cells so all rows align
-        while len(cells) < len(headers):
-            cells.append("")
-
-        data.append([school_name, date] + cells)
+        # Ensure the row has the expected number of columns before processing
+        if len(cells) >= num_data_columns:
+            # Prepend school name and date to the first N data cells
+            record = [school_name, date] + cells[:num_data_columns]
+            data.append(record)
+        elif cells: # Log a warning for non-empty but malformed rows
+            print(f"  -> Warning: Skipping row with {len(cells)} cells for {school_name}, expected {num_data_columns}.")
 
     if not data:
         print(f"No valid data rows found for school: {school_name}")
         return None
 
-    # Create dynamic column names
-    columns = ['School_Name', 'Date'] + headers
-    df = pd.DataFrame(data, columns=columns)
+    # Create the DataFrame with the predefined, correct column names
+    df = pd.DataFrame(data, columns=final_columns)
     print(f"Created DataFrame for {school_name} with {len(df)} rows and {len(df.columns)} columns")
 
     return df
@@ -151,17 +162,19 @@ def generate_csvs_from_folder(folder_path, output_dir='output_csvs'):
         final_df = pd.concat(file_dfs, ignore_index=True)
 
         # Sort by School_Name, Date, Identifier
-        final_df = final_df.sort_values(['School_Name', 'Date', 'Identifier'])
+        if 'Identifier' in final_df.columns:
+            final_df = final_df.sort_values(['School_Name', 'Date', 'Identifier'])
 
         # Save to CSV
         final_df.to_csv(output_file, index=False)
         print(f"CSV file generated: {output_file}")
 
 if __name__ == "__main__":
-    folder_path = "../data/FairfaxCounty/May 2025 Lunch production records/May 2025 Lunch production records"
-    output_dir = "../data/preprocessed-data/Lunch production"
-    generate_csvs_from_folder(folder_path, output_dir)
+    # NOTE: You may need to update these paths to match your folder structure
+    folder_path_lunch = "../data/FairfaxCounty/May 2025 Lunch production records/May 2025 Lunch production records"
+    output_dir_lunch = "../data/preprocessed-data/Lunch production"
+    generate_csvs_from_folder(folder_path_lunch, output_dir_lunch)
 
-    folder_path = "../data/FairfaxCounty/May 2025 Breakfast production records/May 2025 Breakfast production records"
-    output_dir = "../data/preprocessed-data/Breakfast production"
-    generate_csvs_from_folder(folder_path, output_dir)
+    folder_path_breakfast = "../data/FairfaxCounty/May 2025 Breakfast production records/May 2025 Breakfast production records"
+    output_dir_breakfast = "../data/preprocessed-data/Breakfast production"
+    generate_csvs_from_folder(folder_path_breakfast, output_dir_breakfast)
