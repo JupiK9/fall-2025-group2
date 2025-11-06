@@ -142,19 +142,22 @@ Note: Use Markdown Cheat Sheet download in the directory as needed.
 * [ ] Jupiter: run regression on aggregate groups
 * [ ] Alonso: refine UI and add to report
 ---
-## Date: Week 11 - Month Day Year 
+## Date: Week 11 - November 5, 2025
 - Topics of discussion
-    - Item1
-    - Item2
-    - Item3
+    - Regression results
+    - cleaning of github
+    - optimization recommendations
 
 - Action Items:
 
-* [ ] Action Item 1
-* [ ] Action Item 2
-* [ ] Action Item 3
-* [ ] Action Item 4
-* [ ] Action Item 5
+* [ ] Jupiter: continue working on regressions and try xgboost
+* [ ] Alonso: rework main code file into .py and have all graphs/tables in results folder
+* [ ] Crystal: look into red schools/regions to see why they save the most money (socioeconomic)
+* [ ] Alonso: show optimization recommendation plan with savings and min/max budget
+* [ ] Crystal: add in EDA on production cost and other EDA
+* [ ] All: write up final report
+* [ ] All: clean up github
+* [ ] Jupiter: store product in GCP/AWS
 ---
 ## Date: Week 12 - Month Day Year 
 - Topics of discussion
