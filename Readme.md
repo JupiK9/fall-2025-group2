@@ -25,25 +25,6 @@
 │   ├── fig
 │   ├── images
 │   └── pages
-│               ├── CustomArchitecture 
-│               │            ├── config.py
-│               │            ├── custom_image_question_answer.py
-│               │            ├── dataset.py
-│               │            ├── predict_custom_transformer.py
-│               │            └── train_file.py
-│               ├── Discarded                                        
-│               ├── Convolution-patch-embedding-blip.py
-│               ├── Convolution-patch-embedding-blip-finetuned.py
-│               ├── Convolution-patch-embedding-blip-predict.py
-│               ├── encoder_decoder_blip_vision.py
-│               ├── encoder_decoder_blip_vision.py
-│               ├── predict_medical_blip.py
-│               ├── predict_medical_GIT.py
-│               ├── predict_medical_vilt.py
-│               ├── Streamlit_demo.py
-│               ├── train_medical_blip.py
-│               ├── train_medical_GIT.py
-│               └── train_medical_vilt.py
 ├── presentation
 │   └── fig
 ├── reports
@@ -53,10 +34,10 @@
 │   │
 │   ├── Progress_Report
 │   │                 ├── Markdown_CheatSheet
-                                            ├── Markdown1.pdf
-                                            ├── Markdown2.pdf
-                                            ├── Markdown3.pdf
-                                            └── Markdown4.pdf
+│   │                                       ├── Markdown1.pdf
+│   │                                       ├── Markdown2.pdf
+│   │                                       ├── Markdown3.pdf
+│   │                                       └── Markdown4.pdf
 │   │
 │   └── Word_Report
 │                 ├── Final Report Script.docx
@@ -83,5 +64,3 @@ pip install -r src/requirements.txt
 ```
 
 ## Processes and Scripts
-
-## Folder Structure
