@@ -1,5 +1,6 @@
 import pandas as pd
-import numpy as np  # Added numpy for handling potential inf values
+import numpy as np
+from pathlib import Path
 
 def prepare_popularity_data(breakfast_path, lunch_path, sales_path):
     """
@@ -224,8 +225,6 @@ def leftover_rate(breakfast_df, lunch_df):
         print("\nCombined: No offered items to calculate overall rate.")
 
 
-# --- MODIFIED FUNCTION BELOW ---
-
 def get_net_consumption_by_school(df, meal_type):
     """
     Calculates the net consumption rate for each food item at each school.
@@ -251,6 +250,13 @@ def get_net_consumption_by_school(df, meal_type):
     # Sort by school, then by consumption rate
     item_summary = item_summary.sort_values(by=['school_name', 'net_consumption_rate'], ascending=[True, False])
     
+    # Save the output file
+    ROOT = Path(__file__).resolve().parents[1]
+    OUT_DIR = ROOT / "data" / "popularity-data"
+    filename = f"{meal_type.lower()}_net_consumption_by_school.csv"
+    item_summary.to_csv(OUT_DIR / filename, index=False)
+
+    print(f"Saved: {filename} to {OUT_DIR}")
     return item_summary
 
 def get_leftover_rate_by_school(df, meal_type):
@@ -277,5 +283,11 @@ def get_leftover_rate_by_school(df, meal_type):
     
     # Sort by school, then by leftover rate (descending)
     item_summary = item_summary.sort_values(by=['school_name', 'leftover_rate'], ascending=[True, False])
+
+    ROOT = Path(__file__).resolve().parents[1]
+    OUT_DIR = ROOT / "data" / "leftover-data"
+    filename = f"{meal_type.lower()}_leftover_rate_by_school.csv"
+    item_summary.to_csv(OUT_DIR / filename, index=False)
     
+    print(f"Saved: {filename} to {OUT_DIR}")
     return item_summary
