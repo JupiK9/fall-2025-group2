@@ -11,6 +11,7 @@ PyPDF2
 pdfplumber
 nbformat
 geopandas
+shapely
 folium
 fpdf
 fpdf2
