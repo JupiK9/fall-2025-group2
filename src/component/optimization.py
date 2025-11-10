@@ -102,7 +102,6 @@ def prepare_optimization_data(df_breakfast, df_lunch, df_sizes):
         traceback.print_exc()
         return None
 
-
 # ==============================================================================
 # Initial Linear Programming and Integer Linear Programming Optimization
 # ==============================================================================
@@ -168,13 +167,15 @@ def run_meal_optimization(schools_to_optimize, meal_types, meal_costs, demand, s
     
     print("Linear Programming Optimization Complete!")
 
-def run_meal_optimization_ilp(schools_to_optimize, meal_types, meal_costs, demand, school_budgets, total_budget, waste_penalty, bounds):
+def run_meal_optimization_ilp(schools_to_optimize, meal_types, meal_costs, 
+                              min_budgets, max_budgets, # <-- CHANGED
+                              waste_penalty, bounds):
     """
-    Runs the linear programming model and prints an output with production bounds
+    Runs the ILP model with per-school MIN and MAX budget constraints.
     """
     num_vars = len(schools_to_optimize) * len(meal_types)
 
-    # Objective Function
+    # Objective Function (this part is unchanged)
     c = []
     variable_names = []
     for school in schools_to_optimize:
@@ -184,45 +185,43 @@ def run_meal_optimization_ilp(schools_to_optimize, meal_types, meal_costs, deman
             c.append(total_cost)
             variable_names.append({'school': school, 'meal_type': meal_type_str})
 
-    print("\nPerforming Integer Linear Programming Optimization...")
+    print("\nPerforming Integer Linear Programming Optimization with Budget Ranges...")
+    
+    # 1. Create the constraint matrix (A)
+    # Each row will represent the budget constraint for one school
+    A_matrix = []
+    lower_budget_bounds = []
+    upper_budget_bounds = []
 
-    # Constraints
-    A_ineq = []
-    b_ineq = []
-
-    # School Budgets
     for i, school in enumerate(schools_to_optimize):
-        constraint = [0] * num_vars
+        constraint_row = [0] * num_vars
         for j in range(len(meal_types)):
             var_index = i * len(meal_types) + j
-            constraint[var_index] = meal_costs[j]
-        A_ineq.append(constraint)
-        b_ineq.append(school_budgets[school])
+            constraint_row[var_index] = meal_costs[j] # Cost of each meal
+        
+        A_matrix.append(constraint_row)
+        
+        # 2. Get the min and max budget for this school (using .get for safety)
+        lower_budget_bounds.append(min_budgets.get(school, 0)) 
+        upper_budget_bounds.append(max_budgets.get(school, float('inf')))
 
-    # Total Budget
-    total_budget_constraint = []
-    for i in range(len(schools_to_optimize)):
-        total_budget_constraint.extend(meal_costs)
-    A_ineq.append(total_budget_constraint)
-    b_ineq.append(total_budget)
+    # 3. Create the LinearConstraint object
+    # This single object defines: min_budget <= (cost expression) <= max_budget
+    budget_constraints = LinearConstraint(A_matrix, lb=lower_budget_bounds, ub=upper_budget_bounds)
 
-    num_constraints = len(b_ineq)
-    b_l = np.full(num_constraints, -np.inf)
-    constraints = LinearConstraint(A_ineq, lb=b_l, ub=b_ineq)
-
+    # Bounds for production quantities (this is unchanged)
     lower_bounds = [b[0] for b in bounds]
     upper_bounds = [b[1] for b in bounds]
     bounds_obj = Bounds(lb=lower_bounds, ub=upper_bounds)
+    integrality = [1] * num_vars
 
     # Running the Optimization
     try:
-        integrality = [1] * num_vars
-
         result = milp(
             c=c,
             integrality=integrality,
             bounds=bounds_obj,
-            constraints=constraints
+            constraints=budget_constraints # <-- USE THE NEW CONSTRAINT OBJECT
         )
 
         # Minimal success/failure handling (no verbose per-school printing)
@@ -422,105 +421,72 @@ def run_monthly_meal_optimization(schools_to_optimize, meal_types, meal_costs, d
 # ==============================================================================
 # Monthly Budget Optimization based on School Size
 # ==============================================================================
-def run_proportional_monthly_optimization_ilp(data, total_budget=139144760):
+def run_proportional_monthly_optimization_ilp(data, 
+                                              budget_cap_factor: float):
     """
-    Runs a monthly optimization where the budget is allocated to each school
-    proportionally based on its student population.
+    Runs a monthly optimization where the budget for each school
+    is CAPPED at a percentage (budget_cap_factor) of its historical demand cost.
+    
+    The production bounds are also adjusted to be relative to the budget cap
+    to prevent infeasible solutions.
     """
-
     schools = data['schools']
     meal_types = data['meal_types']
     meal_costs = data['meal_costs']
     daily_demand = data['demand']
-    df_sizes = data['df_sizes']
     dfb = data['dfb']
     dfl = data['dfl']
 
-    if df_sizes is None:
-        print("Cannot run: Student size data is required for proportional budgeting.")
-        return
-
-    # --- Allocate budget based on student population (robust, supports year columns) ---
-    print("\nAllocating Budget Based on Student Population...")
-    relevant = df_sizes[df_sizes['school_name'].isin(schools)].copy()
-
-    # Candidate fixed names
-    candidate_cols = [
-        'count', 'student_count', 'students', 'enrollment',
-        'total_students', 'total_enrollment', 'population'
-    ]
-
-    # 1) Try fixed names first
-    count_col = next((c for c in candidate_cols if c in relevant.columns), None)
-
-    # 2) Else: detect year columns like '2022-2023', '2024/2025', etc., and pick the latest year
-    if count_col is None:
-        import re
-        year_cols = []
-        for c in relevant.columns:
-            m = re.search(r'(\d{4})\D+(\d{4})', str(c))
-            if m:
-                start, end = int(m.group(1)), int(m.group(2))
-                year_cols.append((c, max(start, end)))
-        if year_cols:
-            # choose column with highest end-year
-            count_col = sorted(year_cols, key=lambda x: x[1])[-1][0]
-
-    # 3) If still nothing: unique numeric column fallback
-    if count_col is None:
-        num_cols = [c for c in relevant.columns if pd.api.types.is_numeric_dtype(relevant[c])]
-        count_col = num_cols[0] if len(num_cols) == 1 else None
-
-    if count_col is None:
-        raise KeyError(
-            "No population column found. Expected one of fixed names or a year column like '2024-2025'. "
-            f"Columns present: {list(relevant.columns)}"
-        )
-
-    # Coerce to numeric and guard against zeros
-    relevant[count_col] = pd.to_numeric(relevant[count_col], errors='coerce').fillna(0)
-    total_population = float(relevant[count_col].sum())
-    if total_population <= 0:
-        raise ValueError(f"Total student population from column '{count_col}' is <= 0 after coercion.")
-
-    school_budgets = {}
-    for _, row in relevant.iterrows():
-        p = float(row[count_col]) / total_population
-        school_budgets[row['school_name']] = total_budget * p
-
-    print(f"Total budget of ${total_budget:,.2f} allocated proportionally using column '{count_col}'.")
-
-
-    # --- Aggregate Demand and Bounds to Monthly ---
+    # --- Use COST OF HISTORICAL DEMAND as budget baseline ---
+    print(f"\n--- Running Optimization for Budget Cap: {budget_cap_factor*100:.0f}% ---")
+    print("Calculating budget baseline from the cost of historical demand...")
     SCHOOL_DAYS_PER_MONTH = 20
+    baseline_budgets = {}
+    for school in schools:
+        d_bf = daily_demand[school][0]
+        d_ln = daily_demand[school][1]
+        cost_bf = (d_bf * SCHOOL_DAYS_PER_MONTH) * meal_costs[0]
+        cost_ln = (d_ln * SCHOOL_DAYS_PER_MONTH) * meal_costs[1]
+        baseline_budgets[school] = cost_bf + cost_ln
+
+    # --- Create Min/Max Budget Range from this Baseline ---
+    min_school_budgets = {s: 0 for s in baseline_budgets.keys()}
+    max_school_budgets = {s: b * budget_cap_factor for s, b in baseline_budgets.items()}
+    
+    # =================================================================
+    # --- DYNAMIC PRODUCTION BOUNDS (THE FIX) ---
+    # =================================================================
+    # We create a production "window" around the budget factor
+    # This ensures the production rules and budget rules are aligned
+    
+    # Set a floor so we don't go below 70% production
+    min_prod_factor = max(0.70, budget_cap_factor - 0.15) 
+    max_prod_factor = budget_cap_factor + 0.15
+    
+    print(f"Using dynamic production bounds: {min_prod_factor*100:.0f}% - {max_prod_factor*100:.0f}% of demand")
+
     waste_penalty = [0.50, 1.00]
     monthly_demand = {s: [d[0] * SCHOOL_DAYS_PER_MONTH, d[1] * SCHOOL_DAYS_PER_MONTH] for s, d in daily_demand.items()}
     monthly_bounds = []
     for school in schools:
         for i in range(len(meal_types)):
-            monthly_bounds.append((monthly_demand[school][i] * 0.85, monthly_demand[school][i] * 1.10))
+            demand_val = monthly_demand[school][i]
+            monthly_bounds.append((demand_val * min_prod_factor, 
+                                   demand_val * max_prod_factor))
+    # =================================================================
+    # --- END OF FIX ---
+    # =================================================================
 
     # --- Run the Optimization ---
     results_df = run_meal_optimization_ilp(
-        schools, meal_types, meal_costs, monthly_demand,
-        school_budgets, total_budget, waste_penalty, monthly_bounds
+        schools, meal_types, meal_costs,
+        min_school_budgets, max_school_budgets, 
+        waste_penalty, monthly_bounds
     )
     
-    # --- Generate the item breakdown CSV ---
-    if results_df is not None:
-        # Build the path correctly
-        script_dir = Path(__file__).resolve().parent
-        src_dir = script_dir.parent
-        project_root = src_dir.parent
-        output_file_path = project_root / 'src' / 'data' / 'optimization-data' / 'monthly_proportional_to_size.csv'
-
-        generate_item_breakdown(
-            results_df,
-            dfb,
-            dfl,
-            output_file_path 
-        )
-    return results_df, school_budgets, meal_costs
+    # --- Item breakdown generation has been REMOVED from this function ---
+    
+    return results_df, max_school_budgets, meal_costs
 
 # ==============================================================================
 # Calculate the actual annual cost of producing the foods
@@ -571,8 +537,13 @@ def analyze_annual_budget(results_df, school_budgets, meal_costs, actual_annual_
     # Calculate total food cost per school for one month
     school_monthly_costs = results_df.groupby('school')['monthly_food_cost'].sum().reset_index()
 
+    annual_budgets_list = [
+        (school, monthly_budget * MONTHS_IN_SCHOOL_YEAR)
+        for school, monthly_budget in school_budgets.items()
+    ]
+
     # Create a DataFrame for the analysis
-    budget_analysis_df = pd.DataFrame(list(school_budgets.items()), columns=['school', 'proportional_annual_budget'])
+    budget_analysis_df = pd.DataFrame(annual_budgets_list, columns=['school', 'proportional_annual_budget'])
     budget_analysis_df = pd.merge(budget_analysis_df, school_monthly_costs, on='school', how='left').fillna(0)
 
     # Scale monthly food cost to a full 10-month school year
@@ -665,18 +636,23 @@ def prepare_savings_analysis_df(data, results_df, meal_costs):
 # ==============================================================================
 # Data preparation for graphing savings by school size 
 # ==============================================================================
-def analyze_savings_by_school_size(results_df, school_budgets, meal_costs, df_sizes):
+def analyze_savings_by_school_size(opt_data, results_df, school_budgets, meal_costs, df_sizes):
     """
     Aggregates the budget, optimized cost, and savings by school size category.
+    
+    CORRECTED: "Savings" is now calculated as (Actual Historical Cost) - (Optimized Cost).
     """
     if results_df is None or df_sizes is None:
         print("Skipping analysis: Missing results or size information.")
         return None
 
-    print("\nCalculating Savings by School Size Category...")
+    print("\nCalculating Savings by School Size Category (vs. Historical)...")
 
-    # Calculate annual food cost for each school
+    dfb = opt_data['dfb']
+    dfl = opt_data['dfl']
     MONTHS_IN_SCHOOL_YEAR = 10
+
+    # 1. Calculate Optimized Annual Cost per School (from results_df)
     meal_cost_map = {'Breakfast': meal_costs[0], 'Lunch': meal_costs[1]}
     results_df['monthly_food_cost'] = results_df.apply(
         lambda row: row['optimal_quantity'] * meal_cost_map[row['meal_type']], axis=1
@@ -684,17 +660,23 @@ def analyze_savings_by_school_size(results_df, school_budgets, meal_costs, df_si
     school_costs = results_df.groupby('school')['monthly_food_cost'].sum().reset_index()
     school_costs['annual_food_cost'] = school_costs['monthly_food_cost'] * MONTHS_IN_SCHOOL_YEAR
 
-    # Combine budget and cost data with school size data
-    budget_df = pd.DataFrame(list(school_budgets.items()), columns=['school', 'proportional_annual_budget'])
-    analysis_df = pd.merge(budget_df, school_costs[['school', 'annual_food_cost']], on='school', how='left')
+    # 2. Calculate Actual Historical Annual Cost per School (from source data)
+    actual_costs_b = dfb.groupby('school_name')['production_cost_total'].sum()
+    actual_costs_l = dfl.groupby('school_name')['production_cost_total'].sum()
+    actual_costs = (actual_costs_b.add(actual_costs_l, fill_value=0) * MONTHS_IN_SCHOOL_YEAR).reset_index(name='actual_annual_cost')
+    actual_costs.rename(columns={'school_name': 'school'}, inplace=True)
+
+    # 3. Combine and merge with size data
+    analysis_df = pd.merge(actual_costs, school_costs[['school', 'annual_food_cost']], on='school', how='left')
     analysis_df = pd.merge(analysis_df, df_sizes[['school_name', 'size_category']], left_on='school', right_on='school_name', how='left')
 
-    # Group by size category and sum the totals
-    agg_df = analysis_df.groupby('size_category', observed=True)[['proportional_annual_budget', 'annual_food_cost']].sum(numeric_only=True).reset_index()
+    # 4. Group by size category and sum the totals
+    agg_df = analysis_df.groupby('size_category', observed=True)[['actual_annual_cost', 'annual_food_cost']].sum(numeric_only=True).reset_index()
     
-    # Calculate savings in dollars and as a percentage
-    agg_df['total_savings'] = agg_df['proportional_annual_budget'] - agg_df['annual_food_cost']
-    agg_df['percent_savings'] = (agg_df['total_savings'] / agg_df['proportional_annual_budget']) * 100
+    # 5. Calculate savings in dollars and as a percentage
+    #    This is the corrected logic!
+    agg_df['total_savings'] = agg_df['actual_annual_cost'] - agg_df['annual_food_cost']
+    agg_df['percent_savings'] = (agg_df['total_savings'] / agg_df['actual_annual_cost']) * 100
 
     return agg_df
 
@@ -1033,16 +1015,40 @@ def run_daily_ilp_pipeline(
     save_item_breakdown: bool = True,
     item_breakdown_path: str | None = None
 ):
+    """
+    Runs the daily ILP pipeline using a 100% budget CAP
+    derived from the COST OF DAILY DEMAND.
+    """
     if not opt_data:
         print("No optimization data provided.")
         return None
 
-    school_budgets = _equal_budgets(opt_data['schools'], total_budget)
+    # --- Use COST OF DAILY DEMAND as budget baseline ---
+    print("Calculating daily budget baseline from the cost of daily demand...")
+    baseline_budgets = {}
+    for school in opt_data['schools']:
+        d_bf = opt_data['demand'][school][0]
+        d_ln = opt_data['demand'][school][1]
+        cost_bf = d_bf * opt_data['meal_costs'][0]
+        cost_ln = d_ln * opt_data['meal_costs'][1]
+        baseline_budgets[school] = cost_bf + cost_ln
+
+    # --- Set budget cap at 100% of the baseline cost ---
+    min_school_budgets = {s: 0 for s in baseline_budgets.keys()}
+    max_school_budgets = {s: b * 1.00 for s, b in baseline_budgets.items()}
+    
+    # --- Get Production Bounds (this is unchanged) ---
     daily_bounds = _daily_bounds_from_demand(opt_data, *bounds_pct)
 
+    # --- Run the Optimization (with 7-argument call) ---
     ilp_results = run_meal_optimization_ilp(
-        opt_data['schools'], opt_data['meal_types'], opt_data['meal_costs'],
-        opt_data['demand'], school_budgets, total_budget, list(waste_penalty), daily_bounds
+        opt_data['schools'],
+        opt_data['meal_types'],
+        opt_data['meal_costs'],
+        min_school_budgets,
+        max_school_budgets,
+        list(waste_penalty),
+        daily_bounds
     )
 
     if save_item_breakdown and ilp_results is not None:
@@ -1050,54 +1056,176 @@ def run_daily_ilp_pipeline(
             script_dir = Path(__file__).resolve().parent
             project_root = script_dir.parent.parent
             item_breakdown_path = project_root / 'src' / 'data' / 'optimization-data' / 'school_food_item_optimization_ilp.csv'
-        generate_item_breakdown(ilp_results, opt_data['dfb'], opt_data['dfl'], str(item_breakdown_path))
+        
+        generate_item_breakdown(
+            ilp_results, 
+            opt_data['dfb'], 
+            opt_data['dfl'], 
+            str(item_breakdown_path)
+        )
 
     return ilp_results
-
 
 def run_monthly_proportional_pipeline(
     opt_data: dict,
     total_budget: float = 139144760,
-    save_breakdown_path: str | None = None
+    coordinates_file: str | Path | None = None,
+    geojson_file: str | Path | None = None
 ):
     """
-    Proportional monthly ILP + savings analysis.
-    Always writes a CSV with the detailed per-school breakdown.
-    Returns (monthly_results_df, analysis_table, monthly_school_budgets, monthly_meal_costs)
+    Runs the monthly ILP optimization for THREE scenarios and
+    saves all CSVs and MAPS into their own subfolders.
     """
-    monthly_results_df, monthly_school_budgets, monthly_meal_costs = \
-        run_proportional_monthly_optimization_ilp(opt_data, total_budget=total_budget)
+    
+    run_maps = coordinates_file and geojson_file
+    if not run_maps:
+        print("\n[Warning] `coordinates_file` or `geojson_file` not provided.")
+        print("CSV files will be generated, but maps will be skipped.")
+        
+    # Define the scenarios with their new folder names
+    scenarios = [
+        ("lower_bound", 0.80, "Lower Budget Bounds"),
+        ("baseline", 1.00, "Baseline Budget"),
+        ("upper_bound", 1.20, "Upper Budget bounds")
+    ]
+    
+    script_dir = Path(__file__).resolve().parent
+    project_root = script_dir.parent.parent
+    
+    baseline_results = {}
+    actual_cost_2025 = calculate_actual_annual_cost(opt_data)
 
-    analysis_table = None
-    if monthly_results_df is not None:
-        actual_cost_2025 = calculate_actual_annual_cost(opt_data)
-        analysis_table = analyze_annual_budget(
-            monthly_results_df,
-            monthly_school_budgets,
-            monthly_meal_costs,
-            actual_annual_cost=actual_cost_2025
+    # Change the loop to include the new folder_name
+    for name, factor, folder_name in scenarios:
+        print(f"\n{'='*60}")
+        print(f"RUNNING MONTHLY PIPELINE FOR: {folder_name}")
+        print(f"{'='*60}")
+        
+        file_suffix = f"_{name}" # e.g., "_lower_bound"
+        
+        # Define the output directory for CSVs
+        csv_output_dir = project_root / 'src' / 'data' / 'optimization-data'
+        analysis_breakdown_path = csv_output_dir / f'annual_school_breakdown{file_suffix}.csv'
+        
+        # Define the output directory for all GRAPHS for this scenario
+        graph_output_dir = project_root / "src" / "data" / "results" / folder_name
+        graph_output_dir.mkdir(parents=True, exist_ok=True) # Create the folder
+        
+        # Run the optimization
+        monthly_results_df, school_budgets_for_this_run, meal_costs = \
+            run_proportional_monthly_optimization_ilp(
+                opt_data, 
+                budget_cap_factor=factor 
+            )
+
+        if monthly_results_df is not None:
+            # Run the annual analysis
+            analysis_table = analyze_annual_budget(
+                monthly_results_df,
+                school_budgets_for_this_run,
+                meal_costs,
+                actual_annual_cost=actual_cost_2025
+            )
+            
+            if analysis_table is not None:
+                # Save the unique annual breakdown CSV
+                cols = ['school', 'proportional_annual_budget', 'annual_food_cost', 'remaining_annual_balance']
+                analysis_table = analysis_table[cols]
+                analysis_table.to_csv(analysis_breakdown_path, index=False)
+                print(f"Successfully saved analysis to: {analysis_breakdown_path}")
+            
+            if run_maps:
+                print(f"\nGenerating maps for {name} scenario...")
+                
+                # Pass the new 'graph_output_dir' to all map functions
+                generate_savings_map(
+                    opt_data, monthly_results_df, meal_costs, 
+                    coordinates_file, 
+                    out_dir=graph_output_dir, # <-- Pass the new path
+                    file_suffix=file_suffix
+                )
+                
+                generate_savings_maps_by_level(
+                    opt_data, monthly_results_df, meal_costs,
+                    coordinates_file, 
+                    out_dir=graph_output_dir, # <-- Pass the new path
+                    file_suffix=file_suffix
+                )
+                
+                generate_all_region_choropleths(
+                    opt_data, monthly_results_df, meal_costs,
+                    coordinates_file, geojson_file, 
+                    out_dir=graph_output_dir, # <-- Pass the new path
+                    file_suffix=file_suffix
+                )
+            
+            print(f"\nGenerating size-based bar charts for {name} scenario...")
+            # Pass the new 'graph_output_dir' to the chart function
+            generate_savings_by_size_charts(
+                opt_data,
+                monthly_results_df,
+                school_budgets_for_this_run,
+                meal_costs,
+                out_dir=graph_output_dir, # <-- Pass the new path
+                file_suffix=file_suffix
+            )
+
+            print(f"\nGenerating overall summary charts for {name} scenario...")
+            generate_savings_analysis_chart(
+                opt_data,
+                monthly_results_df,
+                meal_costs,
+                out_dir=graph_output_dir,
+                file_suffix=file_suffix
+            )
+            generate_overall_savings_bar_chart(
+                opt_data,
+                monthly_results_df,
+                meal_costs,
+                out_dir=graph_output_dir,
+                file_suffix=file_suffix
+            )
+            
+            if name == "baseline":
+                baseline_results = {
+                    'monthly_df': monthly_results_df,
+                    'analysis_table': analysis_table,
+                    'school_budgets': school_budgets_for_this_run,
+                    'meal_costs': meal_costs,
+                    'opt_data': opt_data
+                }
+        else:
+            print(f"Optimization failed for scenario: {name}. Skipping analysis.")
+
+    # --- GENERATE ITEM BREAKDOWN ONCE (Unchanged) ---
+    print(f"\n{'='*60}")
+    print("Generating single item breakdown from 'baseline' (100%) run...")
+    if 'monthly_df' in baseline_results and baseline_results['monthly_df'] is not None:
+        item_breakdown_path = project_root / 'src' / 'data' / 'optimization-data' / 'monthly_items_breakdown.csv'
+        
+        generate_item_breakdown(
+            baseline_results['monthly_df'],
+            baseline_results['opt_data']['dfb'],
+            baseline_results['opt_data']['dfl'],
+            str(item_breakdown_path)
         )
+        print(f"Successfully saved item breakdown to: {item_breakdown_path}")
+    else:
+        print("Skipping item breakdown: 'baseline' run did not produce results.")
 
-        out_path = Path(save_breakdown_path) if save_breakdown_path else (
-            Path(__file__).resolve().parents[2] / "src" / "data" / "optimization-data" / "annual_school_breakdown.csv"
-        )
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-
-        # ensure the same columns/order as the printed table
-        cols = ['school', 'proportional_annual_budget', 'annual_food_cost', 'remaining_annual_balance']
-        analysis_table = analysis_table[cols]
-        analysis_table.to_csv(out_path, index=False)
-
-    # still allow optional item-level breakdown if a path was provided
-    if save_breakdown_path and monthly_results_df is not None:
-        generate_item_breakdown(monthly_results_df, opt_data['dfb'], opt_data['dfl'], save_breakdown_path)
-
-    return monthly_results_df, analysis_table, monthly_school_budgets, monthly_meal_costs
+    return (
+        baseline_results.get('monthly_df'),
+        baseline_results.get('analysis_table'),
+        baseline_results.get('school_budgets'),
+        baseline_results.get('meal_costs')
+    )
 
 def run_all_optimizations(
     breakfast_file: str | Path,
     lunch_file: str | Path,
     student_counts_file: str | Path,
+    coordinates_file: str | Path,    # <-- ADD THIS
+    geojson_file: str | Path,        # <-- ADD THIS
     total_budget: float = 139144760
 ):
     """
@@ -1105,6 +1233,7 @@ def run_all_optimizations(
     - Prepare data
     - Daily ILP (equal budgets) + ILP item breakdown CSV
     - Monthly Proportional ILP + analysis table + (internal) item breakdown CSV
+    - Generates all charts and maps for all 3 scenarios.
     Returns dict of outputs for optional programmatic use
     """
 
@@ -1118,8 +1247,11 @@ def run_all_optimizations(
     ilp_daily_df = run_daily_ilp_pipeline(opt_data, total_budget=total_budget)
 
     monthly_df, analysis_table, monthly_school_budgets, monthly_meal_costs = run_monthly_proportional_pipeline(
-        opt_data, total_budget=total_budget
-        )
+        opt_data, 
+        total_budget=total_budget,
+        coordinates_file=coordinates_file,  # <-- PASS IT DOWN
+        geojson_file=geojson_file         # <-- PASS IT DOWN
+    )
     
     return {
         'opt_data': opt_data,
@@ -1130,10 +1262,10 @@ def run_all_optimizations(
         'monthly_meal_costs': monthly_meal_costs
     }
 
-def generate_savings_analysis_chart(opt_data, monthly_results_df, monthly_meal_costs):
+def generate_savings_analysis_chart(opt_data, monthly_results_df, monthly_meal_costs, out_dir=None, file_suffix: str = ""):
     """
     Generates and saves the interactive savings analysis bubble chart
-    to src/data/results/savings_analysis_bubble_chart.html
+    to a specified output directory with a file suffix.
     """
     if monthly_results_df is None:
         print("No monthly optimization results available to plot.")
@@ -1151,6 +1283,7 @@ def generate_savings_analysis_chart(opt_data, monthly_results_df, monthly_meal_c
         return None
 
     # --- Create Interactive Savings Analysis Bubble Chart ---
+    title_suffix = file_suffix.strip("_").replace("_", " ").title()
     fig = px.scatter(
         savings_df,
         x='actual_annual_cost',
@@ -1164,7 +1297,7 @@ def generate_savings_analysis_chart(opt_data, monthly_results_df, monthly_meal_c
             'savings': ':.2s',
             'savings_magnitude': False
         },
-        title='Savings Analysis: Actual vs. Optimized Cost',
+        title=f'Savings Analysis: Actual vs. Optimized Cost ({title_suffix})',
         labels={
             'actual_annual_cost': 'Actual Annual Food Cost',
             'optimized_annual_cost': 'Optimized Annual Food Cost',
@@ -1185,19 +1318,23 @@ def generate_savings_analysis_chart(opt_data, monthly_results_df, monthly_meal_c
     )
     fig.update_layout(legend=dict(font=dict(size=14)))
 
-    # --- Save the interactive chart to results folder ---
-    results_dir = Path(__file__).resolve().parents[2] / "src" / "data" / "results"
+    # --- Save the interactive chart to the specified directory ---
+    if out_dir is None:
+        results_dir = Path(__file__).resolve().parents[2] / "src" / "data" / "results"
+    else:
+        results_dir = Path(out_dir)
+        
     results_dir.mkdir(parents=True, exist_ok=True)
-    chart_path = results_dir / "savings_analysis_bubble_chart.html"
+    chart_path = results_dir / f"savings_analysis_bubble_chart{file_suffix}.html"
     fig.write_html(str(chart_path))
     print(f"Saved interactive savings analysis chart to: {chart_path}")
 
     return chart_path
 
-def generate_overall_savings_bar_chart(opt_data, monthly_results_df, monthly_meal_costs, out_path=None):
+def generate_overall_savings_bar_chart(opt_data, monthly_results_df, monthly_meal_costs, out_dir=None, file_suffix: str = ""):
     """
-    Builds and saves a bar chart comparing Actual (baseline) vs Optimized annual costs.
-    Writes to src/data/results/overall_savings_bar_chart.png by default.
+    Builds and saves a bar chart comparing Actual (baseline) vs Optimized annual costs
+    to a specified output directory with a file suffix.
     """
     if monthly_results_df is None:
         print("No monthly optimization results available to plot.")
@@ -1219,7 +1356,6 @@ def generate_overall_savings_bar_chart(opt_data, monthly_results_df, monthly_mea
     values = [actual_annual_cost, optimized_annual_cost]
     colors = ['#d9534f', '#5cb85c']  # red, green
 
-    # Style is optional; don't fail if seaborn style isn't present
     try:
         plt.style.use('seaborn-v0_8-whitegrid')
     except Exception:
@@ -1227,8 +1363,9 @@ def generate_overall_savings_bar_chart(opt_data, monthly_results_df, monthly_mea
 
     fig, ax = plt.subplots(figsize=(10, 6))
     bars = ax.bar(labels, values, color=colors)
-
-    ax.set_title('Overall Savings: Actual vs. Optimized Annual Food Costs', fontsize=16)
+    
+    title_suffix = file_suffix.strip("_").replace("_", " ").title()
+    ax.set_title(f'Overall Savings: Actual vs. Optimized ({title_suffix})', fontsize=16)
     ax.set_ylabel('Cost (in Millions of $)', fontsize=12)
     ax.get_yaxis().set_major_formatter(mticker.FuncFormatter(lambda x, p: f'${x/1e6:.1f}M'))
 
@@ -1242,14 +1379,16 @@ def generate_overall_savings_bar_chart(opt_data, monthly_results_df, monthly_mea
 
     fig.tight_layout()
 
-    # Save (don’t show)
-    if out_path is None:
-        out_path = Path(__file__).resolve().parents[2] / "src" / "data" / "results" / "overall_savings_bar_chart.png"
+    # --- Save to the specified directory ---
+    if out_dir is None:
+        out_path = Path(__file__).resolve().parents[2] / "src" / "data" / "results" / f"overall_savings_bar_chart{file_suffix}.png"
+    else:
+        out_path = Path(out_dir) / f"overall_savings_bar_chart{file_suffix}.png"
+        
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path, dpi=150, bbox_inches='tight')
     plt.close(fig)
 
-    # Optional: print summary
     savings = actual_annual_cost - optimized_annual_cost
     savings_percent = (savings / actual_annual_cost) * 100 if actual_annual_cost else 0.0
     print(f"Total Annual Savings: ${savings:,.2f} ({savings_percent:.2f}%)")
@@ -1257,33 +1396,32 @@ def generate_overall_savings_bar_chart(opt_data, monthly_results_df, monthly_mea
 
     return out_path
 
-def generate_savings_by_size_charts(opt_data, monthly_results_df, monthly_school_budgets, monthly_meal_costs, out_dir=None):
+def generate_savings_by_size_charts(opt_data, monthly_results_df, monthly_school_budgets, monthly_meal_costs, out_dir=None, file_suffix: str = ""):
     """
-    Saves two bar charts:
-      - Total Annual Savings by School Size Category  -> savings_by_size_total.png
-      - Percentage of Budget Saved by School Size     -> savings_by_size_percent.png
+    Saves two bar charts with a unique file suffix:
+      - Total Annual Savings by School Size Category  -> savings_by_size_total_[suffix].png
+      - Percentage of Budget Saved by School Size     -> savings_by_size_percent_[suffix].png
     Returns dict with output paths.
     """
     if monthly_results_df is None:
         print("No monthly optimization results available to plot by size.")
         return None
 
-    # Ensure df_sizes has size_category using 2024-2025 bins you specified
+    # Ensure df_sizes has size_category
     try:
-        size_map = _compute_size_category(opt_data['df_sizes'], preferred_year="2024-2025")  # uses your bins
+        size_map = _compute_size_category(opt_data['df_sizes'], preferred_year="2024-2025")
         df_sizes = opt_data['df_sizes'].copy()
         df_sizes.columns = df_sizes.columns.str.lower()
         df_sizes = df_sizes.merge(size_map, on='school_name', how='left', suffixes=('', '_mapped'))
-        # prefer mapped (guaranteed) size_category
         if 'size_category_mapped' in df_sizes.columns:
             df_sizes['size_category'] = df_sizes['size_category_mapped']
         df_sizes.drop(columns=[c for c in ['size_category_mapped'] if c in df_sizes.columns], inplace=True, errors='ignore')
     except Exception:
-        # Fall back: let downstream function handle missing size_category
         df_sizes = opt_data['df_sizes']
 
-    # Aggregate with your existing function
+    # Aggregate
     savings_by_size_df = analyze_savings_by_school_size(
+        opt_data,
         monthly_results_df,
         monthly_school_budgets,
         monthly_meal_costs,
@@ -1314,24 +1452,26 @@ def generate_savings_by_size_charts(opt_data, monthly_results_df, monthly_school
         pass
     fig1, ax1 = plt.subplots(figsize=(14, 7))
     ax1.bar(savings_by_size_df['count_range'], savings_by_size_df['total_savings'], color='#5cb85c')
-    ax1.set_title('Total Annual Savings by School Size Category', fontsize=16)
+    ax1.set_title(f'Total Annual Savings by School Size Category ({file_suffix.strip("_").title()})', fontsize=16) # Added title
     ax1.set_xlabel("School Student Population Size")
     ax1.set_ylabel("Total Savings ($)")
     ax1.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, p: f'${x:,.0f}'))
     fig1.tight_layout()
-    out1 = results_dir / "savings_by_size_total.png"
+
+    out1 = results_dir / f"savings_by_size_total{file_suffix}.png"
     fig1.savefig(out1, dpi=150, bbox_inches='tight')
     plt.close(fig1)
 
     # ---- Chart 2: Savings (%) ----
     fig2, ax2 = plt.subplots(figsize=(14, 7))
     ax2.bar(savings_by_size_df['count_range'], savings_by_size_df['percent_savings'], color='#428bca')
-    ax2.set_title('Percentage of Budget Saved by School Size', fontsize=16)
+    ax2.set_title(f'Percentage of Budget Saved by School Size ({file_suffix.strip("_").title()})', fontsize=16) # Added title
     ax2.set_xlabel("School Population Size")
     ax2.set_ylabel("Savings (%)")
     ax2.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, p: f'{x:.1f}%'))
     fig2.tight_layout()
-    out2 = results_dir / "savings_by_size_percent.png"
+    
+    out2 = results_dir / f"savings_by_size_percent{file_suffix}.png"
     fig2.savefig(out2, dpi=150, bbox_inches='tight')
     plt.close(fig2)
 
@@ -1339,10 +1479,10 @@ def generate_savings_by_size_charts(opt_data, monthly_results_df, monthly_school
     print(f"Saved: {out2}")
     return {"total_savings_png": out1, "percent_savings_png": out2}
 
-def generate_savings_map(opt_data, monthly_results_df, monthly_meal_costs, coordinates_file, out_path=None):
+def generate_savings_map(opt_data, monthly_results_df, monthly_meal_costs, coordinates_file, out_dir=None, file_suffix: str = ""):
     """
     Builds an interactive Folium bubble map of savings by school and writes it to HTML.
-    Default: src/data/results/savings_map.html
+    Saves to a specified out_dir.
     """
     if monthly_results_df is None:
         print("No monthly optimization results available to map.")
@@ -1400,15 +1540,22 @@ def generate_savings_map(opt_data, monthly_results_df, monthly_meal_costs, coord
             # Skip rows with bad/missing coords
             continue
 
-    # Save to results folder
-    results_dir = Path(__file__).resolve().parents[2] / "src" / "data" / "results"
+    # Save to a specified output directory
+    if out_dir is None:
+        results_dir = Path(__file__).resolve().parents[2] / "src" / "data" / "results"
+    else:
+        results_dir = Path(out_dir)
+        
     results_dir.mkdir(parents=True, exist_ok=True)
-    out_path = Path(out_path) if out_path else results_dir / "overall_savings_map.html"
+    
+    # Use the file_suffix to create a unique name inside the out_dir
+    out_path = results_dir / f"overall_savings_map{file_suffix}.html"
+    
     m.save(str(out_path))
     print(f"Saved interactive savings map to: {out_path}")
     return out_path
 
-def generate_savings_maps_by_level(opt_data, monthly_results_df, monthly_meal_costs, coordinates_file, out_dir=None):
+def generate_savings_maps_by_level(opt_data, monthly_results_df, monthly_meal_costs, coordinates_file, out_dir=None, file_suffix: str = ""):
     """
     Creates three interactive Folium bubble maps (Elementary / Middle / High)
     and saves them as HTML files under src/data/results by default.
@@ -1510,7 +1657,7 @@ def generate_savings_maps_by_level(opt_data, monthly_results_df, monthly_meal_co
         if df_level.empty:
             continue
         m = _build_map(df_level, center)
-        out_file = results_dir / f"savings_map_{label}.html"
+        out_file = results_dir / f"savings_map_{label}{file_suffix}.html"
         m.save(str(out_file))
         out_paths[label] = out_file
         print(f"Saved interactive savings map ({label}) to: {out_file}")
@@ -1713,13 +1860,15 @@ def generate_all_region_choropleths(
     monthly_results_df: pd.DataFrame,
     monthly_meal_costs: list[float],
     coords_csv_path: str | Path,
-    geojson_path: str | Path
+    geojson_path: str | Path,
+    file_suffix: str = "",
+    out_dir: str | Path | None = None  # <-- ADD THIS ARGUMENT
 ):
     """
     Creates:
       - Overall region choropleth
       - Per-level (ES/MS/HS) region choropleths
-    Saves HTML to src/data/results and returns a dict of paths.
+    Saves HTML to the specified out_dir and returns a dict of paths.
     """
     if monthly_results_df is None:
         print("No monthly results for region choropleths.")
@@ -1730,6 +1879,13 @@ def generate_all_region_choropleths(
     if savings_df is None or savings_df.empty:
         print("No savings data for region choropleths.")
         return None
+        
+    # Define the output directory
+    if out_dir is None:
+        results_dir = Path(__file__).resolve().parents[2] / "src" / "data" / "results"
+    else:
+        results_dir = Path(out_dir)
+    results_dir.mkdir(parents=True, exist_ok=True)
 
     results = {}
 
@@ -1739,7 +1895,8 @@ def generate_all_region_choropleths(
         coords_csv_path=coords_csv_path,
         geojson_path=geojson_path,
         bins=None,
-        out_path=Path(__file__).resolve().parents[2] / "src" / "data" / "results" / "fcps_region_choropleth_overall.html",
+        # Use the results_dir path
+        out_path=results_dir / f"fcps_region_choropleth_overall{file_suffix}.html",
         map_title="FCPS Regions — Overall Savings"
     )
     results["overall_html"] = path_overall
@@ -1767,7 +1924,8 @@ def generate_all_region_choropleths(
             coords_csv_path=coords_csv_path,
             geojson_path=geojson_path,
             bins=None,
-            out_path=Path(__file__).resolve().parents[2] / "src" / "data" / "results" / f"fcps_region_choropleth_{label}.html",
+            # Use the results_dir path
+            out_path=results_dir / f"fcps_region_choropleth_{label}{file_suffix}.html",
             map_title=f"FCPS Regions — {label.title()} Schools"
         )
         results[f"{label}_html"] = path_level

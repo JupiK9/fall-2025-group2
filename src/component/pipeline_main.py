@@ -98,38 +98,25 @@ def popularity_pipeline():
 def optimization_pipeline():
     """Optimization + all charts/maps."""
     print("\n[Optimization] Initializing Optimization Analysis...")
+    # In your pipeline_main.py
+
+    BF_PATH = DATA / "clean-data" / "data_breakfast.csv"
+    LN_PATH = DATA / "clean-data" / "data_lunch.csv"
+    SC_PATH = DATA / "preprocessed-data" / "2022-2025 Fairfax County School Student Count.csv"
+    COORDINATES_PATH = DATA / "preprocessed-data" / "data_breakfast_with_coordinates.csv"
+    GEOJSON_PATH = DATA / "preprocessed-data" / "School_Regions.geojson"
+
     out = run_all_optimizations(
-        DATA / "clean-data" / "data_breakfast.csv",
-        DATA / "clean-data" / "data_lunch.csv",
-        DATA / "preprocessed-data" / "2022-2025 Fairfax County School Student Count.csv",
+        breakfast_file=BF_PATH,
+        lunch_file=LN_PATH,
+        student_counts_file=SC_PATH,
+        coordinates_file=COORDINATES_PATH,
+        geojson_file=GEOJSON_PATH,
         total_budget=139144760
     )
 
     if not (out and out.get("monthly_ilp") is not None):
         print("[Optimization] Monthly ILP results missing; charts skipped.")
         return
-
-    print("\n[Charts] Producing savings analysis bubble chart...")
-    generate_savings_analysis_chart(out["opt_data"], out["monthly_ilp"], out["monthly_meal_costs"])
-
-    print("\n[Charts] Producing overall savings bar chart...")
-    generate_overall_savings_bar_chart(out["opt_data"], out["monthly_ilp"], out["monthly_meal_costs"])
-
-    print("\n[Charts] Producing savings by size charts...")
-    generate_savings_by_size_charts(out["opt_data"], out["monthly_ilp"], out["monthly_school_budgets"], out["monthly_meal_costs"])
-
-    print("\n[Maps] Producing overall savings map...")
-    generate_savings_map(out["opt_data"], out["monthly_ilp"], out["monthly_meal_costs"],
-                         DATA / "preprocessed-data" / "data_breakfast_with_coordinates.csv")
-
-    print("\n[Maps] Producing savings maps by level...")
-    generate_savings_maps_by_level(out["opt_data"], out["monthly_ilp"], out["monthly_meal_costs"],
-                                   DATA / "preprocessed-data" / "data_breakfast_with_coordinates.csv")
-
-    print("\n[Maps] Producing region choropleths...")
-    generate_all_region_choropleths(
-        out["opt_data"], out["monthly_ilp"], out["monthly_meal_costs"],
-        DATA / "preprocessed-data" / "data_breakfast_with_coordinates.csv",
-        DATA / "preprocessed-data" / "School_Regions.geojson"
-    )
-
+    
+    
