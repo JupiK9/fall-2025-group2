@@ -162,7 +162,6 @@ The script will install the following modules required for the program to run:
 ## Processes and Scripts
 
 ### 1. Downloading the required data
-
     - **Objective**: Download the required data files from Box
     - **Script**: `data-downloader.sh`
     - **Inputs**: None
@@ -175,7 +174,6 @@ The script will install the following modules required for the program to run:
         - `School_Regions.geopjson`
 
 ### 2.1. Tranforming HTML record files into CSV files
-
     - **Objective**: Transform the HTML breakfast and lunch records into individual CSV record files
     - **Script**: `data-transformer_html.py`
     - **Inputs**:
@@ -184,7 +182,6 @@ The script will install the following modules required for the program to run:
         - Individual Production Records for Individual Dates in May for Breakfast and Lunch (42 CSV files)
 
 ### 2.2. Combining CSV Production Records into simpler CSV files
-
     - **Objective**: Combine the individual production records into two CSV files; Breakfast and Lunch.
     - **Script**: `csv_combiner.py`
     - **Inputs**:
@@ -194,7 +191,6 @@ The script will install the following modules required for the program to run:
         - `data_lunch.csv`
 
 ### 3. Processing PDF Monthly Daily Sales
-
     - **Objective**: Extract from the PDF monthly daily sales into a combined transactional sales file.
     - **Script**: `pdf_processor.py`
     - **Inputs*:
@@ -203,7 +199,6 @@ The script will install the following modules required for the program to run:
         - `sales.csv`
 
 ### 4. The Main Program
-
     - **Objective**: Analyze the input files, perform exploratory data analysis, popularity analysis, optimization, and regression analysis.
     - **Script**: `main.py`
     - **Input**:
@@ -223,7 +218,6 @@ The script will install the following modules required for the program to run:
         - Folder with graphs and map result files
 
 ### 5. Streamlit UI Application
-
     - **Objective**: Provide users a user interface of data analysis performed by the main program, and allow users to produce recommendation forms
     - **Script**: `5_Final.py`
     - **Inputs**:
