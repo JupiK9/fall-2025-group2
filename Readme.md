@@ -5,7 +5,6 @@
 - Dataset Overview
 - Data Pipeline Diagram
 - Folder Structure
-- Modelling Approach
 - Installation Steps
 - Processes and Scripts
 
