@@ -136,4 +136,102 @@ You can install the following modules through pip
 pip install -r src/requirements.txt
 ```
 
+The script will install the following modules required for the program to run:
+
+- `pandas`
+- `numpy`
+- `matplotlib`
+- `seaborn`
+- `statsmodels`
+- `scipy`
+- `beautifulsoup4`
+- `tqdm`
+- `plotly`
+- `PyPDF2`
+- `pdfplumber`
+- `nbformat`
+- `geopandas`
+- `shapely`
+- `folium`
+- `fpdf`
+- `fpdf2`
+- `streamlit`
+- `streamlit-folium`
+- `geojson`
+
 ## Processes and Scripts
+
+### 1. Downloading the required data
+
+    - **Objective**: Download the required data files from Box
+    - **Script**: `data-downloader.sh`
+    - **Inputs**: None
+    - **Outputs**:
+        - May 2025 Breakfast and Lunch Records (42 HTML Files)
+        - Breakfast and Lunch Sales Transactions from March to May 2025 (6 PDF files)
+        - `2022-2025 Fairfax County School Student count.csv`
+        - `unit_costs.csv`
+        - `fcps_nutrition_values.csv`
+        - `School_Regions.geopjson`
+
+### 2.1. Tranforming HTML record files into CSV files
+
+    - **Objective**: Transform the HTML breakfast and lunch records into individual CSV record files
+    - **Script**: `data-transformer_html.py`
+    - **Inputs**:
+        - May 2025 Breakfast and Lunch Records (42 HTML Files)
+    - **Outputs**:
+        - Individual Production Records for Individual Dates in May for Breakfast and Lunch (42 CSV files)
+
+### 2.2. Combining CSV Production Records into simpler CSV files
+
+    - **Objective**: Combine the individual production records into two CSV files; Breakfast and Lunch.
+    - **Script**: `csv_combiner.py`
+    - **Inputs**:
+        - Individual Production Records for Individual Dates in May for Breakfast and Lunch (42 CSV files)
+    - **Outputs**:
+        - `data_breakfast.csv`
+        - `data_lunch.csv`
+
+### 3. Processing PDF Monthly Daily Sales
+
+    - **Objective**: Extract from the PDF monthly daily sales into a combined transactional sales file.
+    - **Script**: `pdf_processor.py`
+    - **Inputs*:
+        - Breakfast and Lunch Sales Transactions from March to May 2025 (6 PDF files)
+    - **Outputs**:
+        - `sales.csv`
+
+### 4. The Main Program
+
+    - **Objective**: Analyze the input files, perform exploratory data analysis, popularity analysis, optimization, and regression analysis.
+    - **Script**: `main.py`
+    - **Input**:
+        - `data_breakfast.csv`
+        - `data_lunch.csv`
+        - `2022-2025 Fairfax County School Student Count.csv`
+        - `unit_costs.csv`
+        - `fcps_nutrition_values.csv`
+        - `School_Regions.geojson`
+        - `sales.csv`
+    - **Outputs**:
+        - Folder with EDA result files
+        - Folder with leftover result files
+        - Folder with optimization result files
+        - Folder with popularity result files
+        - Folder with regression result files
+        - Folder with graphs and map result files
+
+### 5. Streamlit UI Application
+
+    - **Objective**: Provide users a user interface of data analysis performed by the main program, and allow users to produce recommendation forms
+    - **Script**: `5_Final.py`
+    - **Inputs**:
+        - Folder with EDA result files
+        - Folder with leftover result files
+        - Folder with optimization result files
+        - Folder with popularity result files
+        - Folder with regression result files
+        - Folder with graphs and map result files
+    - **Outputs**:
+        - `recommendation.pdf`
