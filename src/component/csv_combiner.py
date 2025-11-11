@@ -11,6 +11,7 @@ def combine_csvs_from_folder(input_dir, output_file, sort_columns=None):
     - output_file (str): Path to the output combined CSV file.
     - sort_columns (list of str, optional): Columns to sort by before saving.
     """
+    
     if not os.path.isdir(input_dir):
         print(f"Error: Directory not found at {input_dir}")
         return

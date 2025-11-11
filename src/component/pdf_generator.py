@@ -6,7 +6,7 @@ from datetime import datetime
 from pathlib import Path
 import traceback
 
-# --- Define paths relative to this script's location ---
+# Define paths relative to this script's location
 SCRIPT_DIR = Path(__file__).resolve().parent
 BASE_DATA_DIR = SCRIPT_DIR.parent / 'data'
 PREPROCESSED_DATA_DIR = BASE_DATA_DIR / 'preprocessed-data'
@@ -31,18 +31,18 @@ def generate_pdf(school_to_test, meal_type='Both'):
         bytes: The generated PDF content as bytes, or None if an error occurs.
     """
     try:
-        # --- 1. Load All Data ---
+        # Load All Data
         df_opt = pd.read_csv(OPTIMIZATION_FILE)
         df_costs = pd.read_csv(COST_FILE)
         df_coords = pd.read_csv(COORDINATES_FILE)
         df_breakfast = pd.read_csv(BREAKFAST_FILE, usecols=['Name', 'Identifier'], encoding='latin-1', dtype={'Identifier': str})
         df_lunch = pd.read_csv(LUNCH_FILE, usecols=['Name', 'Identifier'], encoding='latin-1', dtype={'Identifier': str})
 
-        # --- Filter by Meal Type ---
+        # Filter by Meal Type
         if meal_type in ['Breakfast', 'Lunch']:
             df_opt = df_opt[df_opt['meal_type'].str.lower() == meal_type.lower()]
 
-        # --- 2. Create Identifier and Averaged Cost Lookup Tables ---
+        # Create Identifier and Averaged Cost Lookup Tables
         df_ids = pd.concat([df_breakfast, df_lunch])
         df_ids['food_item_clean'] = df_ids['Name'].str.strip().str.lower()
         df_ids['Identifier'] = df_ids['Identifier'].astype(str)
@@ -60,13 +60,13 @@ def generate_pdf(school_to_test, meal_type='Both'):
         df_costs_with_ids = df_costs.dropna(subset=['Identifier'])
         df_costs_avg = df_costs_with_ids.groupby('Identifier', as_index=False)['Unit_Cost'].mean()
 
-        # --- 3. Create a School Information Lookup Table ---
+        # Create a School Information Lookup Table
         school_info_cols = ['Normalized_School_Name_excel', 'address']
         df_school_info = df_coords[school_info_cols].copy()
         df_school_info.columns = ['school_clean', 'address']
         df_school_info = df_school_info.drop_duplicates(subset=['school_clean']).set_index('school_clean')
 
-        # --- 4. Clean and Prepare Data ---
+        # Clean and Prepare Data
         def normalize_school_for_lookup(name):
             if not isinstance(name, str): return name
             name = re.sub(r'\s+', ' ', name).strip().lower()
@@ -77,14 +77,14 @@ def generate_pdf(school_to_test, meal_type='Both'):
         df_opt['school_clean'] = df_opt['school'].apply(normalize_school_for_lookup)
         df_opt['food_item_clean'] = df_opt['food_item'].str.strip().str.lower()
 
-        # --- 5. Get Specific Info for the Selected School ---
+        # Get Specific Info for the Selected School
         school_clean_name = normalize_school_for_lookup(school_to_test)
         try:
             school_address = df_school_info.loc[school_clean_name, 'address']
         except KeyError:
             school_address = "Address Not Found"
 
-        # --- 6. Filter, Aggregate, and Merge ---
+        # Filter, Aggregate, and Merge
         df_school = df_opt[df_opt['school_clean'] == school_clean_name].copy()
         if df_school.empty:
             print(f"Error: No optimization data found for school '{school_to_test}' and meal type '{meal_type}'")
@@ -112,7 +112,7 @@ def generate_pdf(school_to_test, meal_type='Both'):
         df_order_list = pd.merge(df_school_agg, df_costs_avg, on='Identifier', how='left')
         df_order_list['Identifier'] = df_order_list['Identifier'].fillna('N/A')
 
-        # --- 7. Calculate Total Cost & Format ---
+        # Calculate Total Cost & Format
         df_order_list['Unit_Cost'] = df_order_list['Unit_Cost'].fillna(0)
         df_order_list['Total_Cost'] = df_order_list['recommended_quantity'] * df_order_list['Unit_Cost']
         df_final_report = df_order_list[['Identifier', 'food_item', 'Unit_Cost', 'recommended_quantity', 'Total_Cost']]
@@ -123,7 +123,7 @@ def generate_pdf(school_to_test, meal_type='Both'):
         df_final_report['Food Item'] = df_final_report['Food Item'].str.replace("’", "'").str.replace("–", "-").str.replace("—", "-")
         production_cost_total = df_final_report['Total'].sum()
 
-        # --- 8. Generate PDF with Professional Layout ---
+        # Generate PDF with Professional Layout
         class PDF(FPDF):
             def __init__(self, orientation='P', unit='mm', format='Letter', school_address='N/A', school_name='N/A'):
                 super().__init__(orientation, unit, format)

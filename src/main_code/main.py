@@ -9,6 +9,10 @@ if str(SRC_DIR) not in sys.path:
 from component.pipeline_main import (html_csv_pipeline, pdf_pipeline, popularity_pipeline, optimization_pipeline)
 
 if __name__ == "__main__":
+    """
+    Main function to run the entire pipeline.
+    """
+    
     html_csv_pipeline()
     pdf_pipeline()
     popularity_pipeline()
