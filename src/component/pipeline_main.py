@@ -1,7 +1,6 @@
 import sys, os
 from pathlib import Path
 
-# --- repo roots & import path ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))      # .../src/main_code
 SRC_DIR  = os.path.abspath(os.path.join(BASE_DIR, ".."))   # .../src
 if SRC_DIR not in sys.path:
@@ -18,17 +17,14 @@ from component.popularity import (
     get_leftover_rate_by_school, get_net_consumption_by_school
 )
 from component.optimization import (
-    run_all_optimizations,
-    generate_savings_analysis_chart,
-    generate_overall_savings_bar_chart,
-    generate_savings_by_size_charts,
-    generate_savings_map,
-    generate_savings_maps_by_level,
-    generate_all_region_choropleths,
+    run_all_optimizations
 )
 
 def html_csv_pipeline():
-    """HTML → CSV transformers + combiners. Skips if clean outputs exist."""
+    """
+    HTML → CSV transformers + combiners. Skips if clean outputs exist.
+    """
+
     print("\n[HTML/CSV] Starting HTML to CSV Processing...")
     bf_clean = DATA / "clean-data" / "data_breakfast.csv"
     ln_clean = DATA / "clean-data" / "data_lunch.csv"
@@ -57,7 +53,10 @@ def html_csv_pipeline():
 
 
 def pdf_pipeline():
-    """PDF → CSV. Skips if sales.csv exists."""
+    """
+    PDF → CSV. Skips if sales.csv exists.
+    """
+
     print("\n[PDF] Starting PDF to CSV Processing...")
     sales_csv = DATA / "clean-data" / "sales.csv"
     if sales_csv.exists():
@@ -69,7 +68,10 @@ def pdf_pipeline():
 
 
 def popularity_pipeline():
-    """Popularity exports (writes to data/popularity-data and data/leftover-data)."""
+    """
+    Popularity analysis. Skips if popularity data exists.
+    """
+
     breakfast_file = DATA / "clean-data" / "data_breakfast.csv"
     lunch_file     = DATA / "clean-data" / "data_lunch.csv"
     sales_file     = DATA / "clean-data" / "sales.csv"
@@ -96,9 +98,11 @@ def popularity_pipeline():
 
 
 def optimization_pipeline():
-    """Optimization + all charts/maps."""
+    """
+    Optimization analysis + exports all charts/maps. 
+    """
+
     print("\n[Optimization] Initializing Optimization Analysis...")
-    # In your pipeline_main.py
 
     BF_PATH = DATA / "clean-data" / "data_breakfast.csv"
     LN_PATH = DATA / "clean-data" / "data_lunch.csv"

@@ -170,7 +170,10 @@ def generate_csvs_from_folder(folder_path, output_dir='output_csvs'):
         print(f"CSV file generated: {output_file}")
 
 if __name__ == "__main__":
-    # NOTE: You may need to update these paths to match your folder structure
+    """
+    Main function to generate CSVs from HTML files.
+    """
+    
     folder_path_lunch = "../data/FairfaxCounty/May 2025 Lunch production records/May 2025 Lunch production records"
     output_dir_lunch = "../data/preprocessed-data/Lunch production"
     generate_csvs_from_folder(folder_path_lunch, output_dir_lunch)
