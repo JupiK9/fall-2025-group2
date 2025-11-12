@@ -1,8 +1,0 @@
-pandas
-tqdm
-PyPDF2
-pdfplumber
-plotly
-streamlit
-streamlit-folium
-geojson
