@@ -5,175 +5,359 @@ import re
 from datetime import datetime
 from pathlib import Path
 import traceback
+from PIL import Image 
 
-# Define paths relative to this script's location
+# ==================================================================
+# --- CORRECTED FILE PATHS ---
+# ==================================================================
 SCRIPT_DIR = Path(__file__).resolve().parent
-BASE_DATA_DIR = SCRIPT_DIR.parent / 'data'
-PREPROCESSED_DATA_DIR = BASE_DATA_DIR / 'preprocessed-data'
+PROJECT_ROOT = SCRIPT_DIR.parent.parent
 
-OPTIMIZATION_FILE = BASE_DATA_DIR / 'school_food_item_optimization.csv'
-COST_FILE = BASE_DATA_DIR / 'unit_costs.csv'
-COORDINATES_FILE = PREPROCESSED_DATA_DIR / 'data_breakfast_with_coordinates.csv'
-LOGO_FILE = SCRIPT_DIR.parent.parent / 'demo' / 'fcps_logo2.png'
-BREAKFAST_FILE = PREPROCESSED_DATA_DIR / 'breakfast_combined.csv'
-LUNCH_FILE = PREPROCESSED_DATA_DIR / 'lunch_combined.csv'
+DATA_DIR = PROJECT_ROOT / "src" / "data"
+OPTIMIZATION_DATA_DIR = DATA_DIR / "optimization-data"
+CLEANED_DATA_DIR = DATA_DIR / "clean-data"
+RESULTS_DIR = DATA_DIR / "results"
+PREPROCESSED_DATA_DIR = DATA_DIR / 'preprocessed-data'
+
+# --- NEW PIPELINE FILES ---
+OPTIMIZATION_FILE = OPTIMIZATION_DATA_DIR / 'monthly_items_breakdown.csv' 
+FINANCIAL_FILE = OPTIMIZATION_DATA_DIR / 'annual_school_breakdown_baseline.csv'
+
+# --- HISTORICAL COST & ID MAPPING FILES ---
+HISTORICAL_BF_FILE = CLEANED_DATA_DIR / "data_breakfast.csv"
+HISTORICAL_LN_FILE = CLEANED_DATA_DIR / "data_lunch.csv"
+
+# --- COST FILE ---
+COST_FILE = PREPROCESSED_DATA_DIR / 'unit_costs.csv' 
+
+# Logo path
+LOGO_FILE = PROJECT_ROOT / 'demo' / 'fcps_logo2.png'
+# ==================================================================
 
 
 def generate_pdf(school_to_test, meal_type='Both'):
     """
-    Generates the food order recommendation PDF for a given school and meal type.
-
-    Args:
-        school_to_test (str): The name of the school.
-        meal_type (str): The meal type to filter for ('Breakfast', 'Lunch', or 'Both').
-
-    Returns:
-        bytes: The generated PDF content as bytes, or None if an error occurs.
+    Generates the food order recommendation PDF for a given school.
+    Reads from the NEW optimization pipeline output files.
     """
     try:
-        # Load All Data
+        # Load All NEW Data
         df_opt = pd.read_csv(OPTIMIZATION_FILE)
+        df_financial = pd.read_csv(FINANCIAL_FILE)
         df_costs = pd.read_csv(COST_FILE)
-        df_coords = pd.read_csv(COORDINATES_FILE)
-        df_breakfast = pd.read_csv(BREAKFAST_FILE, usecols=['Name', 'Identifier'], encoding='latin-1', dtype={'Identifier': str})
-        df_lunch = pd.read_csv(LUNCH_FILE, usecols=['Name', 'Identifier'], encoding='latin-1', dtype={'Identifier': str})
+        
+        # Load historical data for COST calculation
+        # We need the 'name' column to map identifiers
+        hist_cols = ['school_name', 'production_cost_total', 'name', 'identifier']
+        df_breakfast = pd.read_csv(HISTORICAL_BF_FILE, low_memory=False, usecols=hist_cols, encoding='latin-1')
+        df_lunch = pd.read_csv(HISTORICAL_LN_FILE, low_memory=False, usecols=hist_cols, encoding='latin-1')
+        
+        # --- Data Cleaning ---
+        # Clean financial data
+        for col in ['proportional_annual_budget', 'annual_food_cost', 'remaining_annual_balance']:
+            if col in df_financial.columns:
+                df_financial[col] = (
+                    df_financial[col].astype(str)
+                                     .str.replace(r'[$,]', '', regex=True)
+                                     .str.strip()
+                )
+                df_financial[col] = pd.to_numeric(df_financial[col], errors='coerce').fillna(0)
+        
+        # Clean historical cost data
+        for df in [df_breakfast, df_lunch]:
+            df['school_name'] = df['school_name'].astype(str).str.lower().str.strip()
+            if 'production_cost_total' in df.columns:
+                df['production_cost_total'] = (
+                    df['production_cost_total'].astype(str)
+                                             .str.replace(r'[$,]', '', regex=True)
+                                             .str.strip()
+                )
+                df['production_cost_total'] = pd.to_numeric(
+                    df['production_cost_total'], errors='coerce'
+                ).fillna(0)
 
-        # Filter by Meal Type
-        if meal_type in ['Breakfast', 'Lunch']:
-            df_opt = df_opt[df_opt['meal_type'].str.lower() == meal_type.lower()]
-
-        # Create Identifier and Averaged Cost Lookup Tables
-        df_ids = pd.concat([df_breakfast, df_lunch])
-        df_ids['food_item_clean'] = df_ids['Name'].str.strip().str.lower()
-        df_ids['Identifier'] = df_ids['Identifier'].astype(str)
-        df_ids = df_ids.drop_duplicates(subset=['food_item_clean'])
-        df_ids = df_ids[['food_item_clean', 'Identifier']]
-
-        id_override_map = {'fat free white milk (each)': '20001'}
-        def apply_override(row):
-            return id_override_map.get(row['food_item_clean'], row['Identifier'])
-        df_ids['Identifier'] = df_ids.apply(apply_override, axis=1)
-        df_ids_cost_map = df_ids.set_index('food_item_clean')['Identifier']
-
-        df_costs['Name_clean'] = df_costs['Name'].str.strip().str.lower()
-        df_costs['Identifier'] = df_costs['Name_clean'].map(df_ids_cost_map)
-        df_costs_with_ids = df_costs.dropna(subset=['Identifier'])
-        df_costs_avg = df_costs_with_ids.groupby('Identifier', as_index=False)['Unit_Cost'].mean()
-
-        # Create a School Information Lookup Table
-        school_info_cols = ['Normalized_School_Name_excel', 'address']
-        df_school_info = df_coords[school_info_cols].copy()
-        df_school_info.columns = ['school_clean', 'address']
-        df_school_info = df_school_info.drop_duplicates(subset=['school_clean']).set_index('school_clean')
-
-        # Clean and Prepare Data
-        def normalize_school_for_lookup(name):
-            if not isinstance(name, str): return name
-            name = re.sub(r'\s+', ' ', name).strip().lower()
-            replacements = {' elementary': ' es', ' middle': ' ms', ' high': ' hs', ' secondary': ' ss', ' school': ''}
-            for old, new in replacements.items(): name = name.replace(old, new)
-            return name
-
-        df_opt['school_clean'] = df_opt['school'].apply(normalize_school_for_lookup)
-        df_opt['food_item_clean'] = df_opt['food_item'].str.strip().str.lower()
-
-        # Get Specific Info for the Selected School
-        school_clean_name = normalize_school_for_lookup(school_to_test)
+        # --- Get Specific Info for the Selected School ---
+        school_clean_name = school_to_test.lower().strip()
+        
+        # Get financial data
         try:
-            school_address = df_school_info.loc[school_clean_name, 'address']
-        except KeyError:
-            school_address = "Address Not Found"
+            school_financial_data = df_financial[
+                df_financial['school'].str.lower() == school_clean_name
+            ].iloc[0]
+            
+            financial_data = {
+                "Allocated Annual Budget": school_financial_data['proportional_annual_budget'],
+                "Optimized Annual Food Cost": school_financial_data['annual_food_cost'],
+                "Remaining Budget Balance": school_financial_data['remaining_annual_balance']
+            }
+        except IndexError:
+            print(f"Error: No financial data found for school '{school_to_test}'")
+            return None
 
-        # Filter, Aggregate, and Merge
-        df_school = df_opt[df_opt['school_clean'] == school_clean_name].copy()
+        # Get historical cost
+        bf_costs = df_breakfast.groupby('school_name')['production_cost_total'].sum()
+        ln_costs = df_lunch.groupby('school_name')['production_cost_total'].sum()
+        total_costs_dict = (bf_costs.add(ln_costs, fill_value=0) * 10).to_dict()
+        school_actual_cost = total_costs_dict.get(school_clean_name, 0)
+        
+        # Calculate savings
+        total_savings = school_actual_cost - financial_data["Optimized Annual Food Cost"]
+        percent_savings = (total_savings / school_actual_cost) * 100 if school_actual_cost > 0 else 0
+
+        savings_data = {
+            "Actual Historical Cost": school_actual_cost,
+            "Total Annual Savings": total_savings,
+            "Savings Percentage": f"{percent_savings:.2f}%"
+        }
+
+        # ==================================================================
+        # --- FINAL FIX: Direct Name-to-Cost Mapping (No Identifiers) ---
+        # ==================================================================
+        
+        def clean_name_series(name_series):
+            """Applies a consistent set of cleaning rules to a pandas Series."""
+            # 1. Convert to string, lowercase, and strip whitespace
+            cleaned = name_series.astype(str).str.strip().str.lower()
+            # 2. Standardize quotes and dashes
+            cleaned = cleaned.str.replace("’", "'").str.replace('”', '"')
+            cleaned = cleaned.str.replace("–", "-").str.replace("—", "-")
+            # 3. Normalize whitespace: remove space *before* parentheses
+            cleaned = cleaned.str.replace(r'\s+\(', '(', regex=True)
+            # 4. Normalize all other whitespace to a single space
+            cleaned = cleaned.str.replace(r'\s+', ' ', regex=True)
+            return cleaned.str.strip() # Final strip
+
+        # 1. Create ONE simple map from 'unit_costs.csv'
+        #    This maps a CLEAN NAME -> SPECIFIC UNIT COST
+        df_costs['unit_cost'] = pd.to_numeric(df_costs['unit_cost'], errors='coerce').fillna(0)
+        df_costs['name_clean'] = clean_name_series(df_costs['name'])
+        
+        # We group by the clean name and take the first cost.
+        # This gives us the specific cost for each unique item name.
+        cost_map_specific = df_costs.groupby('name_clean')['unit_cost'].first()
+
+        # 2. Filter optimization data for the school
+        df_school = df_opt[
+            df_opt['school'].str.lower() == school_clean_name
+        ].copy()
+        
+        if meal_type in ['Breakfast', 'Lunch']:
+            df_school = df_school[df_school['meal_type'].str.lower() == meal_type.lower()]
+
         if df_school.empty:
             print(f"Error: No optimization data found for school '{school_to_test}' and meal type '{meal_type}'")
             return None
+            
+        # 3. Map costs using the simple, direct map
+        
+        #    Step 3a: Apply the SAME cleaning function to the optimization file names
+        df_school['food_item_clean'] = clean_name_series(df_school['food_item'])
 
-        df_school_with_ids = pd.merge(df_school, df_ids, on='food_item_clean', how='left')
-        df_mapped = df_school_with_ids.dropna(subset=['Identifier'])
-        df_unmapped = df_school_with_ids[df_school_with_ids['Identifier'].isna()]
+        #    Step 3b: Map the clean name directly to its specific cost
+        df_school['Cost'] = df_school['food_item_clean'].map(cost_map_specific)
+        
+        # 4. Debugging: Check for items that are TRULY unmatched (NaN)
+        #    (This is better than checking for == 0)
+        unmatched_items = df_school[
+            df_school['Cost'].isna()
+        ]['food_item_clean'].unique()
+        
+        if len(unmatched_items) > 0:
+            print("="*20 + " DEBUG: UNMATCHED ITEMS " + "="*20)
+            print(f"Found {len(unmatched_items)} items that could not be matched:")
+            for item in unmatched_items[:20]: # Print top 20
+                print(f"  - {item}")
+            print("="*60)
 
-        id_variation_counts = df_mapped.groupby('Identifier')['food_item_clean'].nunique()
-        df_agg_mapped = df_mapped.groupby('Identifier', as_index=False).agg(
-            food_item=('food_item', 'first'), recommended_quantity=('recommended_quantity', 'sum')
-        )
-        df_agg_mapped = pd.merge(df_agg_mapped, id_variation_counts.rename('variation_count'), on='Identifier')
-        def clean_name_conditionally(row):
-            if row['variation_count'] > 1: return re.sub(r'\s*\(.*\)', '', row['food_item']).strip()
-            else: return row['food_item']
-        df_agg_mapped['food_item'] = df_agg_mapped.apply(clean_name_conditionally, axis=1)
-        df_agg_mapped = df_agg_mapped.drop(columns=['variation_count'])
+        # 5. Final Calculation and Table Prep
+        df_school['Cost'] = df_school['Cost'].fillna(0) # Now fill NaNs with 0
+        df_school['Total'] = df_school['recommended_quantity'] * df_school['Cost']
+        
+        df_final_report = df_school[
+            ['meal_type', 'food_item', 'Cost', 'recommended_quantity', 'Total']
+        ].copy()
+        df_final_report.columns = ['Meal Type', 'Food Item', 'Cost', 'Qty', 'Total']
+        
+        # ==================================================================
 
-        df_agg_unmapped = df_unmapped.groupby('food_item_clean', as_index=False).agg(
-             food_item=('food_item', 'first'), recommended_quantity=('recommended_quantity', 'sum'), Identifier=('Identifier', 'first')
-        )
-        df_school_agg = pd.concat([df_agg_mapped, df_agg_unmapped], ignore_index=True)
-        df_order_list = pd.merge(df_school_agg, df_costs_avg, on='Identifier', how='left')
-        df_order_list['Identifier'] = df_order_list['Identifier'].fillna('N/A')
-
-        # Calculate Total Cost & Format
-        df_order_list['Unit_Cost'] = df_order_list['Unit_Cost'].fillna(0)
-        df_order_list['Total_Cost'] = df_order_list['recommended_quantity'] * df_order_list['Unit_Cost']
-        df_final_report = df_order_list[['Identifier', 'food_item', 'Unit_Cost', 'recommended_quantity', 'Total_Cost']]
-        df_final_report = df_final_report.rename(columns={
-            'Identifier': 'ID', 'food_item': 'Food Item', 'Unit_Cost': 'Cost', 'recommended_quantity': 'Qty', 'Total_Cost': 'Total'
-        })
-        df_final_report = df_final_report.sort_values(by='Food Item').reset_index(drop=True)
-        df_final_report['Food Item'] = df_final_report['Food Item'].str.replace("’", "'").str.replace("–", "-").str.replace("—", "-")
-        production_cost_total = df_final_report['Total'].sum()
-
-        # Generate PDF with Professional Layout
+        # ==================================================================
+        # --- PDF GENERATION CLASS ---
+        # ==================================================================
         class PDF(FPDF):
-            def __init__(self, orientation='P', unit='mm', format='Letter', school_address='N/A', school_name='N/A'):
+            def __init__(self, orientation='P', unit='mm', format='Letter', school_name='N/A'):
                 super().__init__(orientation, unit, format)
-                self.school_address, self.school_name = school_address, school_name
+                self.school_name = school_name
                 self.set_auto_page_break(auto=True, margin=15)
-                self.column_widths, self.table_headers, self.start_x_table = [], [], self.l_margin
+
             def header(self):
-                if self.page_no() == 1:
-                    self.set_font('Times', 'B', 16); self.set_xy(10, 15); self.cell(120, 10, 'Food Order Recommendation Form', 0, new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='L')
-                    try:
-                        page_width, logo_width, right_margin = self.w, 30, 10; logo_x = page_width - logo_width - right_margin
-                        if LOGO_FILE.exists(): self.image(str(LOGO_FILE), x=logo_x, y=8, w=logo_width)
-                        else: self.rect(logo_x, 8, logo_width, 20, 'D'); self.set_xy(logo_x, 15); self.cell(logo_width, 5, "No Logo", 0, new_x=XPos.RIGHT, new_y=YPos.TOP, align='C')
-                    except Exception as e: print(f"Error adding logo: {e}.")
-                    box_y, box_x_left, box_w_left = 25, 10, 90; self.set_font('Times', 'B', 10); self.set_fill_color(220, 220, 220); self.set_xy(box_x_left, box_y); self.cell(box_w_left, 7, 'Recommendation for', border='TLR', new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='L', fill=True)
-                    self.set_font('Times', '', 9)
-                    try: parts = self.school_address.split(',', 1); recommendation_text = f"  {self.school_name.title()}\n  {parts[0].strip()}\n  {parts[1].strip()}"
-                    except Exception: recommendation_text = f"  {self.school_name.title()}\n  {self.school_address}"
-                    self.set_x(box_x_left); self.multi_cell(box_w_left, 5, recommendation_text, border='LRB', align='L'); y_box_end_left = self.get_y()
-                    box_x_right, box_w_right = 105, 45; self.set_font('Times', 'B', 10); self.set_fill_color(220, 220, 220); self.set_xy(box_x_right, box_y); self.cell(box_w_right, 7, 'Generated', border='TLR', new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='L', fill=True)
-                    self.set_font('Times', '', 9); self.set_x(box_x_right); self.multi_cell(box_w_right, 5, f"  {datetime.now().strftime('%B %d, %Y')}", border='LRB', align='L'); y_box_end_right = self.get_y()
-                    self.set_y(max(y_box_end_left, y_box_end_right) + 8)
-                elif self.page_no() > 1:
-                    self.set_font('Times', 'B', 10); self.set_fill_color(200, 220, 255); self.set_x(self.start_x_table)
-                    for i, header in enumerate(self.table_headers): self.cell(self.column_widths[i], 7, header, 1, new_x=XPos.RIGHT, new_y=YPos.TOP, align='C', fill=True)
-                    self.ln()
-            def footer(self): self.set_y(-15); self.set_font('Times', 'I', 8); self.cell(0, 10, f'Page {self.page_no()}', 0, new_x=XPos.RIGHT, new_y=YPos.TOP, align='C')
-            def create_table(self, data, column_widths, production_total):
-                self.column_widths, self.table_headers, self.start_x_table = column_widths, list(data.columns), self.l_margin; table_width = sum(column_widths)
-                self.set_font('Times', 'B', 10); self.set_fill_color(200, 220, 255); self.set_x(self.start_x_table)
-                for i, header in enumerate(self.table_headers): self.cell(self.column_widths[i], 7, header, 1, new_x=XPos.RIGHT, new_y=YPos.TOP, align='C', fill=True)
-                self.ln()
-                self.set_font('Times', '', 9); self.set_fill_color(255); fill = False
+                self.set_font('Arial', 'B', 12)
+                self.cell(0, 10, 'School Food Optimization Report', 0, 1, 'C')
+                
+                try:
+                    page_width, logo_width, right_margin = self.w, 30, 10
+                    logo_x = page_width - logo_width - right_margin
+                    if LOGO_FILE.exists(): 
+                        self.image(str(LOGO_FILE), x=logo_x, y=8, w=logo_width)
+                except Exception as e: 
+                    print(f"Error adding logo: {e}.")
+                
+                self.ln(10)
+
+            def footer(self):
+                self.set_y(-15)
+                self.set_font('Arial', 'I', 8)
+                self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
+
+            def chapter_title(self, title):
+                self.set_font('Arial', 'B', 14)
+                self.cell(0, 10, title, 0, 1, 'L')
+                self.ln(5)
+
+            def add_metric_table(self, title, data_dict):
+                self.set_font('Arial', 'B', 12)
+                self.cell(0, 10, title, 0, 1, 'L')
+                self.ln(2)
+                
+                self.set_font('Arial', '', 12)
+                for name, value in data_dict.items():
+                    if isinstance(value, (int, float)):
+                        value_str = f"${value:,.2f}"
+                        is_positive = value >= 0
+                    else:
+                        value_str = str(value)
+                        is_positive = "Savings" in name and "%" in value_str and not value_str.startswith('-')
+
+                    self.set_font('Arial', 'B', 12)
+                    self.cell(90, 10, name, 0, 0, 'L')
+                    
+                    if is_positive:
+                        self.set_text_color(34, 139, 34)  # Green
+                    else:
+                        self.set_text_color(220, 20, 60)   # Red
+                        
+                    self.set_font('Arial', '', 12)
+                    self.cell(0, 10, value_str, 0, 1, 'R')
+                    self.set_text_color(0, 0, 0) # Reset
+                self.ln(5)
+
+            def add_item_table(self, data):
+                self.set_font('Arial', 'B', 10)
+                self.set_fill_color(220, 220, 220)
+                
+                # Headers
+                col_widths = {'Meal Type': 25, 'Food Item': 95, 'Cost': 20, 'Qty': 20, 'Total': 30}
+                self.cell(col_widths['Meal Type'], 7, "Meal Type", 1, 0, 'C', fill=True)
+                self.cell(col_widths['Food Item'], 7, "Food Item", 1, 0, 'C', fill=True)
+                self.cell(col_widths['Cost'], 7, "Cost", 1, 0, 'C', fill=True)
+                self.cell(col_widths['Qty'], 7, "Qty", 1, 0, 'C', fill=True)
+                self.cell(col_widths['Total'], 7, "Total", 1, 1, 'C', fill=True)
+                
+                self.set_font('Arial', '', 9)
+                
                 for _, row in data.iterrows():
-                    if self.get_y() + 6 > self.h - 15: self.set_x(self.start_x_table); self.cell(table_width, 0, '', 'T'); self.add_page(self.cur_orientation); self.set_font('Times', '', 9); self.set_fill_color(255); fill = False
-                    self.set_x(self.start_x_table); start_x, start_y = self.get_x(), self.get_y(); food_item_x = start_x + column_widths[0]
-                    self.set_xy(food_item_x, start_y); self.multi_cell(column_widths[1], 6, str(row['Food Item']), 'LR', 'L', fill=fill); row_height = self.get_y() - start_y
-                    self.set_xy(start_x, start_y); self.cell(column_widths[0], row_height, str(row['ID']), 'LR', new_x=XPos.RIGHT, new_y=YPos.TOP, align='L', fill=fill)
-                    self.set_xy(food_item_x + column_widths[1], start_y); self.cell(column_widths[2], row_height, f"${row['Cost']:,.2f}", 'LR', new_x=XPos.RIGHT, new_y=YPos.TOP, align='R', fill=fill); self.cell(column_widths[3], row_height, str(int(row['Qty'])), 'LR', new_x=XPos.RIGHT, new_y=YPos.TOP, align='R', fill=fill); self.cell(column_widths[4], row_height, f"${row['Total']:,.2f}", 'LR', new_x=XPos.RIGHT, new_y=YPos.TOP, align='R', fill=fill)
-                    self.set_y(start_y + row_height); fill = not fill
-                self.set_x(self.start_x_table); self.cell(table_width, 0, '', 'T'); self.ln(2)
-                label_width = sum(column_widths[:4]); value_width = column_widths[4]; self.set_x(self.start_x_table); self.set_font('Times', 'B', 10); self.cell(label_width, 7, 'Production Cost Total', 0, new_x=XPos.RIGHT, new_y=YPos.TOP, align='R'); self.set_fill_color(240, 240, 240); self.cell(value_width, 7, f"${production_total:,.2f}", 1, new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='R', fill=True)
+                    if self.get_y() + 6 > self.h - 15:
+                        self.add_page()
+                        self.set_font('Arial', 'B', 10)
+                        self.cell(col_widths['Meal Type'], 7, "Meal Type", 1, 0, 'C', fill=True)
+                        self.cell(col_widths['Food Item'], 7, "Food Item", 1, 0, 'C', fill=True)
+                        self.cell(col_widths['Cost'], 7, "Cost", 1, 0, 'C', fill=True)
+                        self.cell(col_widths['Qty'], 7, "Qty", 1, 0, 'C', fill=True)
+                        self.cell(col_widths['Total'], 7, "Total", 1, 1, 'C', fill=True)
+                        self.set_font('Arial', '', 9)
 
-        pdf = PDF('P', 'mm', 'Letter', school_address, school_to_test)
+                    self.cell(col_widths['Meal Type'], 6, str(row['Meal Type']), 1)
+                    item_name = str(row['Food Item']).replace("’", "'").replace("–", "-").replace("—", "-")
+                    self.cell(col_widths['Food Item'], 6, item_name, 1)
+                    self.cell(col_widths['Cost'], 6, f"${row['Cost']:.2f}", 1, 0, 'R')
+                    self.cell(col_widths['Qty'], 6, str(row['Qty']), 1, 0, 'R')
+                    self.cell(col_widths['Total'], 6, f"${row['Total']:.2f}", 1, 1, 'R')
+                
+                # Footer rows for Subtotal, Expenses, and Total
+                self.set_font('Arial', 'B', 10)
+
+                # 1. Calculate Subtotal
+                subtotal_cost = data['Total'].sum()
+
+                # 2. Calculate Delivery Expenses (at 24%)
+                delivery_expenses = subtotal_cost * 0.24
+
+                # 3. Calculate Grand Total
+                grand_total_cost = subtotal_cost + delivery_expenses
+
+                # Define widths for labels and values
+                label_width = col_widths['Meal Type'] + col_widths['Food Item'] + col_widths['Cost'] + col_widths['Qty']
+                value_width = col_widths['Total']
+
+                # Row 1: Subtotal
+                self.set_font('Arial', 'I', 10) # Italic for sub-lines
+                self.cell(label_width, 7, "Subtotal", 1, 0, 'R', fill=True)
+                self.cell(value_width, 7, f"${subtotal_cost:,.2f}", 1, 1, 'R', fill=True)
+
+                # Row 2: Delivery Expenses
+                self.cell(label_width, 7, "Delivery Expenses", 1, 0, 'R', fill=True)
+                self.cell(value_width, 7, f"${delivery_expenses:,.2f}", 1, 1, 'R', fill=True)
+
+                # Row 3: Grand Total
+                self.set_font('Arial', 'B', 10) # Bold for the final total
+                self.cell(label_width, 7, "Total Production Cost", 1, 0, 'R', fill=True)
+                self.cell(value_width, 7, f"${grand_total_cost:,.2f}", 1, 1, 'R', fill=True)
+
+            
+            def add_chart(self, title, chart_path):
+                try:
+                    self.add_page()
+                    self.chapter_title(title)
+                    with Image.open(chart_path) as img:
+                        width, height = img.size
+                    aspect_ratio = height / width
+                    img_width = 190
+                    img_height = 190 * aspect_ratio
+                    if img_height > 240:
+                        img_height = 240
+                        img_width = 240 / aspect_ratio
+                    x_pos = (210 - img_width) / 2
+                    self.image(str(chart_path), x=x_pos, w=img_width, h=img_height)
+                except Exception as e:
+                    self.set_font('Arial', 'I', 10)
+                    self.set_text_color(255, 0, 0)
+                    self.cell(0, 10, f"Error loading chart: {chart_path.name}. File may be missing.")
+                    self.set_text_color(0, 0, 0)
+                    self.ln()
+
+        # --- Generate PDF ---
+        pdf = PDF('P', 'mm', 'Letter', school_to_test)
+        
+        # Page 1: Title & Summary
         pdf.add_page()
-        col_widths = [20, 120, 20, 15, 21]
-        pdf.create_table(df_final_report, col_widths, production_cost_total)
+        pdf.set_font('Arial', 'B', 24)
+        pdf.cell(0, 20, 'Optimization Recommendation', 0, 1, 'C')
+        pdf.ln(10)
+        pdf.set_font('Arial', 'B', 16)
+        pdf.cell(0, 10, f"School: {school_to_test.title()}", 0, 1, 'C')
+        pdf.ln(5)
+        pdf.set_font('Arial', 'I', 14)
+        pdf.cell(0, 10, "Scenario: Baseline Budget (100%)", 0, 1, 'C')
+        pdf.ln(10)
+        
+        pdf.add_metric_table("Budget vs. Cost", financial_data)
+        pdf.add_metric_table("Savings vs. Historical Spending", savings_data)
 
-        pdf_bytes = pdf.output(dest='S').encode('latin-1')
-        return pdf_bytes
+        # Page 2: Item Breakdown
+        pdf.add_page()
+        pdf.chapter_title(f"Recommended Monthly Production for {school_to_test.title()}")
+        pdf.add_item_table(df_final_report)
+        
+        # Subsequent Pages: Charts
+        chart_paths = {
+            "Overall Savings (All Schools)": RESULTS_DIR / "Baseline Budget" / "overall_savings_bar_chart_baseline.png",
+            "Total Savings by School Size": RESULTS_DIR / "Baseline Budget" / "savings_by_size_total_baseline.png",
+            "Savings % by School Size": RESULTS_DIR / "Baseline Budget" / "savings_by_size_percent_baseline.png"
+        }
+        for title, path in chart_paths.items():
+            pdf.add_chart(title, path)
+
+        # Return as bytes
+        return pdf.output(dest='S')
     
     except Exception as e:
         print(f"An unexpected error occurred during PDF generation: {e}")
