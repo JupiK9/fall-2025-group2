@@ -240,7 +240,7 @@ def generate_pdf(school_to_test, meal_type='Both'):
                     self.set_text_color(0, 0, 0) # Reset
                 self.ln(5)
 
-            def add_item_table(self, data):
+            def add_item_table(self, data, optimized_monthly_cost):
                 self.set_font('Arial', 'B', 10)
                 self.set_fill_color(220, 220, 220)
                 
@@ -278,8 +278,8 @@ def generate_pdf(school_to_test, meal_type='Both'):
                 # 1. Calculate Subtotal
                 subtotal_cost = data['Total'].sum()
 
-                # 2. Calculate Delivery Expenses (at 24%)
-                delivery_expenses = subtotal_cost * 0.24
+                # 2. Calculate Delivery Expenses
+                delivery_expenses = optimized_monthly_cost - subtotal_cost
 
                 # 3. Calculate Grand Total
                 grand_total_cost = subtotal_cost + delivery_expenses
@@ -345,7 +345,11 @@ def generate_pdf(school_to_test, meal_type='Both'):
         # Page 2: Item Breakdown
         pdf.add_page()
         pdf.chapter_title(f"Recommended Monthly Production for {school_to_test.title()}")
-        pdf.add_item_table(df_final_report)
+
+        # Calculate the monthly target cost from the annual data
+        opt_monthly_cost = financial_data["Optimized Annual Food Cost"] / 10
+
+        pdf.add_item_table(df_final_report, opt_monthly_cost)
         
         # Subsequent Pages: Charts
         chart_paths = {
