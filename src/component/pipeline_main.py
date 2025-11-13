@@ -107,6 +107,7 @@ def optimization_pipeline():
     BF_PATH = DATA / "clean-data" / "data_breakfast.csv"
     LN_PATH = DATA / "clean-data" / "data_lunch.csv"
     SC_PATH = DATA / "preprocessed-data" / "2022-2025 Fairfax County School Student Count.csv"
+    UNIT_COSTS_PATH = DATA / "preprocessed-data" / "unit_costs.csv"
     COORDINATES_PATH = DATA / "preprocessed-data" / "data_breakfast_with_coordinates.csv"
     GEOJSON_PATH = DATA / "preprocessed-data" / "School_Regions.geojson"
 
@@ -114,6 +115,7 @@ def optimization_pipeline():
         breakfast_file=BF_PATH,
         lunch_file=LN_PATH,
         student_counts_file=SC_PATH,
+        unit_costs_file=UNIT_COSTS_PATH,
         coordinates_file=COORDINATES_PATH,
         geojson_file=GEOJSON_PATH,
         total_budget=139144760

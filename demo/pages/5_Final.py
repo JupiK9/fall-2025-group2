@@ -7,12 +7,10 @@ import plotly.express as px
 from datetime import datetime
 import sys 
 
-# --- Page Configuration ---
+# Page Configuration
 st.set_page_config(layout="wide", page_title="School Food Dashboard")
 
-# ==================================================================
-# --- PATH DEFINITIONS (YOUR CORRECTED PATHS) ---
-# ==================================================================
+# Path Definitions
 try:
     # This path is '.../Group2_Fall_2025/demo/pages'
     PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -32,12 +30,8 @@ LN_PATH = CLEANED_DATA_DIR / "data_lunch.csv"
 if not DATA_DIR.exists() or not CLEANED_DATA_DIR.exists():
     st.error(f"Error: Data directories not found at {DATA_DIR}.")
     st.stop()
-# ==================================================================
 
-
-# ==================================================================
-# --- SYSTEM PATH & MODULE IMPORT (THE FIX) ---
-# ==================================================================
+# System Path & Module Imports
 SRC_DIR = PROJECT_ROOT / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.append(str(SRC_DIR))
@@ -51,12 +45,8 @@ except ImportError as e:
         f"Error: {e}"
     )
     st.stop()
-# ==================================================================
 
-
-# ==================================================================
-# --- HELPER FUNCTIONS ---
-# ==================================================================
+# Helper Functions
 def render_html(path: Path):
     try:
         with open(path, 'r', encoding='utf-8') as f:
@@ -103,32 +93,46 @@ def load_historical_data(bf_path, ln_path):
     
     total_costs_dict = (bf_costs.add(ln_costs, fill_value=0) * 10).to_dict()
     return df_b, df_l, total_costs_dict
-# ==================================================================
 
-
-# ==================================================================
-# --- 1. MAIN NAVIGATION SIDEBAR ---
-# ==================================================================
+# Main Navigation Sidebar
 st.sidebar.title("📊 Project Dashboard")
 
 page = st.sidebar.radio(
     "Select a View:",
     [
-        "📈 Optimization",
-        "🥪 Popularity Analysis",
-        "Generate Recommendation",
         "🔍 Exploratory Data Analysis (EDA)",
-        "📉 Regression Modeling"
+        "🥪 Popularity Analysis",
+        "📈 Optimization",
+        "📉 Regression Modeling",
+        "📄 Recommendation"
     ]
 )
 st.sidebar.markdown("---")
-# ==================================================================
 
+# EDA View
+if page == "🔍 Exploratory Data Analysis (EDA)":
+    st.title("Exploratory Data Analysis (EDA)")
+    st.info("This page is under construction. 🏗️")
+    st.write("This section will contain visualizations and insights from the initial data cleaning and exploration process.")
 
-# ==================================================================
-# --- 2. OPTIMIZATION VIEW ---
-# ==================================================================
-if page == "📈 Optimization":
+# Popularity Analysis View
+elif page == "🥪 Popularity Analysis":
+    st.title("Popularity Analysis")
+    st.info("This view shows the most popular food items based on historical data. This data is used to create the item-by-item production plan.")
+    st.header("Recommended Monthly Item Production")
+    try:
+        item_csv_path = OPTIMIZATION_DATA_DIR / "monthly_items_breakdown.csv"
+        df_items = pd.read_csv(item_csv_path)
+        
+        st.subheader("Breakfast")
+        st.dataframe(df_items[df_items['meal_type'] == 'Breakfast'].head(20))
+        st.subheader("Lunch")
+        st.dataframe(df_items[df_items['meal_type'] == 'Lunch'].head(20))
+        
+    except FileNotFoundError: st.error(f"Item breakdown file not found. Please run the pipeline. Missing: {item_csv_path.name}")
+
+# Optimization View
+elif page == "📈 Optimization":
     
     st.sidebar.header("Optimization Controls")
     SCENARIO_MAP = {
@@ -204,33 +208,40 @@ if page == "📈 Optimization":
     with tab4:
         st.header(f"Regional Savings Analysis (Choropleth): {selected_scenario_name}")
         st.write("Maps showing aggregated savings per region.")
-        # (Implementation for map tabs would go here)
-
-# ==================================================================
-# --- 3. POPULARITY VIEW ---
-# ==================================================================
-elif page == "🥪 Popularity Analysis":
-    st.title("Popularity Analysis")
-    st.info("This view shows the most popular food items based on historical data. This data is used to create the item-by-item production plan.")
-    st.header("Recommended Monthly Item Production")
-    try:
-        item_csv_path = OPTIMIZATION_DATA_DIR / "monthly_items_breakdown.csv"
-        df_items = pd.read_csv(item_csv_path)
         
-        st.subheader("Breakfast")
-        st.dataframe(df_items[df_items['meal_type'] == 'Breakfast'].head(20))
-        st.subheader("Lunch")
-        st.dataframe(df_items[df_items['meal_type'] == 'Lunch'].head(20))
-        
-    except FileNotFoundError: st.error(f"Item breakdown file not found. Please run the pipeline. Missing: {item_csv_path.name}")
+        region_tabs = st.tabs(["Overall Map", "Elementary Schools", "Middle Schools", "High Schools"])
+    
+        with region_tabs[0]:
+            st.write("All Schools")
+            map_path = SCENARIO_RESULTS_DIR / f"fcps_region_choropleth_overall{scenario_suffix}.html"
+            render_html(map_path)
+            
+        with region_tabs[1]:
+            st.write("Elementary Schools (ES)")
+            map_path = SCENARIO_RESULTS_DIR / f"fcps_region_choropleth_elementary{scenario_suffix}.html"
+            render_html(map_path)
+            
+        with region_tabs[2]:
+            st.write("Middle Schools (MS)")
+            map_path = SCENARIO_RESULTS_DIR / f"fcps_region_choropleth_middle{scenario_suffix}.html"
+            render_html(map_path)
+            
+        with region_tabs[3]:
+            st.write("High Schools (HS)")
+            map_path = SCENARIO_RESULTS_DIR / f"fcps_region_choropleth_high{scenario_suffix}.html"
+            render_html(map_path)
 
-# ==================================================================
-# --- 4. RECOMMENDATION VIEW ---
-# ==================================================================
-elif page == "Generate Recommendation":
+# Regression Modeling View
+elif page == "📉 Regression Modeling":
+    st.title("Regression Modeling")
+    st.info("This page is under construction. 🏗️")
+    st.write("This section will feature regression models for demand forecasting or waste prediction.")
+
+# Recommendation View
+elif page == "📄 Recommendation":
     st.title("School-Specific Recommendation")
     
-    # --- Load all necessary data ---
+    # Load all necessary data
     try:
         df_b, df_l, total_costs_dict = load_historical_data(BF_PATH, LN_PATH)
         
@@ -248,12 +259,9 @@ elif page == "Generate Recommendation":
         st.error(f"An error occurred loading data: {e}")
         st.stop()
         
-    # --- Sidebar Controls ---
+    # Sidebar Controls
     st.sidebar.header("Report Controls")
     
-    # NOTE: The scenario selector is for the TABS, but your PDF generator
-    # only reads the baseline files. I've left the selector here
-    # to keep the tabs functional.
     SCENARIO_MAP = {
         "Baseline Budget (100%)": ("Baseline Budget", "_baseline"),
         "Lower Budget Bounds (80%)": ("Lower Budget Bounds", "_lower_bound"),
@@ -267,7 +275,7 @@ elif page == "Generate Recommendation":
     
     selected_school = st.sidebar.selectbox("Select a School:", school_list)
     
-    # --- Load Data for Selected School & Scenario (for ST TABS) ---
+    # Load Data for Selected School & Scenario
     try:
         breakdown_csv_path = OPTIMIZATION_DATA_DIR / f"annual_school_breakdown{scenario_suffix}.csv"
         df_breakdown = pd.read_csv(breakdown_csv_path)
@@ -311,18 +319,10 @@ elif page == "Generate Recommendation":
     if st.sidebar.button("Generate PDF Report"):
         with st.spinner(f"Generating report for {selected_school.title()}..."):
             
-            # =================================================================
-            # --- THIS IS THE FIX ---
             # Call 'generate_pdf' with 'school_to_test'
-            # This matches your function: def generate_pdf(school_to_test, meal_type='Both')
-            
             pdf_data = generate_pdf(
                 school_to_test=selected_school
-                # We are omitting meal_type, so it uses the default 'Both'
             )
-            # We do NOT wrap in bytes(), because your new pdf_generator.py
-            # already returns bytes or None.
-            # =================================================================
             
             if pdf_data is None:
                 st.sidebar.error("PDF generation failed. Check terminal for errors.")
@@ -335,12 +335,12 @@ elif page == "Generate Recommendation":
                 )
                 st.sidebar.success("Report ready!")
 
-    # --- Main Page Content ---
+    # Main Page Content
     st.header(f"School Report: {selected_school.title()}")
     st.subheader(f"Scenario: {selected_scenario_name}")
     st.markdown("---")
 
-    # --- Create Tabs ---
+    # Create Tabs
     tab_financial, tab_breakfast, tab_lunch = st.tabs([
         "Financial Summary", "Breakfast Details", "Lunch Details"
     ])
@@ -426,20 +426,3 @@ elif page == "Generate Recommendation":
                 st.dataframe(opt_ln_items)
             except Exception as e:
                 st.warning(f"Could not load optimized lunch data. Error: {e}")
-
-
-# ==================================================================
-# --- 5. EDA VIEW (Placeholder) ---
-# ==================================================================
-elif page == "🔍 Exploratory Data Analysis (EDA)":
-    st.title("Exploratory Data Analysis (EDA)")
-    st.info("This page is under construction. 🏗️")
-    st.write("This section will contain visualizations and insights from the initial data cleaning and exploration process.")
-
-# ==================================================================
-# --- 6. REGRESSION VIEW (Placeholder) ---
-# ==================================================================
-elif page == "📉 Regression Modeling":
-    st.title("Regression Modeling")
-    st.info("This page is under construction. 🏗️")
-    st.write("This section will feature regression models for demand forecasting or waste prediction.")
