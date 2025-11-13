@@ -139,17 +139,16 @@ elif page == "🥪 Popularity Analysis":
     st.title("Food Item Popularity")
     
     try:
-        # Load data *only* for Top 15 charts
+        # Load data for Top 15 charts
         df_b = pd.read_csv(BF_PATH, low_memory=False)
         df_l = pd.read_csv(LN_PATH, low_memory=False)
         
         # Clean numeric columns for Top 15 charts
-        # --- 1. ADD 'left_over_total' TO THIS LIST ---
         num_cols = ["served_reimbursable", "left_over_total"]
         df_b = clean_numeric(df_b, num_cols)
         df_l = clean_numeric(df_l, num_cols)
 
-        # --- TOP 15 POPULAR CHARTS ---
+        # Top 15 Popular Items Charts
         st.header("Overall Food Item Popularity")
         st.write("Top 15 items across all schools, based on 'Served Reimbursable' meals.")
 
@@ -159,7 +158,6 @@ elif page == "🥪 Popularity Analysis":
             top_bf_all = df_b.groupby('name')['served_reimbursable'].sum().reset_index()
             top_bf_all = top_bf_all.sort_values(by='served_reimbursable', ascending=False).head(15)
             
-            # --- 2. ADD COLOR AND UPDATE TITLE ---
             fig_bf = px.bar(top_bf_all, x='served_reimbursable', y='name', 
                             orientation='h', title="Top 15 Popular Breakfast Items",
                             color_discrete_sequence=['green']) # <-- Make green
@@ -172,7 +170,6 @@ elif page == "🥪 Popularity Analysis":
             top_ln_all = df_l.groupby('name')['served_reimbursable'].sum().reset_index()
             top_ln_all = top_ln_all.sort_values(by='served_reimbursable', ascending=False).head(15)
 
-            # --- 2. ADD COLOR AND UPDATE TITLE ---
             fig_ln = px.bar(top_ln_all, x='served_reimbursable', y='name', 
                             orientation='h', title="Top 15 Popular Lunch Items",
                             color_discrete_sequence=['green']) # <-- Make green
@@ -183,7 +180,7 @@ elif page == "🥪 Popularity Analysis":
 
         st.markdown("---")
         
-        # --- 3. NEW SECTION: TOP 15 LEFTOVER CHARTS ---
+        # Top 15 Leftover Items Charts
         st.header("Overall Food Item Leftovers")
         st.write("Top 15 items across all schools, based on 'Left Over Total' units.")
 
@@ -232,7 +229,6 @@ elif page == "🥪 Popularity Analysis":
             st.plotly_chart(fig_ln_left, use_container_width=True)
             
         st.markdown("---")
-        # --- 4. END OF NEW SECTION ---
 
     except FileNotFoundError:
         st.error(f"Missing one or more data files. Please check paths:\n- {BF_PATH}\n- {LN_PATH}")
@@ -355,9 +351,6 @@ elif page == "📄 Recommendation":
     try:
         df_b, df_l, total_costs_dict = load_historical_data(BF_PATH, LN_PATH)
         
-        # --- CHANGE 1: DELETED ITEM FILE LOAD FROM HERE ---
-        # We will load this LATER, inside the scenario controls.
-        
         baseline_csv_path = OPTIMIZATION_DATA_DIR / "annual_school_breakdown_baseline.csv"
         df_school_list = pd.read_csv(baseline_csv_path)
         school_list = sorted(df_school_list['school'].unique())
@@ -412,11 +405,8 @@ elif page == "📄 Recommendation":
         total_savings = school_actual_cost - annual_food_cost
         percent_savings = (total_savings / school_actual_cost) * 100 if school_actual_cost > 0 else 0
 
-        # --- CHANGE 2: LOAD THE ITEM FILE HERE ---
-        # Now it uses the 'scenario_suffix' to get the correct file
         item_csv_path = OPTIMIZATION_DATA_DIR / f"monthly_items_breakdown{scenario_suffix}.csv"
         df_opt_items = pd.read_csv(item_csv_path)
-        # --- END CHANGE 2 ---
 
     except FileNotFoundError:
         st.error(f"Data files for '{selected_scenario_name}' not found. Please run the pipeline.")
@@ -429,10 +419,10 @@ elif page == "📄 Recommendation":
         st.exception(e)
         st.stop()
 
-    # --- PDF Generation Button ---
+    # PDF Generation Button
     st.sidebar.markdown("---")
     
-    # This text is now dynamic
+    # Make text dynamic
     st.sidebar.write(f"Generate PDF for **{selected_scenario_name}**:")
 
     # Update the button label to be more specific
@@ -440,12 +430,11 @@ elif page == "📄 Recommendation":
         
         # Update spinner text
         with st.spinner(f"Generating report for {selected_school.title()} ({selected_scenario_name})..."):
-            
-            # --- PASS THE NEW ARGUMENTS ---
+
             pdf_data = generate_pdf(
                 school_to_test=selected_school,
-                scenario_suffix=scenario_suffix,      # <-- ADDED
-                scenario_name=selected_scenario_name  # <-- ADDED
+                scenario_suffix=scenario_suffix,
+                scenario_name=selected_scenario_name
             )
             
             if pdf_data is None:
@@ -453,7 +442,7 @@ elif page == "📄 Recommendation":
             else:
                 st.sidebar.download_button(
                     label="✅ Download Report as PDF",
-                    data=bytes(pdf_data), # pdf_data is already bytes
+                    data=bytes(pdf_data),
                     # Make the file name unique for the scenario
                     file_name=f"{selected_school.replace(' ', '_')}_report{scenario_suffix}.pdf",
                     mime="application/pdf"
@@ -503,14 +492,13 @@ elif page == "📄 Recommendation":
                 fig = px.bar(top_bf, x='served_reimbursable', y='name', orientation='h', title="Top 5 Served (Historical)")
                 fig.update_layout(yaxis={'categoryorder':'total ascending'})
                 
-                st.dataframe(top_bf) # Corrected from top_f
+                st.dataframe(top_bf)
                 st.plotly_chart(fig, use_container_width=True)
             except Exception as e:
                 st.warning(f"Could not generate historical breakfast chart: {e}")
         
         with col2:
             st.subheader("Optimized Monthly Production")
-            # --- CHANGE 3: Made this label dynamic ---
             st.write(f"Recommended monthly item production from the *{selected_scenario_name}* optimization.")
             try:
                 opt_bf_items = df_opt_items[
@@ -542,7 +530,6 @@ elif page == "📄 Recommendation":
         
         with col2:
             st.subheader("Optimized Monthly Production")
-            # --- CHANGE 4: Made this label dynamic ---
             st.write(f"Recommended monthly item production from the *{selected_scenario_name}* optimization.")
             try:
                 opt_ln_items = df_opt_items[

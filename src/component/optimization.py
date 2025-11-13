@@ -10,7 +10,7 @@ from shapely.geometry import Point
 import plotly.express as px
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
-import re # Added for _compute_size_category
+import re
 
 # ==============================================================================
 # DATA PREPARATION
@@ -206,8 +206,7 @@ def run_meal_optimization_ilp(schools_to_optimize, meal_types, meal_costs,
         lower_budget_bounds.append(min_budgets.get(school, 0)) 
         upper_budget_bounds.append(max_budgets.get(school, float('inf')))
 
-    # Create the LinearConstraint object
-    # This single object defines: min_budget <= (cost expression) <= max_budget
+    # Create the LinearConstraint object, this single object defines: min_budget <= (cost expression) <= max_budget
     budget_constraints = LinearConstraint(A_matrix, lb=lower_budget_bounds, ub=upper_budget_bounds)
 
     # Bounds for production quantities
@@ -242,12 +241,10 @@ def run_meal_optimization_ilp(schools_to_optimize, meal_types, meal_costs,
 
 # ==============================================================================
 # PIPELINE HELPER FUNCTIONS
-# (Moved up to be defined before they are called)
 # ==============================================================================
 
 def _get_optimized_annual_cost_df(data, results_df, unit_costs_path):
     """
-    *** NEW HELPER FUNCTION ***
     Calculates the annual food cost per school based on the
     new item-based unit cost logic. This is the single source of truth.
     """
@@ -304,7 +301,6 @@ def _get_optimized_annual_cost_df(data, results_df, unit_costs_path):
 def prepare_savings_analysis_df(data, results_df, unit_costs_path):
     """
     Prepares a DataFrame comparing actual and optimized annual costs for each school.
-    *** MODIFIED to use new unit cost logic ***
     """
 
     if results_df is None:
@@ -315,28 +311,28 @@ def prepare_savings_analysis_df(data, results_df, unit_costs_path):
     df_sizes = data['df_sizes']
     MONTHS_IN_SCHOOL_YEAR = 10
 
-    # 1. Calculate Optimized Annual Cost per School (NEW LOGIC)
+    # Calculate Optimized Annual Cost per School
     optimized_costs = _get_optimized_annual_cost_df(data, results_df, unit_costs_path)
     if optimized_costs is None:
         print("Error: Could not calculate optimized costs for savings analysis.")
         return None
 
-    # 2. Calculate Actual Annual Cost per School (Same as before)
+    # Calculate Actual Annual Cost per School
     actual_costs_b = dfb.groupby('school_name')['production_cost_total'].sum()
     actual_costs_l = dfl.groupby('school_name')['production_cost_total'].sum()
     actual_costs = (actual_costs_b.add(actual_costs_l, fill_value=0) * MONTHS_IN_SCHOOL_YEAR).reset_index(name='actual_annual_cost')
     actual_costs.rename(columns={'school_name': 'school'}, inplace=True)
 
-    # 3. Combine into a single DataFrame
+    # Combine into a single DataFrame
     savings_df = pd.merge(actual_costs, optimized_costs, on='school', how='left')
     savings_df['optimized_annual_cost'] = savings_df['optimized_annual_cost'].fillna(0)
     savings_df['savings'] = savings_df['actual_annual_cost'] - savings_df['optimized_annual_cost']
     
-    # 4. Create outcome columns
+    # Create outcome columns
     savings_df['outcome'] = np.where(savings_df['savings'] >= 0, 'Savings', 'Loss')
     savings_df['savings_magnitude'] = savings_df['savings'].abs()
     
-    # 5. Add size category
+    # Add size category
     try:
         size_map = _compute_size_category(df_sizes, preferred_year="2024-2025")
         savings_df = pd.merge(
@@ -356,7 +352,6 @@ def prepare_savings_analysis_df(data, results_df, unit_costs_path):
 def analyze_savings_by_school_size(opt_data, results_df, unit_costs_path, df_sizes):
     """
     Aggregates the budget, optimized cost, and savings by school size category.
-    *** MODIFIED to use new unit cost logic ***
     """
 
     if results_df is None or df_sizes is None:
@@ -451,8 +446,7 @@ def generate_item_breakdown(optimization_results_df, dfb, dfl, output_filename):
 
 def calculate_actual_annual_cost(data):
     """
-    Calculates the actual total food cost from the source data and
-    extrapolates it to a full 10-month school year.
+    Calculates the actual total food cost from the source data and extrapolates it to a full 10-month school year.
     """
 
     print("\nCalculating Baseline (Actual) Annual Food Cost...")
@@ -472,12 +466,7 @@ def calculate_actual_annual_cost(data):
 
 def analyze_annual_budget(results_df, school_budgets, meal_costs, data, unit_costs_path, actual_annual_cost=None):
     """
-    Calculates the remaining annual budget for each school after scaling the
-    optimized monthly food costs to a full 10-month school year.
-    
-    *** MODIFIED VERSION ***
-    This version calculates the optimized cost based on the
-    detailed item breakdown and unit costs, not average meal costs.
+    Calculates the remaining annual budget for each school after scaling the optimized monthly food costs to a full 10-month school year.
     """
 
     if results_df is None:
@@ -488,19 +477,13 @@ def analyze_annual_budget(results_df, school_budgets, meal_costs, data, unit_cos
 
     MONTHS_IN_SCHOOL_YEAR = 10
     
-    # --- Start New Logic: Calculate cost from item breakdown ---
-    # This logic is now centralized in _get_optimized_annual_cost_df
-    
     optimized_cost_df = _get_optimized_annual_cost_df(data, results_df, unit_costs_path)
     if optimized_cost_df is None:
         print("Failed to calculate optimized costs. Aborting budget analysis.")
         return None
         
     # Merge the optimized annual cost with the budget info
-    # Need to get the monthly cost back for the budget_analysis_df
     optimized_cost_df['monthly_food_cost'] = optimized_cost_df['optimized_annual_cost'] / MONTHS_IN_SCHOOL_YEAR
-    
-    # --- End New Logic ---
 
     annual_budgets_list = [
         (school, monthly_budget * MONTHS_IN_SCHOOL_YEAR)
@@ -513,7 +496,6 @@ def analyze_annual_budget(results_df, school_budgets, meal_costs, data, unit_cos
 
     # Rename the 'optimized_annual_cost' column to 'annual_food_cost' to match the rest of the function
     budget_analysis_df.rename(columns={'optimized_annual_cost': 'annual_food_cost'}, inplace=True)
-    #budget_analysis_df['annual_food_cost'] = budget_analysis_df['monthly_food_cost'] * MONTHS_IN_SCHOOL_YEAR * 10
 
     # Calculate remaining balance
     budget_analysis_df['remaining_annual_balance'] = budget_analysis_df['proportional_annual_budget'] - budget_analysis_df['annual_food_cost']
@@ -547,7 +529,6 @@ def analyze_annual_budget(results_df, school_budgets, meal_costs, data, unit_cos
 
 # ==============================================================================
 # GEOSPATIAL AND PLOTTING FUNCTIONS
-# (Moved above pipelines to fix NameError)
 # ==============================================================================
 
 def generate_savings_analysis_chart(opt_data, monthly_results_df, unit_costs_path, out_dir=None, file_suffix: str = ""):
@@ -623,17 +604,16 @@ def generate_savings_analysis_chart(opt_data, monthly_results_df, unit_costs_pat
 def generate_overall_savings_bar_chart(opt_data, monthly_results_df, unit_costs_path, out_dir=None, file_suffix: str = ""):
     """
     Builds and saves a bar chart comparing Actual (baseline) vs Optimized annual costs.
-    *** MODIFIED to use new unit cost logic ***
     """
 
     if monthly_results_df is None:
         print("No monthly optimization results available to plot.")
         return None
 
-    # 1. Calculate actual annual cost from source data
+    # Calculate actual annual cost from source data
     actual_annual_cost = calculate_actual_annual_cost(opt_data)
 
-    # 2. Calculate optimized annual cost (NEW LOGIC)
+    # Calculate optimized annual cost using item unit costs
     print("\n[Bar Chart] Calculating Optimized Cost using Item Unit Costs...")
     optimized_cost_df = _get_optimized_annual_cost_df(opt_data, monthly_results_df, unit_costs_path)
     
@@ -642,8 +622,6 @@ def generate_overall_savings_bar_chart(opt_data, monthly_results_df, unit_costs_
         return None
         
     optimized_annual_cost = optimized_cost_df['optimized_annual_cost'].sum()
-    
-    # --- END NEW LOGIC ---
 
     labels = ['Actual Cost (2025 Baseline)', 'Optimized Cost']
     values = [actual_annual_cost, optimized_annual_cost]
@@ -692,7 +670,6 @@ def generate_overall_savings_bar_chart(opt_data, monthly_results_df, unit_costs_
 def generate_savings_by_size_charts(opt_data, monthly_results_df, unit_costs_path, out_dir=None, file_suffix: str = ""):
     """
     Saves two bar charts with a unique file suffix.
-    *** MODIFIED to use new unit cost logic ***
     """
 
     if monthly_results_df is None:
@@ -711,7 +688,7 @@ def generate_savings_by_size_charts(opt_data, monthly_results_df, unit_costs_pat
     except Exception:
         df_sizes = opt_data['df_sizes']
 
-    # Aggregate (Uses new logic)
+    # Aggregate
     savings_by_size_df = analyze_savings_by_school_size(
         opt_data,
         monthly_results_df,
@@ -815,7 +792,6 @@ def prepare_map_data_from_coordinates(savings_df, coordinates_csv_path):
 def generate_savings_map(opt_data, monthly_results_df, unit_costs_path, coordinates_file, out_dir=None, file_suffix: str = ""):
     """
     Builds an interactive Folium bubble map of savings by school and writes it to HTML.
-    *** MODIFIED to use new unit cost logic ***
     """
 
     if monthly_results_df is None:
@@ -892,7 +868,6 @@ def generate_savings_map(opt_data, monthly_results_df, unit_costs_path, coordina
 def generate_savings_maps_by_level(opt_data, monthly_results_df, unit_costs_path, coordinates_file, out_dir=None, file_suffix: str = ""):
     """
     Creates three interactive Folium bubble maps (Elementary / Middle / High).
-    *** MODIFIED to use new unit cost logic ***
     """
 
     if monthly_results_df is None:
@@ -1185,7 +1160,6 @@ def generate_all_region_choropleths(
     Creates:
       - Overall region choropleth
       - Per-level (ES/MS/HS) region choropleths
-    *** MODIFIED to use new unit cost logic ***
     """
     
     if monthly_results_df is None:
@@ -1321,7 +1295,7 @@ def _compute_size_category(df_sizes, preferred_year="2024-2025"):
         raise KeyError("Expected 'school_name' in df_sizes")
     sizes['school_name'] = sizes['school_name'].astype(str).str.strip().str.lower()
 
-    # Pick the year column: prefer '2024-2025', else latest year-like col
+    # The year column
     year_col = preferred_year.lower() if preferred_year.lower() in sizes.columns else None
     if year_col is None:
         year_cols = []
@@ -1481,7 +1455,7 @@ def run_monthly_proportional_pipeline(
                 generate_savings_map(
                     opt_data, 
                     monthly_results_df, 
-                    unit_costs_file,  # <-- ADDED
+                    unit_costs_file,
                     coordinates_file, 
                     out_dir=graph_output_dir,
                     file_suffix=file_suffix
@@ -1490,7 +1464,7 @@ def run_monthly_proportional_pipeline(
                 generate_savings_maps_by_level(
                     opt_data, 
                     monthly_results_df, 
-                    unit_costs_file,  # <-- ADDED
+                    unit_costs_file,  
                     coordinates_file, 
                     out_dir=graph_output_dir,
                     file_suffix=file_suffix
@@ -1499,7 +1473,7 @@ def run_monthly_proportional_pipeline(
                 generate_all_region_choropleths(
                     opt_data, 
                     monthly_results_df, 
-                    unit_costs_file,  # <-- ADDED
+                    unit_costs_file,
                     coordinates_file, 
                     geojson_file, 
                     out_dir=graph_output_dir,
@@ -1510,7 +1484,7 @@ def run_monthly_proportional_pipeline(
             generate_savings_by_size_charts(
                 opt_data,
                 monthly_results_df,
-                unit_costs_file,  # <-- ADDED
+                unit_costs_file,
                 out_dir=graph_output_dir,
                 file_suffix=file_suffix
             )
@@ -1519,30 +1493,28 @@ def run_monthly_proportional_pipeline(
             generate_savings_analysis_chart(
                 opt_data,
                 monthly_results_df,
-                unit_costs_file,  # <-- ADDED
+                unit_costs_file,
                 out_dir=graph_output_dir,
                 file_suffix=file_suffix
             )
             generate_overall_savings_bar_chart(
                 opt_data,
                 monthly_results_df,
-                unit_costs_file,  # <-- ADDED
+                unit_costs_file,
                 out_dir=graph_output_dir,
                 file_suffix=file_suffix
             )
             
-            # --- START: MODIFICATION ---
             # Generate the item breakdown for *this* specific scenario
             print(f"\nGenerating item breakdown for {name} scenario...")
             item_breakdown_path = csv_output_dir / f'monthly_items_breakdown{file_suffix}.csv'
             
             generate_item_breakdown(
-                monthly_results_df, # Use the results from this loop
+                monthly_results_df,
                 opt_data['dfb'],
                 opt_data['dfl'],
                 str(item_breakdown_path)
             )
-            # --- END: MODIFICATION ---
             
             if name == "baseline":
                 baseline_results = {
@@ -1606,9 +1578,6 @@ def run_all_optimizations(
         'monthly_meal_costs': monthly_meal_costs
     }
 
-# ==============================================================================
-# LEGACY FUNCTIONS (kept for compatibility, but overridden by new logic)
-# ==============================================================================
 
 def run_size_based_optimization(schools_to_optimize, meal_types, meal_costs, demand, school_budgets, total_budget, waste_penalty, all_school_lists, dfb, dfl):
     """
@@ -1644,9 +1613,6 @@ def run_size_based_optimization(schools_to_optimize, meal_types, meal_costs, dem
             bounds.append((avg_demand * min_factor, avg_demand * max_factor))
     print("Production bounds have been set based on custom school sizes.")
 
-    # Run the base optimization logic
-    # This is a legacy call, it won't use the correct arguments for the ILP runner
-    # results_df = run_meal_optimization_ilp(schools_to_optimize, meal_types, meal_costs, demand, school_budgets, total_budget, waste_penalty, bounds)
     print("Warning: run_size_based_optimization is a legacy function.")
     results_df = None # Bypassing
 
@@ -1682,7 +1648,7 @@ def run_size_based_optimization(schools_to_optimize, meal_types, meal_costs, dem
 
 def run_monthly_meal_optimization(schools_to_optimize, meal_types, meal_costs, demand, waste_penalty, bounds):
     """
-    (Legacy) Runs the monthly meal optimization with no budget constraint.
+    Runs the monthly meal optimization with no budget constraint.
     """
 
     num_vars = len(schools_to_optimize) * len(meal_types)
