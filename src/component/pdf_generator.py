@@ -20,8 +20,8 @@ RESULTS_DIR = DATA_DIR / "results"
 PREPROCESSED_DATA_DIR = DATA_DIR / 'preprocessed-data'
 
 # --- NEW PIPELINE FILES ---
-OPTIMIZATION_FILE = OPTIMIZATION_DATA_DIR / 'monthly_items_breakdown.csv' 
-FINANCIAL_FILE = OPTIMIZATION_DATA_DIR / 'annual_school_breakdown_baseline.csv'
+#OPTIMIZATION_FILE = OPTIMIZATION_DATA_DIR / 'monthly_items_breakdown_baseline.csv' 
+#FINANCIAL_FILE = OPTIMIZATION_DATA_DIR / 'annual_school_breakdown_baseline.csv'
 
 # --- HISTORICAL COST & ID MAPPING FILES ---
 HISTORICAL_BF_FILE = CLEANED_DATA_DIR / "data_breakfast.csv"
@@ -31,19 +31,23 @@ HISTORICAL_LN_FILE = CLEANED_DATA_DIR / "data_lunch.csv"
 COST_FILE = PREPROCESSED_DATA_DIR / 'unit_costs.csv' 
 
 # Logo path
-LOGO_FILE = PROJECT_ROOT / 'demo' / 'fcps_logo2.png'
+LOGO_FILE = PROJECT_ROOT / 'demo' / 'images' / 'fcps_logo2.png'
 # ==================================================================
 
 
-def generate_pdf(school_to_test, meal_type='Both'):
+def generate_pdf(school_to_test, scenario_suffix, scenario_name, meal_type='Both'):
     """
     Generates the food order recommendation PDF for a given school.
     Reads from the NEW optimization pipeline output files.
     """
     try:
         # Load All NEW Data
-        df_opt = pd.read_csv(OPTIMIZATION_FILE)
-        df_financial = pd.read_csv(FINANCIAL_FILE)
+        opt_file_path = OPTIMIZATION_DATA_DIR / f'monthly_items_breakdown{scenario_suffix}.csv'
+        fin_file_path = OPTIMIZATION_DATA_DIR / f'annual_school_breakdown{scenario_suffix}.csv'
+
+        # Load All NEW Data
+        df_opt = pd.read_csv(opt_file_path)
+        df_financial = pd.read_csv(fin_file_path)
         df_costs = pd.read_csv(COST_FILE)
         
         # Load historical data for COST calculation
@@ -190,17 +194,13 @@ def generate_pdf(school_to_test, meal_type='Both'):
                 self.set_auto_page_break(auto=True, margin=15)
 
             def header(self):
+                # Suppress header for the first page
+                if self.page_no() == 1:
+                    return
+
                 self.set_font('Arial', 'B', 12)
                 self.cell(0, 10, 'School Food Optimization Report', 0, 1, 'C')
-                
-                try:
-                    page_width, logo_width, right_margin = self.w, 30, 10
-                    logo_x = page_width - logo_width - right_margin
-                    if LOGO_FILE.exists(): 
-                        self.image(str(LOGO_FILE), x=logo_x, y=8, w=logo_width)
-                except Exception as e: 
-                    print(f"Error adding logo: {e}.")
-                
+
                 self.ln(10)
 
             def footer(self):
@@ -210,16 +210,48 @@ def generate_pdf(school_to_test, meal_type='Both'):
 
             def chapter_title(self, title):
                 self.set_font('Arial', 'B', 14)
-                self.cell(0, 10, title, 0, 1, 'L')
+                self.cell(0, 10, title, 0, 1, 'C')
                 self.ln(5)
 
             def add_metric_table(self, title, data_dict):
                 self.set_font('Arial', 'B', 12)
                 self.cell(0, 10, title, 0, 1, 'L')
                 self.ln(2)
-                
+
+                # Draw the table
                 self.set_font('Arial', '', 12)
+                self.set_line_width(0.5)
+                self.set_draw_color(150, 150, 150) # Light gray border
+
+                # Calculate total height for the box
+                total_height = 0
+                line_height = 10
+                for value in data_dict.values():
+                    if value == "---":
+                        total_height += 4 # Space for separator
+                    else:
+                        total_height += line_height
+
+                # Draw outer box
+                start_x = self.get_x()
+                start_y = self.get_y()
+                self.cell(0, total_height, '', 1, 1, 'L')
+                self.set_xy(start_x, start_y)
+
+                col_width = 90
+
                 for name, value in data_dict.items():
+                    # --- Handle Separator ---
+                    if value == "---":
+                        self.set_font('Arial', '', 4)
+                        self.set_x(start_x + 5) # Indent the line
+                        self.cell(self.w - start_x*2 - 10, 2, '', 'T', 1, 'L') 
+                        self.ln(2)
+                        continue # Skip the rest of the loop
+
+                    self.set_font('Arial', 'B', 12)
+                    self.set_x(start_x + 5) # Add padding
+
                     if isinstance(value, (int, float)):
                         value_str = f"${value:,.2f}"
                         is_positive = value >= 0
@@ -227,17 +259,22 @@ def generate_pdf(school_to_test, meal_type='Both'):
                         value_str = str(value)
                         is_positive = "Savings" in name and "%" in value_str and not value_str.startswith('-')
 
-                    self.set_font('Arial', 'B', 12)
-                    self.cell(90, 10, name, 0, 0, 'L')
-                    
+                    self.cell(col_width, line_height, name, 0, 0, 'L')
+
                     if is_positive:
                         self.set_text_color(34, 139, 34)  # Green
                     else:
                         self.set_text_color(220, 20, 60)   # Red
-                        
+
                     self.set_font('Arial', '', 12)
-                    self.cell(0, 10, value_str, 0, 1, 'R')
+
+                    # Set X for the value, right-aligned
+                    value_x = start_x + self.w - self.l_margin - self.r_margin - 5
+                    self.set_x(value_x) 
+
+                    self.cell(0, line_height, value_str, 0, 1, 'R')
                     self.set_text_color(0, 0, 0) # Reset
+
                 self.ln(5)
 
             def add_item_table(self, data, optimized_monthly_cost):
@@ -252,12 +289,35 @@ def generate_pdf(school_to_test, meal_type='Both'):
                 self.cell(col_widths['Qty'], 7, "Qty", 1, 0, 'C', fill=True)
                 self.cell(col_widths['Total'], 7, "Total", 1, 1, 'C', fill=True)
                 
+                # Set base line height
+                line_h = 6 
                 self.set_font('Arial', '', 9)
-                
+
                 for _, row in data.iterrows():
-                    if self.get_y() + 6 > self.h - 15:
+                    # --- 1. Prepare cell content ---
+                    item_name = str(row['Food Item']).replace("’", "'").replace("–", "-").replace("—", "-")
+                    meal_type_str = str(row['Meal Type'])
+                    cost_str = f"${row['Cost']:.2f}"
+                    qty_str = str(row['Qty'])
+                    total_str = f"${row['Total']:.2f}"
+
+                    # --- 2. Calculate max height of row ---
+                    # Use split_only=True to find how many lines the text needs
+                    item_lines = self.multi_cell(col_widths['Food Item'], line_h, item_name, 0, 'L', split_only=True)
+                    num_lines = len(item_lines)
+                    
+                    # Also check meal_type_str, just in case
+                    meal_lines = self.multi_cell(col_widths['Meal Type'], line_h, meal_type_str, 0, 'L', split_only=True)
+                    num_lines = max(num_lines, len(meal_lines))
+
+                    # Row height is number of lines * line height (min 1 line)
+                    row_height = max(line_h, num_lines * line_h)
+
+                    # --- 3. Check for page break ---
+                    if self.get_y() + row_height > self.h - 15:
                         self.add_page()
                         self.set_font('Arial', 'B', 10)
+                        # Redraw headers
                         self.cell(col_widths['Meal Type'], 7, "Meal Type", 1, 0, 'C', fill=True)
                         self.cell(col_widths['Food Item'], 7, "Food Item", 1, 0, 'C', fill=True)
                         self.cell(col_widths['Cost'], 7, "Cost", 1, 0, 'C', fill=True)
@@ -265,82 +325,95 @@ def generate_pdf(school_to_test, meal_type='Both'):
                         self.cell(col_widths['Total'], 7, "Total", 1, 1, 'C', fill=True)
                         self.set_font('Arial', '', 9)
 
-                    self.cell(col_widths['Meal Type'], 6, str(row['Meal Type']), 1)
-                    item_name = str(row['Food Item']).replace("’", "'").replace("–", "-").replace("—", "-")
-                    self.cell(col_widths['Food Item'], 6, item_name, 1)
-                    self.cell(col_widths['Cost'], 6, f"${row['Cost']:.2f}", 1, 0, 'R')
-                    self.cell(col_widths['Qty'], 6, str(row['Qty']), 1, 0, 'R')
-                    self.cell(col_widths['Total'], 6, f"${row['Total']:.2f}", 1, 1, 'R')
+                    # --- 4. Draw all cells, managing X/Y manually ---
+                    start_y = self.get_y()
+                    start_x = self.get_x()
+
+                    # --- FIX ---
+                    # Draw the "Meal Type" cell with the full row_height
+                    self.cell(col_widths['Meal Type'], row_height, meal_type_str, 1, 0, 'L')
+                    
+                    # Record the x-position for the *next* cell
+                    food_item_x = self.get_x() 
+                    
+                    # Draw the single-line cells from right-to-left
+                    # Set X to the start of the 'Total' column
+                    self.set_xy(start_x + col_widths['Meal Type'] + col_widths['Food Item'] + col_widths['Cost'] + col_widths['Qty'], start_y)
+                    self.cell(col_widths['Total'], row_height, total_str, 1, 0, 'R')
+                    
+                    self.set_xy(start_x + col_widths['Meal Type'] + col_widths['Food Item'] + col_widths['Cost'], start_y)
+                    self.cell(col_widths['Qty'], row_height, qty_str, 1, 0, 'R')
+                    
+                    self.set_xy(start_x + col_widths['Meal Type'] + col_widths['Food Item'], start_y)
+                    self.cell(col_widths['Cost'], row_height, cost_str, 1, 0, 'R')
+
+                    # Now, draw the wrapping "Food Item" cell in its reserved space
+                    self.set_xy(food_item_x, start_y)
+                    
+                    # --- FIX ---
+                    # Use multi_cell for wrapping, and add the border '1'
+                    self.multi_cell(col_widths['Food Item'], line_h, item_name, 1, 'L')
+                    
+                    # Move cursor to the next line, aligned with the bottom of the tallest cell
+                    self.set_y(start_y + row_height)
                 
                 # Footer rows for Subtotal, Expenses, and Total
                 self.set_font('Arial', 'B', 10)
 
-                # 1. Calculate Subtotal
-                subtotal_cost = data['Total'].sum()
-
-                # 2. Calculate Delivery Expenses
-                delivery_expenses = optimized_monthly_cost - subtotal_cost
-
-                # 3. Calculate Grand Total
-                grand_total_cost = subtotal_cost + delivery_expenses
+                # Get the total cost from the optimization file
+                total_cost = optimized_monthly_cost 
 
                 # Define widths for labels and values
                 label_width = col_widths['Meal Type'] + col_widths['Food Item'] + col_widths['Cost'] + col_widths['Qty']
                 value_width = col_widths['Total']
 
-                # Row 1: Subtotal
-                self.set_font('Arial', 'I', 10) # Italic for sub-lines
-                self.cell(label_width, 7, "Subtotal", 1, 0, 'R', fill=True)
-                self.cell(value_width, 7, f"${subtotal_cost:,.2f}", 1, 1, 'R', fill=True)
-
-                # Row 2: Delivery Expenses
-                self.cell(label_width, 7, "Delivery Expenses", 1, 0, 'R', fill=True)
-                self.cell(value_width, 7, f"${delivery_expenses:,.2f}", 1, 1, 'R', fill=True)
-
-                # Row 3: Grand Total
+                # Final "Total Production Cost" row
                 self.set_font('Arial', 'B', 10) # Bold for the final total
                 self.cell(label_width, 7, "Total Production Cost", 1, 0, 'R', fill=True)
-                self.cell(value_width, 7, f"${grand_total_cost:,.2f}", 1, 1, 'R', fill=True)
-
-            
-            def add_chart(self, title, chart_path):
-                try:
-                    self.add_page()
-                    self.chapter_title(title)
-                    with Image.open(chart_path) as img:
-                        width, height = img.size
-                    aspect_ratio = height / width
-                    img_width = 190
-                    img_height = 190 * aspect_ratio
-                    if img_height > 240:
-                        img_height = 240
-                        img_width = 240 / aspect_ratio
-                    x_pos = (210 - img_width) / 2
-                    self.image(str(chart_path), x=x_pos, w=img_width, h=img_height)
-                except Exception as e:
-                    self.set_font('Arial', 'I', 10)
-                    self.set_text_color(255, 0, 0)
-                    self.cell(0, 10, f"Error loading chart: {chart_path.name}. File may be missing.")
-                    self.set_text_color(0, 0, 0)
-                    self.ln()
+                self.cell(value_width, 7, f"${total_cost:,.2f}", 1, 1, 'R', fill=True)
 
         # --- Generate PDF ---
         pdf = PDF('P', 'mm', 'Letter', school_to_test)
         
         # Page 1: Title & Summary
         pdf.add_page()
+
+        # --- 1. Add Logo to Top Right ---
+        try:
+            if LOGO_FILE.exists():
+                page_width = pdf.w
+                logo_width, right_margin = 30, 10
+                logo_x = page_width - logo_width - right_margin
+                pdf.image(str(LOGO_FILE), x=logo_x, y=8, w=logo_width)
+        except Exception as e: 
+            print(f"Error adding logo to Page 1: {e}.")
+
+        # --- 2. Add Left-Aligned Title Block ---
+        pdf.set_y(20) # Move down to start content
+
         pdf.set_font('Arial', 'B', 24)
-        pdf.cell(0, 20, 'Optimization Recommendation', 0, 1, 'C')
-        pdf.ln(10)
+        pdf.cell(0, 15, 'Optimization Recommendation', 0, 1, 'L') # Left align
+
         pdf.set_font('Arial', 'B', 16)
-        pdf.cell(0, 10, f"School: {school_to_test.title()}", 0, 1, 'C')
-        pdf.ln(5)
+        pdf.cell(0, 10, f"School: {school_to_test.title()}", 0, 1, 'L')
+
         pdf.set_font('Arial', 'I', 14)
-        pdf.cell(0, 10, "Scenario: Baseline Budget (100%)", 0, 1, 'C')
-        pdf.ln(10)
-        
-        pdf.add_metric_table("Budget vs. Cost", financial_data)
-        pdf.add_metric_table("Savings vs. Historical Spending", savings_data)
+        pdf.cell(0, 10, f"Scenario: {scenario_name}", 0, 1, 'L')
+        pdf.ln(10) # Add space before the table
+
+        # --- 3. Combine financial data into one dict ---
+        combined_financial_data = {
+            "Allocated Annual Budget": financial_data["Allocated Annual Budget"],
+            "Optimized Annual Food Cost": financial_data["Optimized Annual Food Cost"],
+            "Remaining Budget Balance": financial_data["Remaining Budget Balance"],
+            "---": "---", # Simple separator
+            "Actual Historical Cost": savings_data["Actual Historical Cost"],
+            "Total Annual Savings": savings_data["Total Annual Savings"],
+            "Savings Percentage": savings_data["Savings Percentage"]
+        }
+
+        # --- 4. Call the metric table function ONCE ---
+        pdf.add_metric_table("Financial Summary", combined_financial_data)
 
         # Page 2: Item Breakdown
         pdf.add_page()
@@ -350,15 +423,6 @@ def generate_pdf(school_to_test, meal_type='Both'):
         opt_monthly_cost = financial_data["Optimized Annual Food Cost"] / 10
 
         pdf.add_item_table(df_final_report, opt_monthly_cost)
-        
-        # Subsequent Pages: Charts
-        chart_paths = {
-            "Overall Savings (All Schools)": RESULTS_DIR / "Baseline Budget" / "overall_savings_bar_chart_baseline.png",
-            "Total Savings by School Size": RESULTS_DIR / "Baseline Budget" / "savings_by_size_total_baseline.png",
-            "Savings % by School Size": RESULTS_DIR / "Baseline Budget" / "savings_by_size_percent_baseline.png"
-        }
-        for title, path in chart_paths.items():
-            pdf.add_chart(title, path)
 
         # Return as bytes
         return pdf.output(dest='S')
