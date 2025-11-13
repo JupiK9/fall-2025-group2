@@ -40,7 +40,7 @@ Food waste in U.S. public schools presents a significant economic and environmen
 │           ├── 2📊Sales EDA.py
 │           ├── 3🔮Future Ideas.py
 │           ├── 4📊Results.py
-│           └── 5_Final.py
+│           └── streamlit_app.py
 │
 ├── presentation
 │   └── fig
@@ -128,8 +128,9 @@ Food waste in U.S. public schools presents a significant economic and environmen
 
 ```
 
-## Installation Steps
+## Initial Steps
 
+### Module Installation
 You can install the following modules through pip
 
 ```bash
@@ -158,6 +159,27 @@ The script will install the following modules required for the program to run:
 - `streamlit`
 - `streamlit-folium`
 - `geojson`
+
+### Download Required Data
+The raw data for this project (HTML, PDF, GEOJSON) is hosted on Box and can be downloaded using the provided script.
+
+**Prerequisites**
+- **Windows**: You **must** use **Git Bash** to run the script. The standard Windows Command Prompt (cmd) or Powershell will not work.
+- **macOS/Linux**: You can use the standard built-in terminal.
+- **Software**: The script requires `wget` and `unzip`, which are typically included with Git Bash, macOS, and Linux distributions.
+
+**Download Instructions**
+Navigate to the `src/data` directory where the script is located:
+
+```bash
+cd src/data
+```
+
+Run the downloader script:
+
+```bash
+bash data-downloader.sh
+```
 
 ## Processes and Scripts
 
@@ -219,7 +241,7 @@ The script will install the following modules required for the program to run:
 
 ### 5. Streamlit UI Application
 - **Objective**: Provide users a user interface of data analysis performed by the main program, and allow users to produce recommendation forms
-- **Script**: `5_Final.py`
+- **Script**: `streamlit_app.py`
 - **Inputs**:
     - Folder with EDA result files
     - Folder with leftover result files
