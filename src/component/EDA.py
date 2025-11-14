@@ -44,8 +44,8 @@ def run_eda(dfb, dfl, dfs, output_folder):
     # ------------------------------------------------------------
     # Merge coordinate/metadata files (required for fcps region)
     # ------------------------------------------------------------
-    coord_bf = pd.read_csv(Path(__file__).resolve().parents[1] / "data" / "preprocessed-data" / "data_breakfast_with_coordinates.csv")
-    coord_lf = pd.read_csv(Path(__file__).resolve().parents[1] / "data" / "preprocessed-data" / "data_lunch_with_coordinates.csv")
+    coord_bf = pd.read_csv(Path(__file__).resolve().parents[1] / "data" / "preprocessed-data" / "data_breakfast_with_coordinates.csv", low_memory=False)
+    coord_lf = pd.read_csv(Path(__file__).resolve().parents[1] / "data" / "preprocessed-data" / "data_lunch_with_coordinates.csv", low_memory=False)
 
 
     coord_bf.columns = coord_bf.columns.str.lower()
