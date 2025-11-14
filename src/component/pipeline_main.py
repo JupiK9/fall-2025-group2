@@ -1,5 +1,6 @@
 import sys, os
 from pathlib import Path
+import pandas as pd 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))      # .../src/main_code
 SRC_DIR  = os.path.abspath(os.path.join(BASE_DIR, ".."))   # .../src
@@ -19,6 +20,8 @@ from component.popularity import (
 from component.optimization import (
     run_all_optimizations
 )
+from component.EDA import run_eda
+
 
 def html_csv_pipeline():
     """
@@ -123,4 +126,18 @@ def optimization_pipeline():
         print("[Optimization] Monthly ILP results missing; charts skipped.")
         return
     
-    
+
+def eda_pipeline():
+    print("\n[EDA] Starting EDA...")
+
+    breakfast_file = DATA / "clean-data" / "data_breakfast.csv"
+    lunch_file     = DATA / "clean-data" / "data_lunch.csv"
+    sales_file     = DATA / "clean-data" / "sales.csv"
+
+    bf_df  = pd.read_csv(breakfast_file)
+    l_df   = pd.read_csv(lunch_file)
+    s_df   = pd.read_csv(sales_file)
+
+    results_path = DATA / "results" / "EDA"
+
+    run_eda(bf_df, l_df, s_df, results_path)

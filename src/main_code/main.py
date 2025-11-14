@@ -6,7 +6,7 @@ SRC_DIR = CUR_DIR.parent
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from component.pipeline_main import (html_csv_pipeline, pdf_pipeline, popularity_pipeline, optimization_pipeline)
+from component.pipeline_main import (html_csv_pipeline, pdf_pipeline, popularity_pipeline, optimization_pipeline,eda_pipeline)
 
 if __name__ == "__main__":
     """
@@ -17,4 +17,5 @@ if __name__ == "__main__":
     pdf_pipeline()
     popularity_pipeline()
     optimization_pipeline()
+    eda_pipeline()
     print("\nDone.")
