@@ -131,8 +131,78 @@ st.sidebar.markdown("---")
 # EDA View
 if page == "🔍 Exploratory Data Analysis (EDA)":
     st.title("Exploratory Data Analysis (EDA)")
-    st.info("This page is under construction. 🏗️")
-    st.write("This section will contain visualizations and insights from the initial data cleaning and exploration process.")
+
+    # Define the path to the EDA plots, based on the app's existing RESULTS_DIR
+    EDA_PLOTS_DIR = RESULTS_DIR / "EDA"
+    
+    # Check if the directory exists
+    if not EDA_PLOTS_DIR.exists():
+        st.error(f"EDA plot directory not found. Please run the EDA pipeline.")
+        st.error(f"Expected path: {EDA_PLOTS_DIR}")
+        st.stop()
+
+    # Create tabs for better organization
+    tab_combined, tab_bf, tab_ln, tab_sales = st.tabs([
+        "Combined Costs", "Breakfast Costs", "Lunch Costs", "Sales Time Series"
+    ])
+
+    # Helper function to load and display an image safely
+    def show_image(file_name, caption):
+        try:
+            img_path = EDA_PLOTS_DIR / file_name
+            image = Image.open(img_path)
+            st.image(image, caption=caption, use_column_width=True)
+        except FileNotFoundError:
+            st.warning(f"Plot not found: {file_name}. Please re-run the EDA pipeline.")
+        except Exception as e:
+            st.error(f"Error loading {file_name}: {e}")
+
+    with tab_combined:
+        st.header("Combined Production Costs (Breakfast + Lunch)")
+        st.write("These charts show the total costs for both meals combined.")
+        show_image(
+            "production_cost_by_region.png", 
+            "Total production cost aggregated by FCPS region."
+        )
+        st.markdown("---")
+        show_image(
+            "production_cost_by_level.png", 
+            "Total production cost aggregated by school level (ES, MS, HS)."
+        )
+
+    with tab_bf:
+        st.header("Breakfast-Only Production Costs")
+        st.write("These charts show the costs for breakfast items only.")
+        show_image(
+            "bf_production_cost_by_region.png", 
+            "Total breakfast production cost by region."
+        )
+        st.markdown("---")
+        show_image(
+            "bf_production_cost_by_level.png", 
+            "Total breakfast production cost by school level."
+        )
+
+    with tab_ln:
+        st.header("Lunch-Only Production Costs")
+        st.write("These charts show the costs for lunch items only.")
+        show_image(
+            "lunch_production_cost_by_region.png", 
+            "Total lunch production cost by region."
+        )
+        st.markdown("---")
+        show_image(
+            "lunch_production_cost_by_level.png", 
+            "Total lunch production cost by school level."
+        )
+
+    with tab_sales:
+        st.header("Sales Time Series")
+        st.write("Total items sold over time (March - May 2025).")
+        show_image(
+            "timeseries_total_food.png", 
+            "Total sales from the sales.csv file, plotted by date."
+        )
 
 # Popularity Analysis View
 elif page == "🥪 Popularity Analysis":
