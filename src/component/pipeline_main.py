@@ -1,5 +1,6 @@
 import sys, os
 from pathlib import Path
+import pandas as pd 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))      # .../src/main_code
 SRC_DIR  = os.path.abspath(os.path.join(BASE_DIR, ".."))   # .../src
@@ -19,6 +20,8 @@ from component.popularity import (
 from component.optimization import (
     run_all_optimizations
 )
+from component.EDA import run_eda
+
 
 def html_csv_pipeline():
     """
@@ -107,7 +110,6 @@ def optimization_pipeline():
     BF_PATH = DATA / "clean-data" / "data_breakfast.csv"
     LN_PATH = DATA / "clean-data" / "data_lunch.csv"
     SC_PATH = DATA / "preprocessed-data" / "2022-2025 Fairfax County School Student Count.csv"
-    UNIT_COSTS_PATH = DATA / "preprocessed-data" / "unit_costs.csv"
     COORDINATES_PATH = DATA / "preprocessed-data" / "data_breakfast_with_coordinates.csv"
     GEOJSON_PATH = DATA / "preprocessed-data" / "School_Regions.geojson"
 
@@ -115,7 +117,6 @@ def optimization_pipeline():
         breakfast_file=BF_PATH,
         lunch_file=LN_PATH,
         student_counts_file=SC_PATH,
-        unit_costs_file=UNIT_COSTS_PATH,
         coordinates_file=COORDINATES_PATH,
         geojson_file=GEOJSON_PATH,
         total_budget=139144760
@@ -125,4 +126,18 @@ def optimization_pipeline():
         print("[Optimization] Monthly ILP results missing; charts skipped.")
         return
     
-    
+
+def eda_pipeline():
+    print("\n[EDA] Starting EDA...")
+
+    breakfast_file = DATA / "clean-data" / "data_breakfast.csv"
+    lunch_file     = DATA / "clean-data" / "data_lunch.csv"
+    sales_file     = DATA / "clean-data" / "sales.csv"
+
+    bf_df  = pd.read_csv(breakfast_file)
+    l_df   = pd.read_csv(lunch_file)
+    s_df   = pd.read_csv(sales_file)
+
+    results_path = DATA / "results" / "EDA"
+
+    run_eda(bf_df, l_df, s_df, results_path)
