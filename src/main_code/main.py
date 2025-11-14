@@ -17,4 +17,9 @@ if __name__ == "__main__":
     pdf_pipeline()
     popularity_pipeline()
     optimization_pipeline()
-    print("\nDone.")
+    print("\nData Analyzing Complete!"
+    "\nPlease navigate to the Streamlit app to view the results."
+    "\nSet demo / pages as the working directory."
+    "\nThen run the following command in your terminal:" 
+    "\nstreamlit run streamlit_app.py"
+    )
