@@ -306,7 +306,6 @@ try:
                             order=arima_order,
                             seasonal_order=seasonal_arima_order,
                             enforce_stationarity=False,
-                            # Let the model handle differencing, don't force pre-differenced input
                             enforce_invertibility=False)  # Improves numerical stability for some datasets
 
     sarimax_results = sarimax_model.fit(disp=False)  # disp=False suppresses convergence messages
