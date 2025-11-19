@@ -1,5 +1,16 @@
-## Instruction for research paper
+# Research Paper Folder
 
-- For your capstone project you need to write a research paper.
-- If you are submitting to any journal and conference you need to use their templates.
-- 
+```
+└── research_paper
+                 ├── Latex
+                 │       ├── fig
+                 │       ├── Paper_Temp.pdf
+                 │       ├── Paper_Temp.tex
+                 │       └── mybib.bib
+                 │
+                 ├── Word
+                 │      ├── Conference-template-A4.doc
+                 │      └── Red School Research.xlsx
+                 │
+                 └── Rebuttal.docx
+```
