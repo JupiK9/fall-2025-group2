@@ -159,19 +159,18 @@ Note: Use Markdown Cheat Sheet download in the directory as needed.
 * [ ] All: clean up github
 * [ ] Jupiter: store product in GCP/AWS
 ---
-## Date: Week 12 - Month Day Year 
+## Date: Week 12 - November 19,2025 
 - Topics of discussion
-    - Item1
-    - Item2
-    - Item3
+    - final paper
+    - git structure
 
 - Action Items:
 
-* [ ] Action Item 1
-* [ ] Action Item 2
-* [ ] Action Item 3
-* [ ] Action Item 4
-* [ ] Action Item 5
+* [ ] All: write up draft of paper and send to professor by Friday
+* [ ] Jupiter: add in regression code to main code
+* [ ] All: finish final paper
+* [ ] Crystal: add hyperlinks to footnotes in paper
+* [ ] Alonso: finalize UI
 ---
 ## Date: Week 13 - Month Day Year 
 - Topics of discussion
