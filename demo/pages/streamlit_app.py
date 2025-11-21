@@ -151,7 +151,7 @@ if page == "🔍 Exploratory Data Analysis (EDA)":
         try:
             img_path = EDA_PLOTS_DIR / file_name
             image = Image.open(img_path)
-            st.image(image, caption=caption, use_column_width=True)
+            st.image(image, caption=caption, use_container_width=True)
         except FileNotFoundError:
             st.warning(f"Plot not found: {file_name}. Please re-run the EDA pipeline.")
         except Exception as e:
@@ -340,7 +340,7 @@ elif page == "📈 Optimization":
         st.header("Overall Financial Impact")
         try:
             bar_chart_path = SCENARIO_RESULTS_DIR / f"overall_savings_bar_chart{scenario_suffix}.png"
-            st.image(Image.open(bar_chart_path), caption=f"Overall Savings: {selected_scenario_name}", use_column_width=True)
+            st.image(Image.open(bar_chart_path), caption=f"Overall Savings: {selected_scenario_name}", use_container_width=True)
         except FileNotFoundError: st.error(f"Chart file not found. Missing: {bar_chart_path.name}")
         
         st.markdown("---")
@@ -368,13 +368,13 @@ elif page == "📈 Optimization":
             st.subheader("Total Savings ($)")
             try:
                 total_png_path = SCENARIO_RESULTS_DIR / f"savings_by_size_total{scenario_suffix}.png"
-                st.image(Image.open(total_png_path), use_column_width=True)
+                st.image(Image.open(total_png_path), use_container_width=True)
             except FileNotFoundError: st.error(f"Chart file not found. Missing: {total_png_path.name}")
         with col2:
             st.subheader("Savings (%)")
             try:
                 percent_png_path = SCENARIO_RESULTS_DIR / f"savings_by_size_percent{scenario_suffix}.png"
-                st.image(Image.open(percent_png_path), use_column_width=True)
+                st.image(Image.open(percent_png_path), use_container_width=True)
             except FileNotFoundError: st.error(f"Chart file not found. Missing: {percent_png_path.name}")
     with tab3:
         st.header(f"Geospatial Savings Analysis: {selected_scenario_name}")

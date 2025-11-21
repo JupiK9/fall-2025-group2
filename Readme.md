@@ -40,6 +40,7 @@ Food waste in U.S. public schools presents a significant economic and environmen
 │           ├── 2📊Sales EDA.py
 │           ├── 3🔮Future Ideas.py
 │           ├── 4📊Results.py
+│           ├── coates_app.py
 │           └── streamlit_app.py
 │
 ├── presentation
@@ -109,8 +110,10 @@ Food waste in U.S. public schools presents a significant economic and environmen
     │      │                   └── School_Regions.geojson
     │      ├── results
     │      │         ├── Baseline Budget
+    │      │         ├── EDA
     │      │         ├── Lower Budget Bounds
     │      │         └── Upper Budget Bounds
+    │      │
     │      └── data-downloader.sh
     ├── docs
     ├── main_code
@@ -169,10 +172,10 @@ The raw data for this project (HTML, PDF, GEOJSON) is hosted on Box and can be d
 - **Software**: The script requires `wget` and `unzip`, which are typically included with Git Bash, macOS, and Linux distributions.
 
 **Download Instructions**
-Navigate to the `src/data` directory where the script is located:
+Navigate to the `src/shellscripts` directory where the script is located:
 
 ```bash
-cd src/data
+cd src/shellscripts
 ```
 
 Run the downloader script:

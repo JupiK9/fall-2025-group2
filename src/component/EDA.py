@@ -114,6 +114,35 @@ def run_eda(dfb, dfl, dfs, output_folder):
         plt.close()
 
     # ------------------------------------------------------------------
+    # Helper: bar plot for AVERAGES
+    # ------------------------------------------------------------------
+    def bar_plot_avg(df_in, group_col, value_col, title, fname):
+        grouped = df_in.groupby(group_col)[value_col].mean().reindex(
+            region_order if group_col == "fcps region" else level_order,
+            fill_value=0
+        )
+
+        plt.figure(figsize=(10,6))
+        bars = plt.bar(grouped.index, grouped.values,
+                       color="lightgreen", edgecolor="black")
+        plt.title(title)
+        plt.ylabel("Average Cost ($)")
+
+        plt.gca().yaxis.set_major_formatter(
+            FuncFormatter(lambda x,_: f"${x:,.0f}")
+        )
+
+        for bar in bars:
+            plt.text(bar.get_x() + bar.get_width()/2,
+                     bar.get_height(),
+                     f"${bar.get_height():,.0f}",
+                     ha="center", va="bottom")
+
+        plt.tight_layout()
+        plt.savefig(output_folder / fname, dpi=300, bbox_inches='tight')
+        plt.close()
+
+    # ------------------------------------------------------------------
     # Breakfast EDA
     # ------------------------------------------------------------------
     print("[EDA] Breakfast charts...")
@@ -125,6 +154,15 @@ def run_eda(dfb, dfl, dfs, output_folder):
              "Total Production Cost by School Level - Breakfast",
              "bf_production_cost_by_level.png")
 
+    # NEW AVERAGE PLOTS
+    bar_plot_avg(dfb, "fcps region", "production_cost_total",
+                 "Average Production Cost by Region - Breakfast",
+                 "bf_avg_production_cost_by_region.png")
+
+    bar_plot_avg(dfb, "level", "production_cost_total",
+                 "Average Production Cost by School Level - Breakfast",
+                 "bf_avg_production_cost_by_level.png")
+    
     # ------------------------------------------------------------------
     # Lunch EDA
     # ------------------------------------------------------------------
@@ -136,6 +174,15 @@ def run_eda(dfb, dfl, dfs, output_folder):
     bar_plot(dfl, "level", "production_cost_total",
              "Total Production Cost by School Level - Lunch",
              "lunch_production_cost_by_level.png")
+    
+    # NEW AVERAGE PLOTS
+    bar_plot_avg(dfl, "fcps region", "production_cost_total",
+                 "Average Production Cost by Region - Lunch",
+                 "lunch_avg_production_cost_by_region.png")
+
+    bar_plot_avg(dfl, "level", "production_cost_total",
+                 "Average Production Cost by School Level - Lunch",
+                 "lunch_avg_production_cost_by_level.png")
 
     # ------------------------------------------------------------------
     # Combined EDA
@@ -148,6 +195,15 @@ def run_eda(dfb, dfl, dfs, output_folder):
     bar_plot(df, "level", "production_cost_total",
              "Total Production Cost by Level",
              "production_cost_by_level.png")
+    
+     # NEW AVERAGE PLOTS
+    bar_plot_avg(df, "fcps region", "production_cost_total",
+                 "Average Production Cost by Region",
+                 "avg_production_cost_by_region.png")
+
+    bar_plot_avg(df, "level", "production_cost_total",
+                 "Average Production Cost by Level",
+                 "avg_production_cost_by_level.png")
 
     # ------------------------------------------------------------------
     # Sales time series
