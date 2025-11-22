@@ -3,8 +3,9 @@
 %\usepackage[pass,letterpaper]{geometry}              %This package needs to be enaled when dvi--->ps----->PDF
 \usepackage{stmaryrd, amsfonts, mathptmx, mathtools, array, siunitx, subfigure, graphicx,balance }
 \graphicspath{{./fig/}}
-\usepackage{multirow, indentfirst, cite, verbatim, keyval, textcomp, enumerate, calc, microtype, hyperref}
-
+\usepackage{multirow, indentfirst, cite, verbatim, keyval, textcomp, enumerate, calc, microtype}
+\usepackage{makecell,booktabs}
+\usepackage{tabularx}
 
 
 \usepackage[colorlinks,linktocpage]{hyperref}
@@ -107,14 +108,14 @@ To align production with student needs and minimize waste, we used a production 
     \label{eq:bounds}
 \end{equation}
 
-\begin{table}[h!]
+\begin{table}[t]
     \caption{Production Bounds Based on School Size}
     \label{tab:production_bounds}
     \centering
     \begin{tabular}{cc}
-        \hline
+        \toprule
         \textbf{Student Population} & \textbf{Production Bounds $(L, U)$} \\
-        \hline
+        \midrule
         0--499 & (0.80, 1.20) \\
         500--999 & (0.85, 1.15) \\
         1000--1499 & (0.90, 1.10) \\
@@ -123,7 +124,7 @@ To align production with student needs and minimize waste, we used a production 
         2500--2999 & (0.97, 1.03) \\
         3000--3499 & (0.98, 1.02) \\
         3500+ & (0.99, 1.01) \\
-        \hline
+        \bottomrule
     \end{tabular}
 \end{table}
 
@@ -187,7 +188,7 @@ The system-wide budget constraint ensures sustainability. It ensures that the sp
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=\linewidth]{fig/total_savings_bar_bw.png}
+    \includegraphics[width=\linewidth]{fig/total_savings_bar_bw.eps}
     \caption{Overall Savings Analysis. This comparison shows the financial impact of the optimization model across the system. The dark gray bar shows the estimated actual annual baseline cost (\$48.94M), and the light gray bar shows the lower cost reached with the optimized menu planning model (\$47.11M).}
     \label{fig:overall_savings}
 \end{figure}
@@ -198,21 +199,21 @@ Fig. \ref{fig:savings_analysis} shows the financial performance of the optimizat
 
 Schools below the line, shown in gray, are where the model found inefficiencies and projected cost savings. The model placed 130 schools in this group. In contrast, 60 schools above the line, shown in black, are expected to have higher costs. This likely happens when past procurement did not meet the model's stricter rules. The size of each marker shows the financial impact.
 
-\begin{figure*}[t]
+\begin{figure}[t]
     \centering
-    \includegraphics[width=0.8\textwidth]{fig/savings_analysis_bw.png}
+    \includegraphics[width=\linewidth]{fig/savings_analysis_bw.eps}
     \caption{Savings Analysis: Actual vs. Optimized Cost. Gray circles represent schools achieving savings, while black circles indicate projected losses. The size of the circle corresponds to the magnitude of the financial impact.}
     \label{fig:savings_analysis}
-\end{figure*}
+\end{figure}
 
 There is a clear correlation between school size and optimization results. The model saves the most money in schools with 500 to 1,500 students. Schools with more than 2,000 students resulted in higher costs and negative savings (see Fig. \ref{fig:savings_by_size}). Breaking down the financial data, smaller and medium-sized schools used to overproduce, which the model fixed. In contrast, larger schools may not have produced enough for their students. The model increased food allocations for these schools to ensure students are properly served.
 
-\begin{figure*}[t]
+\begin{figure}[t]
     \centering
-    \includegraphics[width=\linewidth]{savings_by_size_total_baseline.png}
+    \includegraphics[width=\linewidth]{savings_by_size_total_baseline.eps}
     \caption{Total Annual Savings by School Size Category. The chart shows that, by student population, the optimization model usually leads to net savings (positive values), but in some cases results in higher costs when demand constraints must be met (negative values).}
     \label{fig:savings_by_size}
-\end{figure*}
+\end{figure}
 
 \subsection{Interpretation of Projected Cost Increases}
 The optimization model projected a cost increase for a small group of schools, as indicated by data points above the break-even line in Fig. \ref{fig:savings_analysis}. While reverting these schools to historical production patterns may appear financially prudent, this perspective fails to account for the model's embedded constraint logic.
@@ -224,14 +225,14 @@ The optimization strictly enforces demand satisfaction constraints ($x_{s,j} \ge
 
 \subsection{Challenges}
 
-\begin{table}[h!]
+\begin{table}[t]
   \centering
   \caption{Top 10 Most Wasted Breakfast Products}
   \label{tab:breakfast_waste}
-  \begin{tabular}{|l|r|}
-    \hline
-    Product Name & Leftover Rate (\%) \\
-    \hline
+  \begin{tabular}{l S[table-format=2.1]}
+    \toprule
+    Product Name & {Leftover Rate (\%)} \\
+    \midrule
     Fat Free Chocolate Milk(Each) & 98.8 \\
     Cereal, Cinnamon Toasters, Malt-O-Meal, IW & 60.3 \\
     Fat Free White Milk(Each) & 53.5 \\
@@ -242,18 +243,18 @@ The optimization strictly enforces demand satisfaction constraints ($x_{s,j} \ge
     Watermelon Flavored Dried Cranberries(2 Eaches) & 48.0 \\
     Assorted Cereal(Cereal Cup) & 47.1 \\
     Patty, Chicken, Breaded, WG(2 strips) & 46.9 \\
-    \hline
+    \bottomrule
   \end{tabular}
 \end{table}
 
-\begin{table}[h!]
+\begin{table}[t]
   \centering
   \caption{Top 10 Most Wasted Lunch Products}
   \label{tab:lunch_waste}
-  \begin{tabular}{|l|r|}
-    \hline
-    Product Name & Leftover Rate (\%) \\
-    \hline
+  \begin{tabular}{l S[table-format=2.1]}
+    \toprule
+    Product Name & {Leftover Rate (\%)} \\
+    \midrule
     Fat Free White Milk(Each) & 60.6 \\
     Milk, Lactose Free,  Fat Free, Shelf-Stable(Each) & 50.9 \\
     1\% White Milk(Each) & 50.8 \\
@@ -264,27 +265,27 @@ The optimization strictly enforces demand satisfaction constraints ($x_{s,j} \ge
     Assorted  4 oz Yogurt(Container) & 39.0 \\
     Mustard Packet(Packet) & 34.7 \\
     Lactose Free, White Milk(Each) & 32.9 \\
-    \hline
+    \bottomrule
   \end{tabular}
 \end{table}
 
 An issue that other researchers observed was student acceptance of certain foods. In Mulhollem’s article \cite{mulhollem}, they observed that students, particularly elementary school students, avoided certain foods that were served to them. “Because they are the most highly wasted, understanding the extent to which fruit and vegetable offerings in school lunches are likely to be accepted by children has important implications for school meal policies and children’s health” \cite{mulhollem}. On the other side, “eggs and poultry, the researchers found, were the least-wasted food category” \cite{mulhollem}. According to our findings, milk products are the most discarded items in both \autoref{tab:breakfast_waste} and \autoref{tab:lunch_waste}. FCPS should not worry that students are avoiding their fruits and vegetables, though cranberry products are among the top 10 breakfast items wasted (\autoref{tab:breakfast_waste}). Students eating in FCPS schools are eating relatively healthy. However, with milk items frequently being wasted, this points to a problem with their waste management.
 
-\begin{table}[h!]
+\begin{table}[t]
   \centering
   \caption{New School Menu Items for the Current School Year}
   \label{tab:new_menu_items}
-  \begin{tabular}{|l|l|}
-    \hline
+  \begin{tabularx}{\linewidth}{l X}
+    \toprule
     \textbf{New Product Name} & \textbf{Category} \\
-    \hline
+    \midrule
     Cinnamon Apple Overnight Oats & Breakfast \\
     Egg \& Cheese Breakfast Quesadilla & Breakfast \\
     Egg \& Cheese Breakfast Taco & Breakfast \\
     French Toast Sticks & Breakfast \\
     Egg \& Cheese Bagel & Breakfast \\
     Turkey Sausage \& Cheese Bagel & Breakfast \\
-    \hline
+    \midrule
     Sofritas & Lunch \\
     Peruvian Chicken Drumstick & Lunch \\
     Spanish Rice & Lunch \\
@@ -294,15 +295,13 @@ An issue that other researchers observed was student acceptance of certain foods
     Deep Dish Pizza & Lunch \\
     Chicken Masala Pizza & Lunch \\
     Macaroni \& Cheese & Lunch \\
-    Brunch for Lunch (Cheesy Scrambled Eggs, Potato Wedges, & Lunch \\
-    \hspace{3mm} French Toast Sticks, Turkey Sausage) & \\
+    \makecell[l]{Brunch for Lunch (Cheesy Scrambled Eggs, \\ \hspace{1em}Potato Wedges, French Toast Sticks, Turkey Sausage)} & Lunch \\
     Veggie Chili & Lunch \\
     Patty Melt & Lunch \\
     Buffalo Chicken Dip & Lunch \\
-    Teriyaki Chicken or Chickenless Bites Stir-Fry & Lunch \\
-    \hspace{3mm} with Fried Rice and Asian Stir-Fry Vegetables & \\
-    \hline
-  \end{tabular}
+    \makecell[l]{Teriyaki Chicken or Chickenless Bites Stir-Fry \\ \hspace{1em}with Fried Rice and Asian Stir-Fry Vegetables} & Lunch \\
+    \bottomrule
+  \end{tabularx}
 \end{table}
 
 In their study of the private school in Columbia, Missouri, Mulhollem found that changing the cafeteria menu can be difficult \cite{mulhollem}. “Addressing menu changes while staying within budget and offering children nutritious meals often is not an easy task” \cite{mulhollem}. In the 2025 school year, Fairfax County Public Schools (FCPS) introduced new menu items \cite{fcpsfood}, as shown in \autoref{tab:new_menu_items}. Since students may not be familiar with these options, there is a real risk of increased food waste if they choose not to eat them. This could worsen current waste management challenges, especially given the high production costs and large quantities involved, which may result in financial losses. Because these items are new, it will be important to conduct a follow-up study to assess their effectiveness and their impact on waste management.
