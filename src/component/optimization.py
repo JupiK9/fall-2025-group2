@@ -11,10 +11,48 @@ import plotly.express as px
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import re
+import subprocess
 
 # ==============================================================================
 # DATA PREPARATION
 # ==============================================================================
+from pathlib import Path
+#
+# # Current script location:
+# script_path = Path(__file__).resolve()
+#
+# # Base directory (project root) is 2 levels above script_path (src/component → project root)
+# project_root = script_path.parents[2]
+#
+# # PNG directory (Baseline Budget inside src/data/results)
+# base_png_dir = project_root / "src" / "data" / "results" / "Baseline Budget"
+#
+# # PDF/EPS directory
+# latex_fig_dir = project_root / "research_paper" / "Latex" / "fig"
+#
+#
+# def save_all_formats(fig, base_png_path: Path, latex_fig_dir: Path):
+#     """
+#     Saves:
+#       - PNG in original location (base_png_path)
+#       - PDF + EPS in the research_paper/Latex/fig directory
+#     """
+#     base_png_path.parent.mkdir(parents=True, exist_ok=True)
+#     latex_fig_dir.mkdir(parents=True, exist_ok=True)
+#
+#     stem = base_png_path.stem  # filename without extension
+#
+#     # 1. PNG — high-res (stored in original location)
+#     fig.savefig(base_png_path.with_suffix(".png"), dpi=300, bbox_inches="tight")  # <-- added
+#
+#     # 2. PDF — vector (saved to latex_fig_dir)
+#     fig.savefig(latex_fig_dir / f"{stem}.pdf", bbox_inches="tight")  # <-- added
+#
+#     # 3. EPS — vector (saved to latex_fig_dir)
+#     fig.savefig(latex_fig_dir / f"{stem}.eps", format="eps", bbox_inches="tight")  # <-- added
+#
+#     print(f"Saved PNG → {base_png_path.with_suffix('.png')}")
+#     print(f"Saved PDF/EPS → {latex_fig_dir}/{stem}.*")
 
 def prepare_optimization_data(df_breakfast, df_lunch, df_sizes):
     """
@@ -531,152 +569,190 @@ def analyze_annual_budget(results_df, school_budgets, meal_costs, data, unit_cos
 # GEOSPATIAL AND PLOTTING FUNCTIONS
 # ==============================================================================
 
-def generate_savings_analysis_chart(opt_data, monthly_results_df, unit_costs_path, out_dir=None, file_suffix: str = ""):
+def generate_overall_savings_bar_chart(opt_data, monthly_results_df, unit_costs_path, out_dir=None,
+                                       file_suffix: str = ""):
     """
-    Generates and saves the interactive savings analysis bubble chart.
-    *** MODIFIED to use new unit cost logic ***
+    Generates Total Savings Bar Chart.
+    - Baseline run -> saves as "total_savings_bar_bw.eps" (Matches your LaTeX)
+    - Other runs -> saves as "total_savings_bar_bw_lower.eps", etc.
     """
 
     if monthly_results_df is None:
         print("No monthly optimization results available to plot.")
         return None
 
-    # Prepare data for plotting (uses new logic)
-    savings_df = prepare_savings_analysis_df(
-        opt_data,
-        monthly_results_df,
-        unit_costs_path
-    )
+    # --- 1. ROBUST PATH SETUP ---
+    # Find the project root by looking for the 'src' folder
+    current_path = Path(__file__).resolve()
+    project_root = current_path
 
-    if savings_df is None or savings_df.empty:
-        print("No savings data available for plotting.")
-        return None
+    # Walk up until we find 'src', then go one higher
+    while project_root.name != 'src' and project_root.parent != project_root:
+        project_root = project_root.parent
+    project_root = project_root.parent  # Go up one more from 'src' to get real root
 
-    # Create Interactive Savings Analysis Bubble Chart
-    title_suffix = file_suffix.strip("_").replace("_", " ").title()
-    fig = px.scatter(
-        savings_df,
-        x='actual_annual_cost',
-        y='optimized_annual_cost',
-        size='savings_magnitude',
-        color='outcome',
-        color_discrete_map={'Savings': 'green', 'Loss': 'red'},
-        hover_name='school',
-        hover_data={
-            'size_category': True,
-            'savings': ':.2s',
-            'savings_magnitude': False
-        },
-        title=f'Savings Analysis: Actual vs. Optimized Cost ({title_suffix})',
-        labels={
-            'actual_annual_cost': 'Actual Annual Food Cost',
-            'optimized_annual_cost': 'Optimized Annual Food Cost',
-            'outcome': 'Outcome',
-            'savings_magnitude': 'Impact ($)'
-        }
-    )
+    latex_fig_dir = project_root / "research_paper" / "Latex" / "fig"
+    latex_fig_dir.mkdir(parents=True, exist_ok=True)
 
-    # Add the 45° "no savings" reference line
-    max_val = max(
-        savings_df['actual_annual_cost'].max(),
-        savings_df['optimized_annual_cost'].max()
-    ) * 1.05
-    fig.add_shape(
-        type='line',
-        x0=0, y0=0, x1=max_val, y1=max_val,
-        line=dict(color='Gray', width=2, dash='dash')
-    )
-    fig.update_layout(legend=dict(font=dict(size=14)))
-
-    # Save the interactive chart to the specified directory
     if out_dir is None:
-        results_dir = Path(__file__).resolve().parents[2] / "src" / "data" / "results"
+        png_out_dir = project_root / "src" / "data" / "results"
     else:
-        results_dir = Path(out_dir)
-        
-    results_dir.mkdir(parents=True, exist_ok=True)
-    chart_path = results_dir / f"savings_analysis_bubble_chart{file_suffix}.html"
-    fig.write_html(str(chart_path))
-    print(f"Saved interactive savings analysis chart to: {chart_path}")
+        png_out_dir = Path(out_dir)
+    png_out_dir.mkdir(parents=True, exist_ok=True)
 
-    return chart_path
+    # --- 2. FILENAME LOGIC ---
+    # If this is the baseline run, remove the suffix so it matches your LaTeX code exactly
+    if "baseline" in file_suffix:
+        latex_filename = "total_savings_bar_bw"
+    else:
+        latex_filename = f"total_savings_bar_bw{file_suffix}"
 
-def generate_overall_savings_bar_chart(opt_data, monthly_results_df, unit_costs_path, out_dir=None, file_suffix: str = ""):
-    """
-    Builds and saves a bar chart comparing Actual (baseline) vs Optimized annual costs.
-    """
-
-    if monthly_results_df is None:
-        print("No monthly optimization results available to plot.")
-        return None
-
-    # Calculate actual annual cost from source data
+    # --- 3. DATA & PLOTTING ---
     actual_annual_cost = calculate_actual_annual_cost(opt_data)
-
-    # Calculate optimized annual cost using item unit costs
-    print("\n[Bar Chart] Calculating Optimized Cost using Item Unit Costs...")
     optimized_cost_df = _get_optimized_annual_cost_df(opt_data, monthly_results_df, unit_costs_path)
-    
+
     if optimized_cost_df is None:
-        print("Error calculating optimized cost for bar chart. Skipping chart.")
         return None
-        
+
     optimized_annual_cost = optimized_cost_df['optimized_annual_cost'].sum()
 
-    labels = ['Actual Cost (2025 Baseline)', 'Optimized Cost']
+    labels = ['Actual Cost (Baseline)', 'Optimized Cost']
     values = [actual_annual_cost, optimized_annual_cost]
-    colors = ['#d9534f', '#5cb85c']  # red, green
+    colors = ['#555555', '#999999']
 
     try:
         plt.style.use('seaborn-v0_8-whitegrid')
     except Exception:
         pass
 
-    fig, ax = plt.subplots(figsize=(10, 6))
-    bars = ax.bar(labels, values, color=colors)
-    
-    title_suffix = file_suffix.strip("_").replace("_", " ").title()
-    ax.set_title(f'Overall Savings: Actual vs. Optimized ({title_suffix})', fontsize=16)
-    ax.set_ylabel('Cost (in Millions of $)', fontsize=12)
-    ax.get_yaxis().set_major_formatter(mticker.FuncFormatter(lambda x, p: f'${x/1e6:.1f}M'))
+    fig, ax = plt.subplots(figsize=(6, 4))
+    bars = ax.bar(labels, values, color=colors, width=0.6)
+
+    ax.set_title(f'Total Savings Analysis', fontsize=14)
+    ax.set_ylabel('Cost (Millions $)', fontsize=11)
+    ax.get_yaxis().set_major_formatter(mticker.FuncFormatter(lambda x, p: f'${x / 1e6:.0f}M'))
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
 
     for bar in bars:
         h = bar.get_height()
-        ax.annotate(f'${h/1e6:.2f}M',
+        ax.annotate(f'${h / 1e6:.2f}M',
                     xy=(bar.get_x() + bar.get_width() / 2, h),
                     xytext=(0, 3),
                     textcoords="offset points",
-                    ha='center', va='bottom', fontsize=11)
+                    ha='center', va='bottom', fontsize=11, fontweight='bold')
 
     fig.tight_layout()
 
-    # Save to the specified directory
-    if out_dir is None:
-        out_path = Path(__file__).resolve().parents[2] / "src" / "data" / "results" / f"overall_savings_bar_chart{file_suffix}.png"
-    else:
-        out_path = Path(out_dir) / f"overall_savings_bar_chart{file_suffix}.png"
-        
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(out_path, dpi=150, bbox_inches='tight')
+    # --- 4. SAVE ---
+    # Save Vectors to LaTeX Dir
+    fig.savefig(latex_fig_dir / f"{latex_filename}.pdf", format='pdf', bbox_inches='tight')
+    fig.savefig(latex_fig_dir / f"{latex_filename}.eps", format='eps', bbox_inches='tight')
+
+    # Save PNG to Budget Pipeline Dir
+    png_path = png_out_dir / f"{latex_filename}.png"
+    fig.savefig(png_path, format='png', dpi=600, bbox_inches='tight')
+
     plt.close(fig)
 
-    savings = actual_annual_cost - optimized_annual_cost
-    savings_percent = (savings / actual_annual_cost) * 100 if actual_annual_cost else 0.0
-    print(f"Total Annual Savings: ${savings:,.2f} ({savings_percent:.2f}%)")
-    print(f"Saved overall savings bar chart to: {out_path}")
+    print(f"DEBUG: Saved LaTeX figures to: {latex_fig_dir.resolve()}")
+    print(f"DEBUG: Filename: {latex_filename}.eps")
 
-    return out_path
+    return png_path
 
-def generate_savings_by_size_charts(opt_data, monthly_results_df, unit_costs_path, out_dir=None, file_suffix: str = ""):
-    """
-    Saves two bar charts with a unique file suffix.
-    """
 
+def generate_savings_analysis_chart(opt_data, monthly_results_df, unit_costs_path, out_dir=None, file_suffix: str = ""):
     if monthly_results_df is None:
-        print("No monthly optimization results available to plot by size.")
         return None
 
-    # Ensure df_sizes has size_category
+    savings_df = prepare_savings_analysis_df(opt_data, monthly_results_df, unit_costs_path)
+    if savings_df is None or savings_df.empty:
+        return None
+
+    # --- PATH SETUP ---
+    current_path = Path(__file__).resolve()
+    project_root = current_path
+    while project_root.name != 'src' and project_root.parent != project_root:
+        project_root = project_root.parent
+    project_root = project_root.parent
+
+    latex_fig_dir = project_root / "research_paper" / "Latex" / "fig"
+    latex_fig_dir.mkdir(parents=True, exist_ok=True)
+
+    if out_dir is None:
+        png_out_dir = project_root / "src" / "data" / "results"
+    else:
+        png_out_dir = Path(out_dir)
+    png_out_dir.mkdir(parents=True, exist_ok=True)
+
+    # --- FILENAME LOGIC ---
+    if "baseline" in file_suffix:
+        latex_filename = "savings_analysis_bw"
+    else:
+        latex_filename = f"savings_analysis_bw{file_suffix}"
+
+    # --- STATIC CHART ---
+    fig_static, ax = plt.subplots(figsize=(6, 6))
+
+    savings_group = savings_df[savings_df['outcome'] == 'Savings']
+    loss_group = savings_df[savings_df['outcome'] == 'Loss']
+
+    max_mag = savings_df['savings_magnitude'].max()
+    s_savings = (savings_group['savings_magnitude'] / max_mag) * 300 + 20
+    s_loss = (loss_group['savings_magnitude'] / max_mag) * 300 + 20
+
+    # Plot Savings (Gray - replaces Green)
+    ax.scatter(savings_group['actual_annual_cost'], savings_group['optimized_annual_cost'],
+               s=s_savings, c='gray', alpha=0.6, edgecolors='none', label='Savings')
+
+    # Plot Cost Increase (Black - replaces Red)
+    ax.scatter(loss_group['actual_annual_cost'], loss_group['optimized_annual_cost'],
+               s=s_loss, c='black', alpha=0.7, edgecolors='none', label='Projected Cost Increase')
+
+    lims = [np.min([ax.get_xlim(), ax.get_ylim()]), np.max([ax.get_xlim(), ax.get_ylim()])]
+    ax.plot(lims, lims, 'k--', alpha=0.75, zorder=0, label='Break-even')
+
+    ax.set_title(f"Actual vs. Optimized Cost", fontsize=14)
+    ax.set_xlabel("Actual Annual Cost ($)", fontsize=11)
+    ax.set_ylabel("Optimized Annual Cost ($)", fontsize=11)
+    ax.xaxis.set_major_formatter(mticker.FuncFormatter(lambda x, p: f'${x / 1e6:.1f}M'))
+    ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, p: f'${x / 1e6:.1f}M'))
+    ax.grid(True, linestyle=':', alpha=0.6)
+
+    fig_static.tight_layout()
+
+    # --- SAVE ---
+    fig_static.savefig(latex_fig_dir / f"{latex_filename}.pdf", format='pdf', bbox_inches='tight')
+    fig_static.savefig(latex_fig_dir / f"{latex_filename}.eps", format='eps', bbox_inches='tight')
+    fig_static.savefig(png_out_dir / f"{latex_filename}.png", format='png', dpi=300, bbox_inches='tight')
+
+    plt.close(fig_static)
+    print(f"DEBUG: Saved {latex_filename}.eps to {latex_fig_dir.resolve()}")
+
+    return png_out_dir / f"{latex_filename}.png"
+
+
+def generate_savings_by_size_charts(opt_data, monthly_results_df, unit_costs_path, out_dir=None, file_suffix: str = ""):
+    if monthly_results_df is None:
+        return None
+
+    # --- PATH SETUP ---
+    current_path = Path(__file__).resolve()
+    project_root = current_path
+    while project_root.name != 'src' and project_root.parent != project_root:
+        project_root = project_root.parent
+    project_root = project_root.parent
+
+    latex_fig_dir = project_root / "research_paper" / "Latex" / "fig"
+    latex_fig_dir.mkdir(parents=True, exist_ok=True)
+
+    if out_dir is None:
+        png_out_dir = project_root / "src" / "data" / "results"
+    else:
+        png_out_dir = Path(out_dir)
+    png_out_dir.mkdir(parents=True, exist_ok=True)
+
+    # --- DATA PREP ---
     try:
         size_map = _compute_size_category(opt_data['df_sizes'], preferred_year="2024-2025")
         df_sizes = opt_data['df_sizes'].copy()
@@ -684,68 +760,68 @@ def generate_savings_by_size_charts(opt_data, monthly_results_df, unit_costs_pat
         df_sizes = df_sizes.merge(size_map, on='school_name', how='left', suffixes=('', '_mapped'))
         if 'size_category_mapped' in df_sizes.columns:
             df_sizes['size_category'] = df_sizes['size_category_mapped']
-        df_sizes.drop(columns=[c for c in ['size_category_mapped'] if c in df_sizes.columns], inplace=True, errors='ignore')
+        df_sizes.drop(columns=[c for c in ['size_category_mapped'] if c in df_sizes.columns], inplace=True,
+                      errors='ignore')
     except Exception:
         df_sizes = opt_data['df_sizes']
 
-    # Aggregate
-    savings_by_size_df = analyze_savings_by_school_size(
-        opt_data,
-        monthly_results_df,
-        unit_costs_path,
-        df_sizes
-    )
+    savings_by_size_df = analyze_savings_by_school_size(opt_data, monthly_results_df, unit_costs_path, df_sizes)
     if savings_by_size_df is None or savings_by_size_df.empty:
-        print("No size-category aggregation available.")
         return None
 
-    # Map ranges and order
-    range_map = {
-        'xxs': '0-499', 'xs': '500-999', 's': '1000-1499', 'm': '1500-1999',
-        'l': '2000-2499', 'xl': '2500-2999', 'xxl': '3000-3499', 'xxxl': '3500+'
-    }
+    range_map = {'xxs': '0-499', 'xs': '500-999', 's': '1000-1499', 'm': '1500-1999', 'l': '2000-2499',
+                 'xl': '2500-2999', 'xxl': '3000-3499', 'xxxl': '3500+'}
     order = ['xxs', 'xs', 's', 'm', 'l', 'xl', 'xxl', 'xxxl']
     savings_by_size_df['count_range'] = savings_by_size_df['size_category'].map(range_map)
-    savings_by_size_df['size_category'] = pd.Categorical(savings_by_size_df['size_category'], categories=order, ordered=True)
+    savings_by_size_df['size_category'] = pd.Categorical(savings_by_size_df['size_category'], categories=order,
+                                                         ordered=True)
     savings_by_size_df = savings_by_size_df.sort_values('size_category')
 
-    # Output dir
-    results_dir = Path(out_dir) if out_dir else (Path(__file__).resolve().parents[2] / "src" / "data" / "results")
-    results_dir.mkdir(parents=True, exist_ok=True)
-
-    # Chart 1: Total Savings ($)
     try:
         plt.style.use('seaborn-v0_8-whitegrid')
     except Exception:
         pass
-    fig1, ax1 = plt.subplots(figsize=(14, 7))
-    ax1.bar(savings_by_size_df['count_range'], savings_by_size_df['total_savings'], color='#5cb85c')
-    ax1.set_title(f'Total Annual Savings by School Size Category ({file_suffix.strip("_").title()})', fontsize=16)
-    ax1.set_xlabel("School Student Population Size")
-    ax1.set_ylabel("Total Savings ($)")
-    ax1.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, p: f'${x:,.0f}'))
+
+    # --- CHART 1: TOTAL SAVINGS ---
+    fig1, ax1 = plt.subplots(figsize=(7, 4))
+    ax1.bar(savings_by_size_df['count_range'], savings_by_size_df['total_savings'], color='#777777')
+    ax1.set_title(f'Total Annual Savings by School Size', fontsize=14)
+    ax1.set_xlabel("Student Population", fontsize=11)
+    ax1.set_ylabel("Total Savings ($)", fontsize=11)
+    ax1.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, p: f'${x / 1000:,.0f}k'))
+    plt.setp(ax1.get_xticklabels(), rotation=45, ha="right")
     fig1.tight_layout()
 
-    out1 = results_dir / f"savings_by_size_total{file_suffix}.png"
-    fig1.savefig(out1, dpi=150, bbox_inches='tight')
+    # Filename Logic
+    if "baseline" in file_suffix:
+        # Force specific name for baseline so LaTeX finds it
+        base_name1 = "savings_by_size_total_baseline"  # As requested in your list
+    else:
+        base_name1 = f"savings_by_size_total{file_suffix}"
+
+    fig1.savefig(latex_fig_dir / f"{base_name1}.pdf", format='pdf', bbox_inches='tight')
+    fig1.savefig(latex_fig_dir / f"{base_name1}.eps", format='eps', bbox_inches='tight')
+    fig1.savefig(png_out_dir / f"{base_name1}.png", format='png', dpi=600, bbox_inches='tight')
     plt.close(fig1)
 
-    # Chart 2: Savings (%)
-    fig2, ax2 = plt.subplots(figsize=(14, 7))
-    ax2.bar(savings_by_size_df['count_range'], savings_by_size_df['percent_savings'], color='#428bca')
-    ax2.set_title(f'Percentage of Budget Saved by School Size ({file_suffix.strip("_").title()})', fontsize=16)
-    ax2.set_xlabel("School Population Size")
-    ax2.set_ylabel("Savings (%)")
+    # --- CHART 2: PERCENT SAVINGS ---
+    fig2, ax2 = plt.subplots(figsize=(7, 4))
+    ax2.bar(savings_by_size_df['count_range'], savings_by_size_df['percent_savings'], color='#555555')
+    ax2.set_title(f'Percentage of Budget Saved by School Size', fontsize=14)
+    ax2.set_xlabel("Student Population", fontsize=11)
+    ax2.set_ylabel("Savings (%)", fontsize=11)
     ax2.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, p: f'{x:.1f}%'))
+    plt.setp(ax2.get_xticklabels(), rotation=45, ha="right")
     fig2.tight_layout()
-    
-    out2 = results_dir / f"savings_by_size_percent{file_suffix}.png"
-    fig2.savefig(out2, dpi=150, bbox_inches='tight')
+
+    base_name2 = f"savings_by_size_percent{file_suffix}"
+    fig2.savefig(latex_fig_dir / f"{base_name2}.pdf", format='pdf', bbox_inches='tight')
+    fig2.savefig(latex_fig_dir / f"{base_name2}.eps", format='eps', bbox_inches='tight')
+    fig2.savefig(png_out_dir / f"{base_name2}.png", format='png', dpi=600, bbox_inches='tight')
     plt.close(fig2)
 
-    print(f"Saved: {out1}")
-    print(f"Saved: {out2}")
-    return {"total_savings_png": out1, "percent_savings_png": out2}
+    print(f"DEBUG: Saved size charts to {latex_fig_dir.resolve()}")
+    return {"total_savings_png": png_out_dir / f"{base_name1}.png"}
 
 def prepare_map_data_from_coordinates(savings_df, coordinates_csv_path):
     """
