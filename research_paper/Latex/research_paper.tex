@@ -3,8 +3,9 @@
 %\usepackage[pass,letterpaper]{geometry}              %This package needs to be enaled when dvi--->ps----->PDF
 \usepackage{stmaryrd, amsfonts, mathptmx, mathtools, array, siunitx, subfigure, graphicx,balance }
 \graphicspath{{./fig/}}
-\usepackage{multirow, indentfirst, cite, verbatim, keyval, textcomp, enumerate, calc, microtype, hyperref, makecell, booktabs, tabularx}
-
+\usepackage{multirow, indentfirst, cite, verbatim, keyval, textcomp, enumerate, calc, microtype}
+\usepackage{makecell,booktabs}
+\usepackage{tabularx}
 
 
 \usepackage[colorlinks,linktocpage]{hyperref}
@@ -198,18 +199,18 @@ Fig. \ref{fig:savings_analysis} shows the financial performance of the optimizat
 
 Schools below the line, shown in gray, are where the model found inefficiencies and projected cost savings. The model placed 130 schools in this group. In contrast, 60 schools above the line, shown in black, are expected to have higher costs. This likely happens when past procurement did not meet the model's stricter rules. The size of each marker shows the financial impact.
 
-\begin{figure*}[t]
+\begin{figure}[t]
     \centering
-    \includegraphics[width=0.8\textwidth]{fig/savings_analysis_bw.eps}
+    \includegraphics[width=\linewidth]{fig/savings_analysis_bw.eps}
     \caption{Savings Analysis: Actual vs. Optimized Cost. Gray circles represent schools achieving savings, while black circles indicate projected losses. The size of the circle corresponds to the magnitude of the financial impact.}
     \label{fig:savings_analysis}
-\end{figure*}
+\end{figure}
 
 There is a clear correlation between school size and optimization results. The model saves the most money in schools with 500 to 1,500 students. Schools with more than 2,000 students resulted in higher costs and negative savings (see Fig. \ref{fig:savings_by_size}). Breaking down the financial data, smaller and medium-sized schools used to overproduce, which the model fixed. In contrast, larger schools may not have produced enough for their students. The model increased food allocations for these schools to ensure students are properly served.
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=\linewidth]{fig/savings_by_size_total_baseline.eps}
+    \includegraphics[width=\linewidth]{savings_by_size_total_baseline.eps}
     \caption{Total Annual Savings by School Size Category. The chart shows that, by student population, the optimization model usually leads to net savings (positive values), but in some cases results in higher costs when demand constraints must be met (negative values).}
     \label{fig:savings_by_size}
 \end{figure}
