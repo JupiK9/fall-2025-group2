@@ -573,23 +573,20 @@ def generate_overall_savings_bar_chart(opt_data, monthly_results_df, unit_costs_
                                        file_suffix: str = ""):
     """
     Generates Total Savings Bar Chart.
-    - Baseline run -> saves as "total_savings_bar_bw.eps" (Matches your LaTeX)
-    - Other runs -> saves as "total_savings_bar_bw_lower.eps", etc.
+    - Colors: Blue (Actual), Green (Optimized)
+    - Saves PDF/EPS ONLY if it's the baseline run.
     """
 
     if monthly_results_df is None:
         print("No monthly optimization results available to plot.")
         return None
 
-    # --- 1. ROBUST PATH SETUP ---
-    # Find the project root by looking for the 'src' folder
+    # --- PATH SETUP ---
     current_path = Path(__file__).resolve()
     project_root = current_path
-
-    # Walk up until we find 'src', then go one higher
     while project_root.name != 'src' and project_root.parent != project_root:
         project_root = project_root.parent
-    project_root = project_root.parent  # Go up one more from 'src' to get real root
+    project_root = project_root.parent
 
     latex_fig_dir = project_root / "research_paper" / "Latex" / "fig"
     latex_fig_dir.mkdir(parents=True, exist_ok=True)
@@ -600,14 +597,13 @@ def generate_overall_savings_bar_chart(opt_data, monthly_results_df, unit_costs_
         png_out_dir = Path(out_dir)
     png_out_dir.mkdir(parents=True, exist_ok=True)
 
-    # --- 2. FILENAME LOGIC ---
-    # If this is the baseline run, remove the suffix so it matches your LaTeX code exactly
+    # --- FILENAME LOGIC ---
     if "baseline" in file_suffix:
-        latex_filename = "total_savings_bar_bw"
+        latex_filename = "total_savings_bar_color"
     else:
-        latex_filename = f"total_savings_bar_bw{file_suffix}"
+        latex_filename = f"total_savings_bar_color{file_suffix}"
 
-    # --- 3. DATA & PLOTTING ---
+    # --- DATA & PLOTTING ---
     actual_annual_cost = calculate_actual_annual_cost(opt_data)
     optimized_cost_df = _get_optimized_annual_cost_df(opt_data, monthly_results_df, unit_costs_path)
 
@@ -618,7 +614,9 @@ def generate_overall_savings_bar_chart(opt_data, monthly_results_df, unit_costs_
 
     labels = ['Actual Cost (Baseline)', 'Optimized Cost']
     values = [actual_annual_cost, optimized_annual_cost]
-    colors = ['#555555', '#999999']
+    
+    # COLORS: Red for Actual, Green for Optimized
+    colors = ['#d62728', '#2ca02c']
 
     try:
         plt.style.use('seaborn-v0_8-whitegrid')
@@ -644,24 +642,26 @@ def generate_overall_savings_bar_chart(opt_data, monthly_results_df, unit_costs_
 
     fig.tight_layout()
 
-    # --- 4. SAVE ---
-    # Save Vectors to LaTeX Dir
-    fig.savefig(latex_fig_dir / f"{latex_filename}.pdf", format='pdf', bbox_inches='tight')
-    fig.savefig(latex_fig_dir / f"{latex_filename}.eps", format='eps', bbox_inches='tight')
+    # --- SAVE LOGIC (PDF/EPS only for Baseline) ---
+    if "baseline" in file_suffix:
+        fig.savefig(latex_fig_dir / f"{latex_filename}.pdf", format='pdf', bbox_inches='tight')
+        fig.savefig(latex_fig_dir / f"{latex_filename}.eps", format='eps', bbox_inches='tight')
+        print(f"DEBUG: Saved PDF/EPS to: {latex_fig_dir.resolve()}")
 
-    # Save PNG to Budget Pipeline Dir
+    # Always save PNG
     png_path = png_out_dir / f"{latex_filename}.png"
     fig.savefig(png_path, format='png', dpi=600, bbox_inches='tight')
 
     plt.close(fig)
-
-    print(f"DEBUG: Saved LaTeX figures to: {latex_fig_dir.resolve()}")
-    print(f"DEBUG: Filename: {latex_filename}.eps")
-
     return png_path
 
 
 def generate_savings_analysis_chart(opt_data, monthly_results_df, unit_costs_path, out_dir=None, file_suffix: str = ""):
+    """
+    Generates Scatter Plot of Savings vs Loss.
+    - Colors: Green (Savings), Red (Loss)
+    - Saves PDF/EPS ONLY if it's the baseline run.
+    """
     if monthly_results_df is None:
         return None
 
@@ -687,12 +687,12 @@ def generate_savings_analysis_chart(opt_data, monthly_results_df, unit_costs_pat
 
     # --- FILENAME LOGIC ---
     if "baseline" in file_suffix:
-        latex_filename = "savings_analysis_bw"
+        latex_filename = "savings_analysis_color"
     else:
-        latex_filename = f"savings_analysis_bw{file_suffix}"
+        latex_filename = f"savings_analysis_color{file_suffix}"
 
-    # --- STATIC CHART ---
-    fig_static, ax = plt.subplots(figsize=(6, 6))
+    # --- CHART ---
+    fig_static, ax = plt.subplots(figsize=(12, 6))
 
     savings_group = savings_df[savings_df['outcome'] == 'Savings']
     loss_group = savings_df[savings_df['outcome'] == 'Loss']
@@ -701,16 +701,15 @@ def generate_savings_analysis_chart(opt_data, monthly_results_df, unit_costs_pat
     s_savings = (savings_group['savings_magnitude'] / max_mag) * 300 + 20
     s_loss = (loss_group['savings_magnitude'] / max_mag) * 300 + 20
 
-    # Plot Savings (Gray - replaces Green)
+    # COLORS: Green for Savings, Red for Loss
     ax.scatter(savings_group['actual_annual_cost'], savings_group['optimized_annual_cost'],
-               s=s_savings, c='gray', alpha=0.6, edgecolors='none', label='Savings')
+               s=s_savings, c='#2ca02c', alpha=0.6, edgecolors='none', label='Savings')
 
-    # Plot Cost Increase (Black - replaces Red)
     ax.scatter(loss_group['actual_annual_cost'], loss_group['optimized_annual_cost'],
-               s=s_loss, c='black', alpha=0.7, edgecolors='none', label='Projected Cost Increase')
+               s=s_loss, c='#d62728', alpha=0.7, edgecolors='none', label='Projected Cost Increase')
 
     lims = [np.min([ax.get_xlim(), ax.get_ylim()]), np.max([ax.get_xlim(), ax.get_ylim()])]
-    ax.plot(lims, lims, 'k--', alpha=0.75, zorder=0, label='Break-even')
+    ax.plot(lims, lims, 'k--', alpha=0.5, zorder=0, label='Break-even')
 
     ax.set_title(f"Actual vs. Optimized Cost", fontsize=14)
     ax.set_xlabel("Actual Annual Cost ($)", fontsize=11)
@@ -718,21 +717,29 @@ def generate_savings_analysis_chart(opt_data, monthly_results_df, unit_costs_pat
     ax.xaxis.set_major_formatter(mticker.FuncFormatter(lambda x, p: f'${x / 1e6:.1f}M'))
     ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, p: f'${x / 1e6:.1f}M'))
     ax.grid(True, linestyle=':', alpha=0.6)
+    ax.legend(loc='upper left', frameon=True, fontsize=9)
 
     fig_static.tight_layout()
 
-    # --- SAVE ---
-    fig_static.savefig(latex_fig_dir / f"{latex_filename}.pdf", format='pdf', bbox_inches='tight')
-    fig_static.savefig(latex_fig_dir / f"{latex_filename}.eps", format='eps', bbox_inches='tight')
-    fig_static.savefig(png_out_dir / f"{latex_filename}.png", format='png', dpi=300, bbox_inches='tight')
+    # --- SAVE LOGIC (PDF/EPS only for Baseline) ---
+    if "baseline" in file_suffix:
+        fig_static.savefig(latex_fig_dir / f"{latex_filename}.pdf", format='pdf', bbox_inches='tight')
+        fig_static.savefig(latex_fig_dir / f"{latex_filename}.eps", format='eps', bbox_inches='tight')
+        print(f"DEBUG: Saved PDF/EPS to: {latex_fig_dir.resolve()}")
 
+    # Always save PNG
+    fig_static.savefig(png_out_dir / f"{latex_filename}.png", format='png', dpi=300, bbox_inches='tight')
     plt.close(fig_static)
-    print(f"DEBUG: Saved {latex_filename}.eps to {latex_fig_dir.resolve()}")
 
     return png_out_dir / f"{latex_filename}.png"
 
 
 def generate_savings_by_size_charts(opt_data, monthly_results_df, unit_costs_path, out_dir=None, file_suffix: str = ""):
+    """
+    Generates two bar charts: Total Savings and Percent Savings by School Size.
+    - Colors: Blue for Total Savings, Green for Percent Savings.
+    - Saves PDF/EPS ONLY if it's the baseline run.
+    """
     if monthly_results_df is None:
         return None
 
@@ -782,9 +789,9 @@ def generate_savings_by_size_charts(opt_data, monthly_results_df, unit_costs_pat
     except Exception:
         pass
 
-    # --- CHART 1: TOTAL SAVINGS ---
+    # --- CHART 1: TOTAL SAVINGS (Color: Blue) ---
     fig1, ax1 = plt.subplots(figsize=(7, 4))
-    ax1.bar(savings_by_size_df['count_range'], savings_by_size_df['total_savings'], color='#777777')
+    ax1.bar(savings_by_size_df['count_range'], savings_by_size_df['total_savings'], color='#1f77b4')
     ax1.set_title(f'Total Annual Savings by School Size', fontsize=14)
     ax1.set_xlabel("Student Population", fontsize=11)
     ax1.set_ylabel("Total Savings ($)", fontsize=11)
@@ -794,19 +801,23 @@ def generate_savings_by_size_charts(opt_data, monthly_results_df, unit_costs_pat
 
     # Filename Logic
     if "baseline" in file_suffix:
-        # Force specific name for baseline so LaTeX finds it
-        base_name1 = "savings_by_size_total_baseline"  # As requested in your list
+        base_name1 = "savings_by_size_total_color"
     else:
-        base_name1 = f"savings_by_size_total{file_suffix}"
+        base_name1 = f"savings_by_size_total_color{file_suffix}"
 
-    fig1.savefig(latex_fig_dir / f"{base_name1}.pdf", format='pdf', bbox_inches='tight')
-    fig1.savefig(latex_fig_dir / f"{base_name1}.eps", format='eps', bbox_inches='tight')
+    # Save logic (PDF/EPS only for Baseline)
+    if "baseline" in file_suffix:
+        fig1.savefig(latex_fig_dir / f"{base_name1}.pdf", format='pdf', bbox_inches='tight')
+        fig1.savefig(latex_fig_dir / f"{base_name1}.eps", format='eps', bbox_inches='tight')
+    
+    # Always save PNG
     fig1.savefig(png_out_dir / f"{base_name1}.png", format='png', dpi=600, bbox_inches='tight')
     plt.close(fig1)
 
-    # --- CHART 2: PERCENT SAVINGS ---
+    # --- CHART 2: PERCENT SAVINGS (Color: Green) ---
     fig2, ax2 = plt.subplots(figsize=(7, 4))
-    ax2.bar(savings_by_size_df['count_range'], savings_by_size_df['percent_savings'], color='#555555')
+    # CHANGED: Using Green instead of Purple
+    ax2.bar(savings_by_size_df['count_range'], savings_by_size_df['percent_savings'], color='#2ca02c')
     ax2.set_title(f'Percentage of Budget Saved by School Size', fontsize=14)
     ax2.set_xlabel("Student Population", fontsize=11)
     ax2.set_ylabel("Savings (%)", fontsize=11)
@@ -814,13 +825,20 @@ def generate_savings_by_size_charts(opt_data, monthly_results_df, unit_costs_pat
     plt.setp(ax2.get_xticklabels(), rotation=45, ha="right")
     fig2.tight_layout()
 
-    base_name2 = f"savings_by_size_percent{file_suffix}"
-    fig2.savefig(latex_fig_dir / f"{base_name2}.pdf", format='pdf', bbox_inches='tight')
-    fig2.savefig(latex_fig_dir / f"{base_name2}.eps", format='eps', bbox_inches='tight')
+    if "baseline" in file_suffix:
+        base_name2 = "savings_by_size_percent_color"
+    else:
+        base_name2 = f"savings_by_size_percent_color{file_suffix}"
+
+    # Save logic (PDF/EPS only for Baseline)
+    if "baseline" in file_suffix:
+        fig2.savefig(latex_fig_dir / f"{base_name2}.pdf", format='pdf', bbox_inches='tight')
+        fig2.savefig(latex_fig_dir / f"{base_name2}.eps", format='eps', bbox_inches='tight')
+
+    # Always save PNG
     fig2.savefig(png_out_dir / f"{base_name2}.png", format='png', dpi=600, bbox_inches='tight')
     plt.close(fig2)
 
-    print(f"DEBUG: Saved size charts to {latex_fig_dir.resolve()}")
     return {"total_savings_png": png_out_dir / f"{base_name1}.png"}
 
 def prepare_map_data_from_coordinates(savings_df, coordinates_csv_path):
@@ -839,14 +857,17 @@ def prepare_map_data_from_coordinates(savings_df, coordinates_csv_path):
         coords_df.columns = coords_df.columns.str.lower()
         
         # Ensure school name column is consistent and select necessary columns
-        if 'school_name' in coords_df.columns:
+        if 'school_name' in coords_df.columns and 'school' not in coords_df.columns:
             coords_df.rename(columns={'school_name': 'school'}, inplace=True)
-            coords_df['school'] = coords_df['school'].str.lower()
+        
+        if 'school' in coords_df.columns:
+             coords_df['school'] = coords_df['school'].astype(str).str.strip().str.lower()
         else:
-            print("Error: Could not find 'school_name' column in coordinates file.")
+            print("Error: Could not find 'school_name' or 'school' column in coordinates file.")
             return None
 
         # Keep only the essential columns and remove duplicates
+        # We keep 'latitude' and 'longitude' specifically
         coords_df = coords_df[['school', 'latitude', 'longitude']].drop_duplicates(subset='school')
         
         # Merge with savings data
@@ -865,42 +886,72 @@ def prepare_map_data_from_coordinates(savings_df, coordinates_csv_path):
         print(f"An error occurred during map data preparation: {e}")
         return None
 
-def generate_savings_map(opt_data, monthly_results_df, unit_costs_path, coordinates_file, out_dir=None, file_suffix: str = ""):
+def _load_coords_and_normalize(coords_csv_path):
     """
-    Builds an interactive Folium bubble map of savings by school and writes it to HTML.
+    Load coordinates and normalize the school column.
+    """
+    coords_df = pd.read_csv(coords_csv_path, low_memory=False)
+    coords_df.columns = coords_df.columns.str.lower()
+    if "school_name" in coords_df.columns and "school" not in coords_df.columns:
+        coords_df = coords_df.rename(columns={"school_name": "school"})
+    if "school" not in coords_df.columns:
+        raise KeyError("Coordinates CSV needs a 'school' or 'school_name' column.")
+    coords_df["school"] = coords_df["school"].astype(str).str.strip().str.lower()
+    return coords_df
+
+# ==============================================================================
+# GEOSPATIAL AND PLOTTING FUNCTIONS (UPDATED WITH STATIC MAPS)
+# ==============================================================================
+
+def generate_savings_map(opt_data, monthly_results_df, unit_costs_path, coordinates_file, 
+                         geojson_path=None, out_dir=None, file_suffix: str = ""):
+    """
+    1. Builds an interactive Folium bubble map (HTML).
+    2. If Baseline: Generates a static Matplotlib map (PDF/EPS).
     """
 
     if monthly_results_df is None:
         print("No monthly optimization results available to map.")
         return None
 
-    # Build savings table (uses new logic)
-    savings_df = prepare_savings_analysis_df(
-        opt_data,
-        monthly_results_df,
-        unit_costs_path
-    )
+    # --- DATA PREP ---
+    savings_df = prepare_savings_analysis_df(opt_data, monthly_results_df, unit_costs_path)
     if savings_df is None or savings_df.empty:
-        print("No savings data available for mapping.")
         return None
 
-    # Merge with coordinates
     map_df = prepare_map_data_from_coordinates(savings_df, coordinates_file)
     if map_df is None or map_df.empty:
-        print("No coordinate-enhanced data available for mapping.")
         return None
 
-    # Center (fallback to mean if present)
+    # --- PATH SETUP ---
+    current_path = Path(__file__).resolve()
+    project_root = current_path
+    while project_root.name != 'src' and project_root.parent != project_root:
+        project_root = project_root.parent
+    project_root = project_root.parent
+
+    latex_fig_dir = project_root / "research_paper" / "Latex" / "fig"
+    latex_fig_dir.mkdir(parents=True, exist_ok=True)
+
+    if out_dir is None:
+        out_dir = project_root / "src" / "data" / "results"
+    else:
+        out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    # ---------------------------------------------------------
+    # 1. INTERACTIVE MAP (FOLIUM) - HTML
+    # ---------------------------------------------------------
     try:
         lat0 = float(map_df['latitude'].mean())
         lon0 = float(map_df['longitude'].mean())
         center = [lat0, lon0]
     except Exception:
-        center = [38.83, -77.27]  # Fairfax default
+        center = [38.83, -77.27]
 
     m = folium.Map(location=center, zoom_start=10)
-
     max_abs = map_df['savings_magnitude'].max() if 'savings_magnitude' in map_df else None
+    
     def scale_radius(v):
         if max_abs and v and v > 0:
             return (v / max_abs) ** (1 / 3) * 20 + 2
@@ -908,7 +959,7 @@ def generate_savings_map(opt_data, monthly_results_df, unit_costs_path, coordina
 
     for _, row in map_df.iterrows():
         try:
-            color = 'green' if row.get('outcome') == 'Savings' else 'red'
+            color = '#2ca02c' if row.get('outcome') == 'Savings' else '#d62728' # Green / Red
             popup_text = (
                 f"<strong>School:</strong> {str(row.get('school','')).title()}<br>"
                 f"<strong>Annual Savings:</strong> ${float(row.get('savings',0)):,.2f}"
@@ -923,61 +974,92 @@ def generate_savings_map(opt_data, monthly_results_df, unit_costs_path, coordina
                 popup=folium.Popup(popup_text, max_width=300)
             ).add_to(m)
         except Exception:
-            # Skip rows with bad/missing coords
             continue
 
-    # Save to a specified output directory
-    if out_dir is None:
-        results_dir = Path(__file__).resolve().parents[2] / "src" / "data" / "results"
-    else:
-        results_dir = Path(out_dir)
-        
-    results_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Use the file_suffix to create a unique name inside the out_dir
-    out_path = results_dir / f"overall_savings_map{file_suffix}.html"
-    
-    m.save(str(out_path))
-    print(f"Saved interactive savings map to: {out_path}")
-    return out_path
+    html_path = out_dir / f"overall_savings_map{file_suffix}.html"
+    m.save(str(html_path))
+    print(f"Saved interactive savings map to: {html_path}")
 
-def generate_savings_maps_by_level(opt_data, monthly_results_df, unit_costs_path, coordinates_file, out_dir=None, file_suffix: str = ""):
-    """
-    Creates three interactive Folium bubble maps (Elementary / Middle / High).
-    """
+    # ---------------------------------------------------------
+    # 2. STATIC MAP (MATPLOTLIB) - PDF/EPS (Baseline Only)
+    # ---------------------------------------------------------
+    if "baseline" in file_suffix:
+        print("Generating static savings map (PDF/EPS)...")
+        try:
+            fig, ax = plt.subplots(figsize=(8, 8))
+            
+            # Plot Background (GeoJSON) if available
+            if geojson_path and Path(geojson_path).exists():
+                gdf_bg = gpd.read_file(geojson_path)
+                gdf_bg.plot(ax=ax, color='#f0f0f0', edgecolor='#cccccc')
+            
+            # Prepare Data for Scatter
+            # Colors: Green (#2ca02c) for Savings, Red (#d62728) for Loss
+            colors = map_df['outcome'].apply(lambda x: '#2ca02c' if x == 'Savings' else '#d62728')
+            
+            # Size: Scale size for visibility
+            sizes = map_df['savings_magnitude'] / map_df['savings_magnitude'].max() * 200 + 10
 
+            scatter = ax.scatter(
+                map_df['longitude'], 
+                map_df['latitude'], 
+                c=colors, 
+                s=sizes, 
+                alpha=0.7, 
+                edgecolors='white', 
+                linewidth=0.5
+            )
+
+            # Custom Legend
+            from matplotlib.lines import Line2D
+            legend_elements = [
+                Line2D([0], [0], marker='o', color='w', markerfacecolor='#2ca02c', label='Savings', markersize=10),
+                Line2D([0], [0], marker='o', color='w', markerfacecolor='#d62728', label='Loss', markersize=10)
+            ]
+            ax.legend(handles=legend_elements, loc='upper right')
+
+            ax.set_title("Overall Savings by School", fontsize=14)
+            ax.axis('off') # Hide axes for map look
+            
+            # Save
+            latex_filename = "overall_savings_map_static"
+            fig.savefig(latex_fig_dir / f"{latex_filename}.pdf", format='pdf', bbox_inches='tight')
+            fig.savefig(latex_fig_dir / f"{latex_filename}.eps", format='eps', bbox_inches='tight')
+            plt.close(fig)
+            print(f"Saved static savings map to {latex_fig_dir}")
+            
+        except Exception as e:
+            print(f"Failed to create static savings map: {e}")
+            traceback.print_exc()
+
+    return html_path
+
+
+def generate_savings_maps_by_level(opt_data, monthly_results_df, unit_costs_path, coordinates_file, 
+                                   geojson_path=None, out_dir=None, file_suffix: str = ""):
+    """
+    1. Creates interactive maps per level (HTML).
+    2. If Baseline: Creates static maps per level (PDF/EPS).
+    """
     if monthly_results_df is None:
-        print("No monthly optimization results available to map by level.")
         return None
 
-    # Build savings table (uses new logic)
-    savings_df = prepare_savings_analysis_df(
-        opt_data,
-        monthly_results_df,
-        unit_costs_path
-    )
+    savings_df = prepare_savings_analysis_df(opt_data, monthly_results_df, unit_costs_path)
     if savings_df is None or savings_df.empty:
-        print("No savings data available for mapping by level.")
         return None
 
-    # Load coordinates + level
     coords_df = pd.read_csv(coordinates_file, low_memory=False)
     coords_df.columns = coords_df.columns.str.lower()
 
-    # Normalize school column
     if 'school_name' in coords_df.columns and 'school' not in coords_df.columns:
         coords_df = coords_df.rename(columns={'school_name': 'school'})
     if 'school' not in coords_df.columns:
-        print("Coordinates file missing 'school' or 'school_name' column.")
         return None
-
     coords_df['school'] = coords_df['school'].astype(str).str.strip().str.lower()
 
     if 'level' not in coords_df.columns:
-        print("Coordinates file missing 'level' column; cannot split by ES/MS/HS.")
         return None
 
-    # Merge savings with coordinates + level
     map_df = pd.merge(
         savings_df,
         coords_df[['school', 'latitude', 'longitude', 'level']],
@@ -985,85 +1067,89 @@ def generate_savings_maps_by_level(opt_data, monthly_results_df, unit_costs_path
         how='inner'
     ).dropna(subset=['latitude', 'longitude'])
 
-    # Ensure required fields
     if 'savings_magnitude' not in map_df.columns:
         map_df['savings_magnitude'] = map_df['savings'].abs()
     if 'outcome' not in map_df.columns:
         map_df['outcome'] = np.where(map_df['savings'] >= 0, 'Savings', 'Loss')
 
-    # Map maker
-    def _scale_radius(v, vmax):
-        if vmax and v and v > 0:
-            return (v / vmax) ** (1 / 3) * 20 + 2
-        return 2
-
-    def _build_map(df_level, title_center):
-        m = folium.Map(location=title_center, zoom_start=10)
-        vmax = df_level['savings_magnitude'].max()
-
-        for _, row in df_level.iterrows():
-            color = 'green' if row['outcome'] == 'Savings' else 'red'
-            popup_text = (
-                f"<strong>School:</strong> {str(row['school']).title()}<br>"
-                f"<strong>Annual Savings:</strong> ${float(row['savings']):,.2f}"
-            )
-
-            # Single circle with translucent fill and outline
-            folium.CircleMarker(
-                location=[float(row['latitude']), float(row['longitude'])],
-                radius=_scale_radius(row['savings_magnitude'], vmax),
-                color=color,
-                weight=2,
-                opacity=0.4,
-                fill=True,
-                fill_color=color,
-                fill_opacity=0.45,        
-                popup=folium.Popup(popup_text, max_width=300)
-            ).add_to(m)
-
-        return m
-
-    # Center on mean coords (fallback to Fairfax center)
-    try:
-        center = [float(map_df['latitude'].mean()), float(map_df['longitude'].mean())]
-    except Exception:
-        center = [38.83, -77.27]
-
-    # Build maps per level and save
-    results_dir = Path(out_dir) if out_dir else (Path(__file__).resolve().parents[2] / "src" / "data" / "results")
+    # Setup Output Dirs
+    current_path = Path(__file__).resolve()
+    project_root = current_path.parents[2]
+    latex_fig_dir = project_root / "research_paper" / "Latex" / "fig"
+    latex_fig_dir.mkdir(parents=True, exist_ok=True)
+    
+    results_dir = Path(out_dir) if out_dir else (project_root / "src" / "data" / "results")
     results_dir.mkdir(parents=True, exist_ok=True)
 
+    # --- INTERACTIVE (HTML) ---
     out_paths = {}
     level_map = [('ES', 'elementary'), ('MS', 'middle'), ('HS', 'high')]
-    print("\nCreating interactive savings map...")
+    
+    # Pre-calculate max for consistent scaling across HTML maps
+    vmax_global = map_df['savings_magnitude'].max()
+
     for code, label in level_map:
         df_level = map_df[map_df['level'] == code]
         if df_level.empty:
             continue
-        m = _build_map(df_level, center)
-        out_file = results_dir / f"savings_map_{label}{file_suffix}.html"
-        m.save(str(out_file))
-        out_paths[label] = out_file
-        print(f"Saved interactive savings map ({label}) to: {out_file}")
+            
+        # HTML Map
+        try:
+            center = [df_level['latitude'].mean(), df_level['longitude'].mean()]
+        except:
+            center = [38.83, -77.27]
+            
+        m = folium.Map(location=center, zoom_start=10)
+        
+        for _, row in df_level.iterrows():
+            color = '#2ca02c' if row['outcome'] == 'Savings' else '#d62728'
+            radius = (row['savings_magnitude'] / vmax_global) ** (1/3) * 20 + 2 if vmax_global > 0 else 2
+            
+            folium.CircleMarker(
+                location=[row['latitude'], row['longitude']],
+                radius=radius,
+                color=color,
+                fill=True,
+                fill_color=color,
+                fill_opacity=0.5,
+                popup=f"{row['school']}: ${row['savings']:,.0f}"
+            ).add_to(m)
+            
+        html_file = results_dir / f"savings_map_{label}{file_suffix}.html"
+        m.save(str(html_file))
+        out_paths[label] = html_file
+        
+        # --- STATIC MAP (PDF/EPS) - BASELINE ONLY ---
+        if "baseline" in file_suffix:
+            try:
+                fig, ax = plt.subplots(figsize=(8, 8))
+                if geojson_path and Path(geojson_path).exists():
+                    gdf_bg = gpd.read_file(geojson_path)
+                    gdf_bg.plot(ax=ax, color='#f0f0f0', edgecolor='#cccccc')
+                
+                colors = df_level['outcome'].apply(lambda x: '#2ca02c' if x == 'Savings' else '#d62728')
+                sizes = df_level['savings_magnitude'] / vmax_global * 200 + 10
 
-    if not out_paths:
-        print("No data found for ES/MS/HS levels.")
-        return None
+                ax.scatter(df_level['longitude'], df_level['latitude'], c=colors, s=sizes, alpha=0.7, edgecolors='white')
+                ax.set_title(f"Savings: {label.title()} Schools", fontsize=14)
+                ax.axis('off')
+
+                # Legend
+                from matplotlib.lines import Line2D
+                legend_elements = [
+                    Line2D([0], [0], marker='o', color='w', markerfacecolor='#2ca02c', label='Savings'),
+                    Line2D([0], [0], marker='o', color='w', markerfacecolor='#d62728', label='Loss')
+                ]
+                ax.legend(handles=legend_elements, loc='upper right')
+                
+                latex_name = f"savings_map_{label}_static"
+                fig.savefig(latex_fig_dir / f"{latex_name}.pdf", bbox_inches='tight')
+                fig.savefig(latex_fig_dir / f"{latex_name}.eps", format='eps', bbox_inches='tight')
+                plt.close(fig)
+            except Exception as e:
+                print(f"Error static map {label}: {e}")
 
     return out_paths
-
-def _load_coords_and_normalize(coords_csv_path):
-    """
-    Load coordinates and normalize the school column.
-    """
-    coords_df = pd.read_csv(coords_csv_path, low_memory=False)
-    coords_df.columns = coords_df.columns.str.lower()
-    if "school_name" in coords_df.columns and "school" not in coords_df.columns:
-        coords_df = coords_df.rename(columns={"school_name": "school"})
-    if "school" not in coords_df.columns:
-        raise KeyError("Coordinates CSV needs a 'school' or 'school_name' column.")
-    coords_df["school"] = coords_df["school"].astype(str).str.strip().str.lower()
-    return coords_df
 
 def generate_fcps_region_choropleth(
     savings_df: pd.DataFrame,
@@ -1071,157 +1157,113 @@ def generate_fcps_region_choropleth(
     geojson_path: str | Path,
     bins: int | None = 6,
     out_path: str | Path | None = None,
-    map_title: str | None = None
+    map_title: str | None = None,
+    file_suffix: str = ""
 ):
     """
-    Choropleth of TOTAL OPTIMIZATION SAVINGS per FCPS region.
-    Assumes savings_df has ['school','savings'] where savings = actual_annual - optimized_annual.
-    Coordinates CSV must have 'school_name' (or 'school') and 'fcps region' (with a space).
-    GeoJSON must carry a numeric REGION property.
+    Generates Choropleth (HTML) AND Static Map (PDF/EPS) if baseline.
     """
-
     if savings_df is None or savings_df.empty:
-        print("No savings data provided for region choropleth.")
         return None, None, None
 
-    # Load/normalize coordinate lookup
+    # --- Data Prep ---
     coords = pd.read_csv(coords_csv_path, low_memory=False)
     coords.columns = coords.columns.str.lower()
-
     if "school_name" in coords.columns and "school" not in coords.columns:
         coords = coords.rename(columns={"school_name": "school"})
-    if "school" not in coords.columns:
-        raise KeyError("Coordinates CSV needs 'school' or 'school_name'.")
-
-    if "fcps region" not in coords.columns:
-        raise KeyError("Coordinates CSV must contain 'fcps region' (note the space).")
-
-    # slim lookup
-    lookup = (
-        coords[["school", "fcps region"]]
-        .drop_duplicates(subset="school")
-        .copy()
-    )
-    # normalize names
-    lookup["school"] = lookup["school"].astype(str).str.strip().str.lower()
-
-    # Normalize savings_df school names and merge region
+    
+    # Normalize
+    coords["school"] = coords["school"].astype(str).str.strip().str.lower()
+    
+    # Merge
+    lookup = coords[["school", "fcps region"]].drop_duplicates(subset="school")
     sdf = savings_df.copy()
     sdf["school"] = sdf["school"].astype(str).str.strip().str.lower()
     sdf["savings"] = pd.to_numeric(sdf["savings"], errors="coerce").fillna(0.0)
-
+    
     merged = sdf.merge(lookup, on="school", how="inner")
     if merged.empty:
-        print("Savings and coordinates did not overlap on 'school'.")
         return None, None, None
 
-    # Aggregate: total optimization savings per region
-    regional = (
-        merged.groupby("fcps region", as_index=False)
-              .agg(total_optimization_savings=("savings", "sum"))
-    )
+    # Aggregation
+    regional = merged.groupby("fcps region", as_index=False).agg(total_optimization_savings=("savings", "sum"))
+    regional["REGION"] = regional["fcps region"].astype(str).str.extract(r"(\d+)").astype(int)
+    
+    # Load GeoJSON
+    gdf = gpd.read_file(geojson_path)
+    # Ensure REGION is int for merge
+    if 'REGION' in gdf.columns:
+        gdf['REGION'] = gdf['REGION'].astype(int)
+    
+    # Merge Data into GeoDataFrame
+    gdf_merged = gdf.merge(regional, on='REGION', how='left')
+    gdf_merged['total_optimization_savings'] = gdf_merged['total_optimization_savings'].fillna(0)
 
-    # Extract numeric region id
-    regional["REGION"] = (
-        regional["fcps region"].astype(str).str.extract(r"(\d+)").astype(int)
-    )
-    regional_map = regional[["REGION", "total_optimization_savings"]].copy()
-    regional_map["REGION_KEY"] = regional_map["REGION"].astype(str)
+    # --- FIX: Convert Timestamp columns to strings for JSON serialization ---
+    for col in gdf_merged.columns:
+        if pd.api.types.is_datetime64_any_dtype(gdf_merged[col]):
+            gdf_merged[col] = gdf_merged[col].astype(str)
 
-    # Load GeoJSON and align join key
-    with open(geojson_path, "r", encoding="utf-8") as f:
-        gj = json.load(f)
-    for feat in gj.get("features", []):
-        props = feat.get("properties", {})
-        if "REGION" in props and props["REGION"] is not None:
-            props["REGION_KEY"] = str(int(props["REGION"]))
-        feat["properties"] = props
+    # --- 1. HTML INTERACTIVE MAP ---
+    try:
+        m = folium.Map(location=[38.85, -77.30], zoom_start=10, tiles="cartodbpositron")
+        
+        # We use gdf_merged.to_json() which should now work since datetimes are strings
+        folium.Choropleth(
+            geo_data=json.loads(gdf_merged.to_json()),
+            data=regional,
+            columns=["REGION", "total_optimization_savings"],
+            key_on="feature.properties.REGION",
+            fill_color="RdYlGn",
+            fill_opacity=0.7,
+            legend_name="Total Savings ($)"
+        ).add_to(m)
+        
+        if out_path:
+            Path(out_path).parent.mkdir(parents=True, exist_ok=True)
+            m.save(str(out_path))
 
-    # crude center from polygons
-    def _geojson_center(geojson):
-        centers = []
-        for feat in geojson.get("features", []):
-            geom = feat.get("geometry", {})
-            if not geom or "coordinates" not in geom:
-                continue
-            def _flat(coords):
-                if isinstance(coords[0][0], (float, int)):
-                    return coords
-                out = []
-                for c in coords:
-                    out.extend(_flat(c))
-                return out
-            pts = _flat(geom["coordinates"])
-            if not pts:
-                continue
-            xs = [p[0] for p in pts]; ys = [p[1] for p in pts]
-            centers.append((float(np.mean(ys)), float(np.mean(xs))))
-        if centers:
-            lat = float(np.mean([c[0] for c in centers]))
-            lon = float(np.mean([c[1] for c in centers]))
-            return lat, lon
-        return (38.8462, -77.3064)
+    except Exception as e:
+        print(f"Error generating interactive choropleth: {e}")
+        traceback.print_exc()
 
-    center_lat, center_lon = _geojson_center(gj)
+    # --- 2. STATIC MAP (PDF/EPS) - BASELINE ONLY ---
+    if "baseline" in file_suffix:
+        # Path setup
+        current_path = Path(__file__).resolve()
+        project_root = current_path.parents[2]
+        latex_fig_dir = project_root / "research_paper" / "Latex" / "fig"
+        latex_fig_dir.mkdir(parents=True, exist_ok=True)
+        
+        try:
+            fig, ax = plt.subplots(figsize=(8, 6))
+            
+            # Plot
+            gdf_merged.plot(
+                column='total_optimization_savings',
+                cmap='RdYlGn',
+                linewidth=0.8,
+                edgecolor='0.8',
+                legend=True,
+                legend_kwds={'label': "Total Savings ($)", 'orientation': "vertical"},
+                ax=ax
+            )
+            
+            clean_title = map_title.replace("FCPS Regions — ", "").replace(" ", "_").lower() if map_title else "choropleth"
+            ax.set_title(map_title if map_title else "Regional Savings", fontsize=12)
+            ax.axis('off')
+            
+            # Filename
+            base_name = f"choropleth_{clean_title}_baseline"
+            fig.savefig(latex_fig_dir / f"{base_name}.pdf", bbox_inches='tight')
+            fig.savefig(latex_fig_dir / f"{base_name}.eps", format='eps', bbox_inches='tight')
+            plt.close(fig)
+            print(f"Saved static choropleth to {latex_fig_dir / base_name}")
 
-    # Build choropleth using total optimization savings
-    m = folium.Map(location=[center_lat, center_lon], zoom_start=10, tiles="cartodbpositron")
+        except Exception as e:
+            print(f"Error creating static choropleth: {e}")
 
-    # Bin edges
-    vals = regional_map["total_optimization_savings"].astype(float).to_numpy()
-    chor_kwargs = dict(
-        geo_data=gj,
-        data=regional_map,
-        columns=["REGION_KEY", "total_optimization_savings"],
-        key_on="feature.properties.REGION_KEY",
-        fill_color="RdYlGn",
-        fill_opacity=0.85,
-        line_opacity=0.9,
-        nan_fill_color="#f0f0f0",
-        nan_fill_opacity=0.6,
-        legend_name="Total Optimization Savings ($)",
-        highlight=True,
-    )
-    if bins and vals.size >= 2 and not np.allclose(np.nanmin(vals), np.nanmax(vals)):
-        vmin, vmax = float(np.nanmin(vals)), float(np.nanmax(vals))
-        pad = (vmax - vmin) * 1e-6 or 1e-6
-        edges = np.linspace(vmin - pad, vmax + pad, int(bins) + 1)
-        chor_kwargs["bins"] = edges.tolist()
-
-    folium.Choropleth(**chor_kwargs).add_to(m)
-
-    # region outlines
-    folium.GeoJson(
-        gj, control=False, show=True,
-        style_function=lambda f: {"fillOpacity": 0, "color": "#222222", "weight": 1.5},
-    ).add_to(m)
-
-    # simple tooltip/popup
-    lut = dict(zip(regional_map["REGION_KEY"], regional_map["total_optimization_savings"]))
-    def _fmt_money(v): 
-        try: return f"${v:,.0f}"
-        except: return "N/A"
-
-    folium.GeoJson(
-        gj, control=False, show=True,
-        style_function=lambda f: {"fillOpacity": 0, "color": "#0000", "weight": 0},
-        tooltip=folium.GeoJsonTooltip(fields=["REGION"], aliases=["Region"]),
-        popup=lambda f: folium.Popup(
-            f"Region {f['properties'].get('REGION')} : {_fmt_money(lut.get(str(f['properties'].get('REGION')), None))}",
-            max_width=260,
-        ),
-        highlight_function=lambda f: {"weight": 3, "color": "#000000"},
-    ).add_to(m)
-
-    # save if requested
-    if out_path is None:
-        out_path = Path(__file__).resolve().parents[2] / "src" / "data" / "results" / "fcps_region_choropleth_overall.html"
-    out_path = Path(out_path)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    m.save(str(out_path))
-    print(f"Saved region choropleth to: {out_path}")
-
-    return m, regional_map[["REGION", "total_optimization_savings"]], out_path
+    return m, regional, out_path
 
 def generate_all_region_choropleths(
     opt_data: dict,
@@ -1233,69 +1275,59 @@ def generate_all_region_choropleths(
     out_dir: str | Path | None = None
 ):
     """
-    Creates:
-      - Overall region choropleth
-      - Per-level (ES/MS/HS) region choropleths
+    Wrapper to generate Overall + Per-Level choropleths (HTML + PDF/EPS).
     """
-    
     if monthly_results_df is None:
-        print("No monthly results for region choropleths.")
         return None
 
-    # Build savings_df once (uses new logic)
     savings_df = prepare_savings_analysis_df(opt_data, monthly_results_df, unit_costs_path)
     if savings_df is None or savings_df.empty:
-        print("No savings data for region choropleths.")
         return None
         
-    # Define the output directory
     if out_dir is None:
-        results_dir = Path(__file__).resolve().parents[2] / "src" / "data" / "results"
+        out_dir = Path(__file__).resolve().parents[2] / "src" / "data" / "results"
     else:
-        results_dir = Path(out_dir)
-    results_dir.mkdir(parents=True, exist_ok=True)
+        out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
 
     results = {}
 
-    # Overall
+    # 1. Overall
     _, regional_df, path_overall = generate_fcps_region_choropleth(
         savings_df,
         coords_csv_path=coords_csv_path,
         geojson_path=geojson_path,
         bins=None,
-        out_path=results_dir / f"fcps_region_choropleth_overall{file_suffix}.html",
-        map_title="FCPS Regions — Overall Savings"
+        out_path=out_dir / f"fcps_region_choropleth_overall{file_suffix}.html",
+        map_title="FCPS Regions — Overall Savings",
+        file_suffix=file_suffix  # Pass suffix to trigger PDF gen
     )
     results["overall_html"] = path_overall
-    results["overall_table"] = regional_df
 
-    # Per level
+    # 2. Per Level
     coords_df = _load_coords_and_normalize(coords_csv_path)
-    if "level" not in coords_df.columns:
-        print("Coordinates CSV missing 'level'; skipping per-level choropleths.")
-        return results
-
-    savings_with_level = pd.merge(
-        savings_df,
-        coords_df[["school", "level"]],
-        on="school",
-        how="left"
-    )
-
-    for level_code, label in [("ES", "elementary"), ("MS", "middle"), ("HS", "high")]:
-        filtered = savings_with_level[savings_with_level["level"] == level_code]
-        if filtered.empty:
-            continue
-        _, reg_df, path_level = generate_fcps_region_choropleth(
-            filtered,
-            coords_csv_path=coords_csv_path,
-            geojson_path=geojson_path,
-            bins=None,
-            out_path=results_dir / f"fcps_region_choropleth_{label}{file_suffix}.html",
-            map_title=f"FCPS Regions — {label.title()} Schools"
+    if "level" in coords_df.columns:
+        savings_with_level = pd.merge(
+            savings_df,
+            coords_df[["school", "level"]],
+            on="school",
+            how="left"
         )
-        results[f"{label}_html"] = path_level
-        results[f"{label}_table"] = reg_df
+
+        for level_code, label in [("ES", "elementary"), ("MS", "middle"), ("HS", "high")]:
+            filtered = savings_with_level[savings_with_level["level"] == level_code]
+            if filtered.empty:
+                continue
+            _, reg_df, path_level = generate_fcps_region_choropleth(
+                filtered,
+                coords_csv_path=coords_csv_path,
+                geojson_path=geojson_path,
+                bins=None,
+                out_path=out_dir / f"fcps_region_choropleth_{label}{file_suffix}.html",
+                map_title=f"FCPS Regions — {label.title()} Schools",
+                file_suffix=file_suffix # Pass suffix
+            )
+            results[f"{label}_html"] = path_level
 
     return results
 
@@ -1532,7 +1564,8 @@ def run_monthly_proportional_pipeline(
                     opt_data, 
                     monthly_results_df, 
                     unit_costs_file,
-                    coordinates_file, 
+                    coordinates_file,
+                    geojson_path=geojson_file, 
                     out_dir=graph_output_dir,
                     file_suffix=file_suffix
                 )
@@ -1541,7 +1574,8 @@ def run_monthly_proportional_pipeline(
                     opt_data, 
                     monthly_results_df, 
                     unit_costs_file,  
-                    coordinates_file, 
+                    coordinates_file,
+                    geojson_path=geojson_file,
                     out_dir=graph_output_dir,
                     file_suffix=file_suffix
                 )
