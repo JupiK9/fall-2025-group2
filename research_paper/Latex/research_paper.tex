@@ -53,13 +53,23 @@ Food waste in U.S. public schools is a major economic and environmental problem,
 %*********************************************************************************************************************************************************************************************************************
 \section{INTRODUCTION}
 
-School food service operations face mounting pressure to deliver nutritious meals while minimizing waste and controlling costs. As student populations grow more diverse and operational demands more complex, school systems urgently need intelligent, data-driven solutions to optimize meal planning, procurement, and production.
+School food-service operations find themselves under increasing pressure to deliver nutritious meals at scale while reducing waste and controlling costs. As student populations grow more diverse and operational demands become more complex, school systems urgently need intelligent, data driven solutions to optimize meal planning, procurement, and production. These efforts matter not only for efficiency, but also for child health, food security, and equity. For many children from low income or food insecure households, school breakfasts and lunches represent a major portion of daily caloric intake. Evidence suggests these meals consistently outperform non-school foods in diet quality. In one national sample, foods served under the U.S. federal school meal programs scored between 79–81 on the Healthy Eating Index, versus just 55–57 for non-school foods \cite{guthrie}. This contrast underscores that food service operations are not merely about cost savings and that improving their efficiency directly supports children’s health and dietary equity.
 
-Beyond inefficiencies, school meals play a critical role in food security and diet quality. For many children living in low income or food insecure households, school breakfasts and lunches represent a major portion of their daily caloric intake, yet these meals consistently outperform non-school foods in diet quality. In one national sample, USDA served foods scored between 79–81 on the Healthy Eating Index versus 55–57 for non-school foods \cite{guthrie}. This underscores that food service operations aren’t just about cost savings and that improving their efficiency also directly supports children’s health and equity.
+Policy driven improvements in meal standards appear to yield both higher consumption and no increase in waste. For example, a study that compared plate waste before versus after the 2012 federal meal standard update found that students consumed 15.6\% more of their entrées and 16.2\% more of their vegetables after the new guidelines took effect, challenging claims that stricter nutrition rules necessarily lead to more waste \cite{cohen}.
 
-At the same time, data suggest that recent policy driven improvements in meal standards have boosted consumption without increasing waste. A study comparing plate waste before and after the 2012 USDA school meal standard update found that students consumed 15.6\% more of their entrée and 16.2\% more vegetables after the new guidelines took effect \cite{cohen}. These results contradict narrative driven claims that stricter nutrition rules necessarily lead to more food being thrown away and point instead to a compelling case for data driven planning and production.
+Yet, despite such gains, most U.S. school districts remain without sophisticated analytics tools able to harness point-of-sale (POS), production, and waste data in real time. Without such capabilities, opportunities to further reduce waste, align procurement, tailor menus to student preferences, and monitor environmental footprint remain largely untapped. 
 
-Even with these gains, most school districts lack sophisticated analytics tools able to harness point-of-sale (POS) and production data in real time. Without such capabilities, opportunities to further reduce waste, align procurement, and tailor menus remain largely untapped. To take initiative in solving this problem, Fairfax County Public Schools (FCPS) has provided data for March to May of 2025, offering a timely opportunity to develop and deploy advanced, data-driven solutions.
+The urgency of this problem is magnified by evidence that waste and associated inefficiencies remain substantial even in well designed meal programs. A comprehensive review of 53 studies of the National School Lunch Program (NSLP) between 1978 and 2015 revealed wide variability in how waste is measured (direct weighing, visual estimation, photographic methods) and concluded that inconsistencies in methodology limit comparability across studies and impair understanding of long-term waste trends \cite{byker}.
+
+Beyond methodological inconsistency, more recent empirical studies continue to document sizable waste generation in school foodservice settings. For instance, a food waste audit at three U.S. schools found that food waste alone ranged from roughly 25 to 65 g per student per day and made up the largest single category of school cafeteria waste streams (ahead of milk cartons, paper, plastics, etc.) \cite{wilkie}. Similarly, research on school canteens in other international settings estimates that about 20–30\% of prepared meals are wasted, leading to substantial financial and environmental consequences \cite{chu}.
+
+Importantly, recent intervention studies highlight that sustainable, nutritious, and cost effective school meal programs are achievable and can even reduce environmental footprint without increasing waste or reducing student satisfaction. In one European intervention (grades 0–9), researchers applied linear optimization to redesign a four week lunch menu: the optimized menu reduced greenhouse gas emissions (GHGE) per meal by 40\%, met all nutritional guidelines, cost 11\% less than baseline, and yet resulted in no significant difference in food waste, student consumption, or meal satisfaction \cite{colombo}. Complementary findings from sustainability assessments suggest that systematic waste-reduction strategies (such as plate-waste tracking, forecasting, pedagogic meals, and staff training) can sustainably reduce plate waste over the long term, while lowering environmental impact and avoiding nutrient loss \cite{sundin}.
+
+These studies illustrate a key point that school meals are not merely a matter of providing calories, they are a critical lever for shaping healthy, sustainable diets for children while also reducing environmental burdens and public sector costs. And yet, as several authors note, most school food programs lack the data infrastructure and analytical capacity to implement such optimizations and monitor outcomes systematically \cite{byker}.
+
+The data provided by FCPS (Fairfax County Public Schools) covering March–May 2025 offers a rare and timely opportunity. By combining POS, production, and waste data with modern analytic tools including optimization modeling and real-time waste tracking, we can begin to harness this potential. With a data-driven approach, it may be possible to design menus that maximize nutritional value, minimize waste, align procurement and production with actual consumption patterns, and reduce environmental footprint and all without sacrificing meal acceptance or equity.
+
+Thus, in the present analysis, we propose to build and deploy a data-driven analytics framework for FCPS that integrates existing POS data to create an optimization analysis that produces actionable insights for meal planning and sustainability. In doing so, we aim not only to improve operational efficiency and cost-effectiveness, but to support healthier diets, food security, and environmental stewardship, advancing the broader goals of equity and sustainability in public school meal programs.
 
 %*********************************************************************************************************************************************************************************************************************
 \section{RELATED WORK}
@@ -78,13 +88,22 @@ The study that Costello was intended to help cafeteria management and school lun
 
 \subsection{Factors Influencing Food Waste}
 
-A study conducted by the authors, Martins, Rodrigues, Cunha, and Rocha, explored the factors that contributes to food waste in 21 different primary schools in Porto, Portugal \cite{factors}. Food waste was measured by the weight, menu offering, and were also students were surveyed related to their preferences and dietary patterns \cite{factors}.
+A study conducted by the authors, Martins, Rodrigues, Cunha, and Rocha, explored the factors that contributes to food waste in 21 different primary schools in Porto, Portugal \cite{factors}. Food waste was measured by the weight, menu offering, and were also students were surveyed related to their preferences and dietary patterns \cite{factors}. The study found that the average waste for soup was 21.6\% and 27.5\% for main dishes across fourth grade children in these primary schools \cite{factors}. Though, food waste in primary schools is a global issue where in the United States up to 49\% of food is wasted, in Sweden is 23\%, in Italy is between 20-29\% and 30-40\% of fruits and vegetables were wasted in the United Kingdom \cite{factors}. The study also found that the presence of teachers in the cafeteria reduced waste, crowded cafeterias allowed students to socialize rather than eating which leads to higher waste, and allowing students the liberty to leave the cafeteria whenever they wanted reduced food waste \cite{factors}. 
+
+\subsection{Food Waste Management and Sustainability}
+
+In \cite{sustainability}, Derqui and Grimaldi surveyed 548 schools in Catalonia, Spain in regards to sustainability and waste management. In their survey, they found multiple results. First, headteachers perceived that catering companies is more engaged in food waste reduction in schools, than families, school management, and the local government \cite{sustainability}. Next, headteachers perceived the local government as having the highest level of responsibility than families, catering companies, and the school management when it comes to food waste reductions \cite{sustainability}. However, it is important that every stakeholder for schools is engaged and responsible equally to effectively reduce waste reduction. The study also found out that schools that measured their waste are more likely to implement waste reduction actions that are more effective than those that do not \cite{sustainability}.
+
+School cafeterias has been large source for food waste, which is causing a major concern for ethical, environmental, and economic factors. School administration has been making increased efforts to address these issues, but are not committed to reducing food waste \cite{sustainability}. Adding on to that, it is important that students learn sustainable habits that would carry on for the rest of their lives \cite{sustainability}. 
+
 
 %*********************************************************************************************************************************************************************************************************************
 
 \section{MIXED-INTEGER LINEAR PROGRAMMING OPTIMIZATION}
 
-Mixed-Integer Linear Programming (MILP) formulates problems into a linear objective function where, in our case, a variable takes an integer value to address resource allocation. In \cite{milpdef}, MILP can be formulated to the following matrix notation below:
+Mixed-Integer Linear Programming (MILP) formulates problems into a linear objective function where, in our case, a variable takes an integer value to address resource allocation. In \cite{py_milp}, Moreira et al. states that, MILP modeling capabilities is complemented by Python as it provides the tools for formulating, solving, and visualizing the models making it accessible and a flexible resource. A primary advantage of MILP over other optimization methods is the guarantee of global optimality, ensuring that the solution found is mathematically the best possible outcome within the constraints, rather than just a local optimum \cite{urbanucci} \cite{abbasi}.
+
+In \cite{milpdef}, MILP can be formulated to the following matrix notation below:
 
 \begin{align*}
 \min_{\bm{x},\bm{y}} \quad & \bm{c}^{\text{T}} \bm{x} + \bm{d}^{\text{T}} \bm{y} \\
@@ -110,7 +129,7 @@ Which the problem instance is represented by matrices and vectors $\bm{A, E, b, 
     \item $\bm{y} \in \mathbb{R}^q$: The values in vector $y$ can be real numbers.
 \end{itemize}
 
-With the emergence of AI techniques to help businesses and other entities to solve their problems, it should not be considered when it comes to interpretability. MILPs have an advantage over these AI techniques as they are easier to understand and pinpoint which constraints of the MILP model has led to the optimal solution \cite{50years}. According to Clautiaux and Ljubić, interpretability will be a requirement when it comes to decision-making tools, as machine learning algorithms suffer in transparency and providing explanations for their results, MILPs will be useful for decision makers \cite{50years}.
+With the emergence of AI techniques to help businesses and other entities to solve their problems, it should not be considered when it comes to interpretability. MILPs have an advantage over these AI techniques as they are easier to understand and pinpoint which constraints of the MILP model has led to the optimal solution \cite{50years}. In \cite{50years}, interpretability will be a requirement when it comes to decision-making tools, as machine learning algorithms suffer in transparency and providing explanations for their results, MILPs will be useful for decision makers.
 
 For our MILP model, we used SciPy's MILP function, where in the SciPy library, the function is a wrapper for the HiGHS solver \cite{highs}. Going deeper, the HiGHS Mixed Integer Programming solver is solved by a Branch-and-Cut method \cite{highs}. In \cite{LIPMethods}, Genova describes the Branch-and-Cut algorithm, as a powerful algorithm as it combines the Cutting Planes and Branch-and-Bound algorithms into one. 
 
@@ -133,7 +152,7 @@ To better understand the Branch-and-Cut algorithm, fig. \ref{fig:bc_vis} provide
 \end{figure}
 
 \subsection{Optimization Model Formulation}
-We created a MILP model to help FCPS cafeteria managers reduce food waste by selecting the optimal number of menu items. The model aims to reduce total costs by balancing production expenses with a waste penalty that aligns with FCPS needs.
+We created a MILP model to help FCPS cafeteria managers reduce food waste by selecting the optimal number of menu items while staying in budget. This is referred to as a simultaneous optimization of control and design where the design is our budget and the control is the food production, and our model will solve both at the same time \cite{opt_design}. It is also important to consider uncertainty as mathematical models almost always contain uncertainty. Sensitivity analysis allows different variations of the model that can help out with the uncertainty in the parameters \cite{algo_milp}. We implemented specific budget scenarios (80\%, 100\%, and 120\% of the baseline budget) into our model that provides a complete map of possible solutions as parameters change. Following the sensitivity analysis framework from \cite{ren}, we tested the robustness of our model by varying key parameters. Specifically, we analyzed how the optimal production quantities changed in response to fluctuations in student demand. Since a parameter like student demand often fluctuates, running different scenarios is ideal to keep a safe production plan \cite{mathmodel}.  For this study, we will be focusing more on the normal baseline budget.
 
 \
 
@@ -152,17 +171,18 @@ Let $x_j$ be the integer quantity of menu item $j$ to be produced.
 \
 
 \subsubsection{Objective Function}
-The objective is to minimize the Total Cost ($C_T$), balancing the financial cost of meals and the environmental cost of waste. Based on our "Minimized Cost" metric, the objective function is:
+The objective is to minimize the Total Cost ($C_T$), balancing the financial cost of meals and the environmental cost of waste. In \cite{oliva}, treating environmental factors as objectives to be minimized, rather than as constraints, allows for the identification of solutions where significant environmental savings can be achieved with only marginal increases in cost. Following this logic, our model incorporates a waste penalty ($\lambda$) directly into the objective function to help reduce waste production. From \cite{afshar}, applying the concept of 'Value of Lost Load' to a school cafeteria setting, just as power systems assign a high financial value to preventing outages, our model assigns a penalty weight to unserved meals that exceeds the cost of food waste. This ensures that waste reduction does not come at the expense of student food security. Based on our "Minimized Cost" metric, the objective function is:
 
 \begin{equation}
-    \text{Minimize } Z = \sum_{j=1}^{n} (c_j + \lambda w_j) x_j
+    \text{Minimize } Z = \sum_{i=i}^{n} \sum_{j=1}^{m} (c_{ij} + \lambda w_{ij}) x_{ij}
 \end{equation}
-where $\lambda$ represents the waste penalty weight (set to 0.1 in our analysis).
+
+Comparing our objective function with their function in \cite{py_milp}, we are weighting the financial cost by $\lambda$, which represents the waste penalty weight (set to 0.1 in our analysis) and the waste penalty.
 
 \
 
 \subsubsection{Constraints}
-To align production with student needs and minimize waste, we used a production bounds constraint. This constraint keeps production within a defined range. The range is based on estimated demand:
+Similar to the the transport constraints modeled in \cite{boujelben}, where low-volume shipments are penalized to ensure full truckloads, our model includes production and financial constraints, where our model penalizes possible waste to ensure appropriate amounts of food is produced. To align production with student needs and minimize waste, we used a production bounds constraint. This constraint keeps production within a defined range. The range is based on estimated demand:
 
 \begin{equation}
     L_{s,j} \leq x_{s,j} \leq U_{s,j} \quad \forall s, \forall j
@@ -220,7 +240,9 @@ Here, $d_{s,j}$ represents the demand for item $j$ at school $s$. In addition to
     x_{s,j} \in \mathbb{Z}^+ \quad \forall s, \forall j
 \end{equation}
 
-Finally, we included two budget constraints in the model: a per-school budget constraint ($B_s$), and a system-wide total budget constraint ($B_{total}$):
+It is important to know, however, using integer variables creates a discontinuous solution space. When a parameter changes, the optimal solution often performs jumps throughout the space \cite{algo_milp}. If a small budget were to occur in the county, our optimal food recommendations would drastically change as expensive foods can be dropped entirely causing the cheaper food to fill in the allocated space.
+
+Finally, we included two budget constraints in the model: a per-school budget constraint ($B_s$), and a system-wide total budget constraint ($B_{total}$). This is considered as a resource constraint as, in our case, financial capital, the budget needs to stay within range of what it is allocated to \cite{py_milp}:
 
 \begin{equation}
     \sum_{j} (c_{j} \cdot  x_{s,j}) \leq B_{s}
@@ -240,7 +262,7 @@ The per-school budget constraint ensures equity across all the schools in the sy
     \label{eq:total_budget}
 \end{equation}
 
-The system-wide budget constraint ensures sustainability. It ensures that the spending across the county does not exceed the allocated \$139,144,760 budget \cite{fcpsbudget}.
+The system-wide budget constraint ensures sustainability. It ensures that the spending across the county does not exceed the allocated \$139,144,760 budget \cite{fcpsbudget}. Implementing a system-wide budget constraint is ideal as the entire school system must stay under the total budget while optimizing individual schools. This allows the model to optimize the allocation of funds between purchasing higher-quality (less wasteful) ingredients and the labor needed to prepare them, ensuring that the solution remains financially feasible \cite{cobuloglu}.
 
 %*********************************************************************************************************************************************************************************************************************
 \section{RESULTS}
@@ -269,11 +291,21 @@ According to the National Center for Educational Statistics \cite{fcpsdemo}, as 
 In terms of the FCPS regions, here are key points to describe the savings amounts from fig. \ref{fig:choropleth}:
 
 \begin{itemize}
-    \item \textbf{Region 1}: The two Census districts of Dranesville and Hunter Mill make up this region and has a median household income of \$199,209 \cite{census_dranesville} and \$164,050 \cite{census_hunter_mill} for 2023 respectively. This region is the wealthiest among the county as cities like Great Falls, McLean, Wolf Trap, Vienna, and Dunn Loring are located in. Therefore, students in this region have a choice of bring in lunch or food, as their parents can afford food, resulting in adequate production costs for those that are in the lower parts of the region.
-    \item \textbf{Region 2}:
-    \item \textbf{Region 3}: According to Fairfax County's Needs Assessment of 2022 \cite{fcps_needs}, 11 out of the 18 Census tracts in Fairfax County ranked as the greatest need for food reside in this region. This would mean that the students in these schools deal with food insecurity and benefits from the food provided by the schools. Therefore, savings in this area is low as the food production needed satisfies the demand in this region. 
-    \item \textbf{Region 4}: In \cite{fcps_region4}, this region has the lowest amount of savings due to the home of the largest schools in the state, Lake Braddock Secondary, Robinson Secondary. The student population of Lake Braddock Secondary is 5422 students and Robinson Secondary is 4904 students \cite{fcps_profiles}. These schools have massive student populations and so they serve far more meals than smaller high schools in other regions. Therefore, this region produces the highest volume of waste because of student population.
-    \item \textbf{Region 5}: 
+    \item \textbf{Region 1}: \textit{Average Median Household Income}: \$170,330 \cite{fcps_income}
+    
+    The two Census districts of Dranesville and Hunter Mill make up this region and has a median household income of \$199,209 \cite{census_dranesville} and \$164,050 \cite{census_hunter_mill} for 2023 respectively. The northern parts of the region is the wealthiest among the county as cities like Great Falls and McLean are located in. Therefore, students in the northern parts of the region have a choice of bring in lunch instead of buying lunch, causing demand volatility. However from the data, the region had better historical management in production costs, leading to moderate savings out of the whole county.
+    \item \textbf{Region 2}: \textit{Average Median Household Income}: \$123,007 \cite{fcps_income}
+    
+    In \cite{fcps_needs}, a couple areas in the south-eastern parts of the region is experiencing a greatest need of food, whereas the northern part is the complete opposite. As the northern cities of the region consists of Tyson's Corner, and some neighborhoods of McLean and Langley. The mix of rich and poor areas split the production needs of food in these school cafeterias.
+    \item \textbf{Region 3}: \textit{Average Median Household Income}: \$134,059 \cite{fcps_income}
+    
+    According to Fairfax County's Needs Assessment of 2022 \cite{fcps_needs}, 11 out of the 18 Census tracts in Fairfax County ranked as the greatest need for food reside in this region. This would mean that the students in these schools deal with food insecurity and benefits from the food provided by the schools. Therefore, savings in this area is low as the food production needed satisfies the demand in this region. 
+    \item \textbf{Region 4}: \textit{Average Median Household Income}: \$176,789 \cite{fcps_income}
+    
+    In \cite{fcps_region4}, this region has the lowest amount of savings due to the home of the largest schools in the state, Lake Braddock Secondary, Robinson Secondary. The student population of Lake Braddock Secondary is 5422 students and Robinson Secondary is 4904 students \cite{fcps_profiles}. These schools have massive student populations and so they serve far more meals than smaller high schools in other regions. Therefore, this region produces the highest volume of waste because of student population.
+    \item \textbf{Region 5}: \textit{Average Median Household Income}: \$164,789 \cite{fcps_income}
+    
+    Being at the heart of Fairfax County, this region has generated the highest amount of savings from our optimization model. Students in this category come from a relatively high household income, which would result in parents being able to afford lunch for their children. This causes demand volatility as it is unpredictable to produce an optimal amount of food for the schools beforehand.
 \end{itemize}
 
 \begin{figure}[t]
@@ -282,8 +314,6 @@ In terms of the FCPS regions, here are key points to describe the savings amount
     \caption{Choropleth map of Fairfax County with FCPS regions divided and colored based on savings amount from optimization}
     \label{fig:choropleth}
 \end{figure}
-
-
 
 Fig. \ref{fig:savings_analysis} shows the financial performance of the optimization model. The scatter plot compares each school's actual annual food costs (x-axis) with its optimized annual costs (y-axis). The dashed diagonal line marks the point where optimized costs equal historical spending.
 
@@ -399,7 +429,7 @@ In their study of the private school in Columbia, Missouri, Mulhollem found that
 Another problem brought up is the reliance on a single individual to sustain a waste management program. Huber’s article \cite{huber} describes how one teacher, Gerin Hennebaul, initiated the push for change in waste management with her students, which subsequently led to waste-management initiatives. However, if she were the only advocate for this cause and left the school, the program could collapse. In Fairfax County Public Schools, the administration is actively seeking assistance to reduce waste. This approach would require a collective effort from administrative staff and encourage passionate individuals within schools to participate. Though FCPS may be less vulnerable to this issue, it is important that the administration is committed to promoting waste management across the entire school system to ensure widespread adoption.
 
 \subsection{Limitations}
-A limitation encountered by other researchers was the narrow scope of the data. In Mulhollem’s article \cite{mulhollem}, the study observed that this school’s waste percentages align with findings from other U.S. studies. However, these results cannot be generalized to all U.S. public school cafeterias. For our study, we lacked multi-month datasets for analysis. We received food production data only for May. This snapshot did not capture the full extent of the school year’s food production and waste. Consequently, we analyzed May and inferred that the rest of the school year is comparable. Again, this inference does not represent all U.S. public school cafeterias.
+A limitation encountered by other researchers was the narrow scope of the data. In Mulhollem’s article \cite{mulhollem}, the study observed that this school’s waste percentages align with findings from other U.S. studies. However, these results cannot be generalized to all U.S. public school cafeterias. For our study, we lacked multi-month datasets for analysis. We received food production data only for May. This snapshot did not capture the full extent of the school year’s food production and waste. Consequently, we analyzed May and inferred that the rest of the school year is comparable. Again, this inference does not represent all U.S. public school cafeterias. Along with that, a limitation of the MILP formulation is the necessity of linearizing non-linear real-world phenomena. While our model assumes linear costs and demands, actual food consumption in school cafeterias may exhibit non-linear behaviors based on social factors or menu variety \cite{urbanucci}.
 
 We faced uncertainty about how much of the county budget goes to breakfast and lunch production. The budget documents only list unspecified 'Expenditures.' We assumed the budget includes salaries, maintenance, equipment, utilities, and compliance costs. Therefore, the amounts we present might not fit FCPS if most of a school's budget covers food production. We also assumed school budgets are allocated by size, not equally. These may not reflect the true amounts each school receives. Our analysis assumes that the Food and Nutritional Services budget primarily funds food production.
 
@@ -411,6 +441,8 @@ We faced uncertainty about how much of the county budget goes to breakfast and l
 This study tackled economic and environmental food waste issues in Fairfax County Public Schools using data analysis and an integer linear programming optimization model. The model projected an annual system-wide cost reduction of about \$1.83 million, lowering spending from \$48.94 million to \$47.11 million. This shows the system can reclaim significant economic value without lowering nutritional standards. The graphs show that the impact of optimization varies by school size. Schools with 500–1500 students had the greatest total savings, while larger schools faced a projected cost increase. This increase does not indicate inefficiency; it reveals historical under-production. The model corrects this to ensure resources fully meet student demand.
 
 This study has some limitations related to the data used and the clarity of the budget. The analysis used production data from May to estimate yearly trends, which might not reflect seasonal changes during a full school year. Another limitation brought up was that the exact use of funds in the "Expenditures" budget category is unclear; future research will need more detailed financial data to improve cost-saving estimates. Even with these challenges, the study offers a framework for FCPS to move from its current decision-making methods to a more data-driven approach to sustainability. Therefore, FCPS should follow the recommendations generated by our model to achieve their goals to reduce their production of waste from their schools.
+
+Future iterations pf this study could incorporate additional environmental metrics beyond food waste, such as reducing a school's carbon footprint or water usage. To manage something like this, MILP-based clustering methods could be deployed to help make decision-making on environmental objectives easier for school administrators \cite{oliva}. While our current model uses deterministic constraints, future work could adopt fuzzy inventory modeling techniques, as explored by \cite{kalaiarasi}, to better account for the vagueness and uncertainty in student demand and production costs.
 
 %*********************************************************************************************************************************************************************************************************************
 
