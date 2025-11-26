@@ -272,7 +272,7 @@ The system-wide budget constraint ensures sustainability. It ensures that the sp
 \begin{figure}[t]
     \centering
     \includegraphics[width=\linewidth]{fig/total_savings_bar_color.eps}
-    \caption{Overall Savings Analysis. This comparison shows the financial impact of the optimization model across the system. The dark gray bar shows the estimated actual annual baseline cost (\$48.94M), and the light gray bar shows the lower cost reached with the optimized menu planning model (\$47.11M).}
+    \caption{Overall Savings Analysis. This comparison shows the financial impact of the optimization model across the system. The red bar shows the estimated actual annual baseline cost (\$48.94M), and the green bar shows the lower cost reached with the optimized menu planning model (\$47.11M).}
     \label{fig:overall_savings}
 \end{figure}
 
@@ -304,9 +304,11 @@ In terms of the FCPS regions, here are key points to describe the savings amount
     
     In \cite{fcps_region4}, this region has the lowest amount of savings due to the home of the largest schools in the state, Lake Braddock Secondary, Robinson Secondary. The student population of Lake Braddock Secondary is 5422 students and Robinson Secondary is 4904 students \cite{fcps_profiles}. These schools have massive student populations and so they serve far more meals than smaller high schools in other regions. Therefore, this region produces the highest volume of waste because of student population.
     \item \textbf{Region 5}: \textit{Average Median Household Income}: \$164,789 \cite{fcps_income}
-    
-    Being at the heart of Fairfax County, this region has generated the highest amount of savings from our optimization model. Students in this category come from a relatively high household income, which would result in parents being able to afford lunch for their children. This causes demand volatility as it is unpredictable to produce an optimal amount of food for the schools beforehand.
+
 \end{itemize}
+
+Being at the heart of Fairfax County, this region has generated the highest amount of savings from our optimization model. Students in this category come from a relatively high household income, which would result in parents being able to afford lunch for their children. This causes demand volatility as it is unpredictable to produce an optimal amount of food for the schools beforehand.
+
 
 \begin{figure}[t]
     \centering
@@ -317,12 +319,12 @@ In terms of the FCPS regions, here are key points to describe the savings amount
 
 Fig. \ref{fig:savings_analysis} shows the financial performance of the optimization model. The scatter plot compares each school's actual annual food costs (x-axis) with its optimized annual costs (y-axis). The dashed diagonal line marks the point where optimized costs equal historical spending.
 
-Schools below the line, shown in gray, are where the model found inefficiencies and projected cost savings. The model placed 130 schools in this group. In contrast, 60 schools above the line, shown in black, are expected to have higher costs. This likely happens when past procurement did not meet the model's stricter rules. The size of each marker shows the financial impact.
+Schools below the line, shown in green, are where the model found inefficiencies and projected cost savings. The model placed 130 schools in this group. In contrast, 60 schools above the line, shown in red, are expected to have higher costs. This likely happens when past procurement did not meet the model's stricter rules. The size of each marker shows the financial impact.
 
 \begin{figure*}[t]
     \centering
     \includegraphics[width=0.8\textwidth]{fig/savings_analysis_color.eps}
-    \caption{Savings Analysis: Actual vs. Optimized Cost. Gray circles represent schools achieving savings, while black circles indicate projected losses. The size of the circle corresponds to the magnitude of the financial impact.}
+    \caption{Savings Analysis: Actual vs. Optimized Cost. Green circles represent schools achieving savings, while red circles indicate projected losses. The size of the circle corresponds to the magnitude of the financial impact.}
     \label{fig:savings_analysis}
 \end{figure*}
 
@@ -433,6 +435,10 @@ A limitation encountered by other researchers was the narrow scope of the data. 
 
 We faced uncertainty about how much of the county budget goes to breakfast and lunch production. The budget documents only list unspecified 'Expenditures.' We assumed the budget includes salaries, maintenance, equipment, utilities, and compliance costs. Therefore, the amounts we present might not fit FCPS if most of a school's budget covers food production. We also assumed school budgets are allocated by size, not equally. These may not reflect the true amounts each school receives. Our analysis assumes that the Food and Nutritional Services budget primarily funds food production.
 
+
+%*********************************************************************************************************************************************************************************************************************
+\section{REGRESSION ANALYSIS}
+this is an example paragraph that shows related regression analysis explanation and relevant equations. this part does not need to be linked with optimization
 
 %*********************************************************************************************************************************************************************************************************************
 
