@@ -10,6 +10,7 @@ from shapely.geometry import Point
 import plotly.express as px
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
+import matplotlib.patheffects as patheffects
 import re
 
 # ==============================================================================
@@ -989,6 +990,103 @@ def _load_coords_and_normalize(coords_csv_path):
     coords_df["school"] = coords_df["school"].astype(str).str.strip().str.lower()
     return coords_df
 
+def generate_static_choropleth_eps(
+    savings_df: pd.DataFrame,
+    coords_csv_path: str | Path,
+    geojson_path: str | Path,
+    out_path: str | Path | None = None,
+    map_title: str = "Overall Savings by Region"
+):
+    """
+    Generates a static EPS choropleth map of savings with Region Labels.
+    """
+    if savings_df is None or savings_df.empty:
+        print("No savings data provided for static choropleth.")
+        return
+
+    print(f"\nGenerating Static EPS Choropleth: {map_title}")
+
+    try:
+        # Load and Normalize Coordinates
+        coords = pd.read_csv(coords_csv_path, low_memory=False)
+        coords.columns = coords.columns.str.lower()
+        if "school_name" in coords.columns and "school" not in coords.columns:
+            coords = coords.rename(columns={"school_name": "school"})
+        
+        if "fcps region" not in coords.columns:
+            print("Error: 'fcps region' column missing in coordinates.")
+            return
+
+        coords["school"] = coords["school"].astype(str).str.strip().str.lower()
+        lookup = coords[["school", "fcps region"]].drop_duplicates(subset="school")
+
+        # Prepare Savings Data
+        sdf = savings_df.copy()
+        sdf["school"] = sdf["school"].astype(str).str.strip().str.lower()
+        sdf["savings"] = pd.to_numeric(sdf["savings"], errors="coerce").fillna(0.0)
+
+        # Merge Savings with Regions
+        merged = sdf.merge(lookup, on="school", how="inner")
+        regional_data = (
+            merged.groupby("fcps region", as_index=False)
+                  .agg(total_savings=("savings", "sum"))
+        )
+        regional_data["REGION"] = (
+            regional_data["fcps region"].astype(str).str.extract(r"(\d+)").astype(int)
+        )
+
+        # Load GeoJSON
+        gdf = gpd.read_file(geojson_path)
+        if "REGION" in gdf.columns:
+            gdf["REGION"] = gdf["REGION"].astype(int)
+        
+        map_gdf = gdf.merge(regional_data, on="REGION", how="left")
+        map_gdf["total_savings"] = map_gdf["total_savings"].fillna(0)
+
+        # Plotting
+        fig, ax = plt.subplots(figsize=(12, 10))
+        map_gdf.plot(
+            column='total_savings',
+            cmap='RdYlGn',
+            linewidth=0.8,
+            edgecolor='black',
+            legend=True,
+            legend_kwds={'label': "Total Annual Savings ($)", 'orientation': "vertical"},
+            ax=ax
+        )
+
+        # Add Region Labels
+        for idx, row in map_gdf.iterrows():
+            if row.geometry is None: continue
+            center_point = row.geometry.representative_point()
+            
+            ax.annotate(
+                text=f"Reg {row['REGION']}",
+                xy=(center_point.x, center_point.y),
+                xytext=(0, 0),
+                textcoords="offset points",
+                ha='center', va='center',
+                fontsize=10,
+                fontweight='bold',
+                color='black',
+                zorder=10,
+                path_effects=[patheffects.withStroke(linewidth=2, foreground="white")]
+            )
+
+        ax.set_title(map_title, fontsize=16)
+        ax.set_axis_off()
+
+        if out_path:
+            Path(out_path).parent.mkdir(parents=True, exist_ok=True)
+            plt.savefig(out_path, format='eps', dpi=300, bbox_inches='tight')
+            print(f"Saved Static EPS Choropleth to: {out_path}")
+        
+        plt.close(fig)
+
+    except Exception as e:
+        print(f"Error generating EPS map: {e}")
+        traceback.print_exc()
+
 def generate_fcps_region_choropleth(
     savings_df: pd.DataFrame,
     coords_csv_path: str | Path,
@@ -1039,7 +1137,7 @@ def generate_fcps_region_choropleth(
         print("Savings and coordinates did not overlap on 'school'.")
         return None, None, None
 
-    # Aggregate: total optimization savings per region
+    # Total optimization savings per region
     regional = (
         merged.groupby("fcps region", as_index=False)
               .agg(total_optimization_savings=("savings", "sum"))
@@ -1114,7 +1212,7 @@ def generate_fcps_region_choropleth(
 
     folium.Choropleth(**chor_kwargs).add_to(m)
 
-    # region outlines
+    # outlines
     folium.GeoJson(
         gj, control=False, show=True,
         style_function=lambda f: {"fillOpacity": 0, "color": "#222222", "weight": 1.5},
@@ -1479,6 +1577,22 @@ def run_monthly_proportional_pipeline(
                     out_dir=graph_output_dir,
                     file_suffix=file_suffix
                 )
+
+                # 1. Create the savings dataframe explicitly for the EPS map
+                savings_df_for_eps = prepare_savings_analysis_df(
+                    opt_data, 
+                    monthly_results_df, 
+                    unit_costs_file
+                )
+                
+                # 2. Call the new function
+                generate_static_choropleth_eps(
+                    savings_df=savings_df_for_eps,
+                    coords_csv_path=coordinates_file,
+                    geojson_path=geojson_file,
+                    out_path=graph_output_dir / f"choropleth_overall_savings{file_suffix}.eps",
+                    map_title=f"FCPS Regions — Savings ({name.replace('_', ' ').title()})"
+        )
             
             print(f"\nGenerating size-based bar charts for {name} scenario...")
             generate_savings_by_size_charts(
@@ -1727,20 +1841,17 @@ def draw_branch_and_cut_visualization(output_path=None):
     # Create figure
     fig, ax = plt.subplots(figsize=(10, 6))
 
-    # Define the feasible region (LP Relaxation)
-    # Constraints modeled: 2x + 2y <= 17, -x + 2y <= 6
+    # Define the feasible region (LP Relaxation) Constraints modeled: 2x + 2y <= 17, -x + 2y <= 6
     x = np.linspace(-1, 10, 400)
     y1 = (17 - 2*x) / 2
     y2 = (6 + x) / 2
     y_upper = np.minimum(y1, y2)
     
-    # 1. FEASIBLE REGION (BLUE)
-    # Represents the area allowed by your Budget/Cost constraints
+    # Feasible Region (Green) Represents the area allowed by your Budget/Cost constraints
     ax.fill_between(x, 0, y_upper, where=(x>=0) & (y_upper>=0), 
                     color='green', alpha=0.1, label='Feasible Region (Budget Constraints)')
 
-    # 2. INTEGER POINTS (GREEN)
-    # Represents valid combinations of meals (you can't make 0.5 meals)
+    # Integer Points (Blue) Represents valid combinations of meals (you can't make 0.5 meals)
     integers_x = []
     integers_y = []
     for i in range(10):
@@ -1750,16 +1861,13 @@ def draw_branch_and_cut_visualization(output_path=None):
                 integers_y.append(j)
     ax.scatter(integers_x, integers_y, color='blue', s=50, alpha=0.6, label='Valid Integer Solutions')
 
-    # 3. LP OPTIMUM (RED)
-    # The mathematical best cost, but impossible because it's fractional (e.g., 3.66 meals)
+    # LP Optimum (Red X) The mathematical best cost, but impossible because it's fractional (e.g., 3.66 meals)
     ax.scatter([3.66], [4.83], color='red', marker='x', s=200, linewidth=3, zorder=10, label='LP Relaxation (Fractional/Invalid)')
     
-    # 4. THE CUT (BLUE DASHED)
-    # A new constraint added to slice off the Red X without losing Green dots
+    # The cut (Blue Dashed Line) A new constraint added to slice off the Red X without losing Green dots
     ax.hlines(y=4, xmin=-1, xmax=10, colors='blue', linestyles='--', linewidth=2, label='Branch-and-Cut "Cut"')
     
-    # 5. TRUE OPTIMUM (GREEN STAR)
-    # The best valid solution after the cut
+    # True Optimum (Red Star) The best valid solution after the cut
     ax.scatter([3], [4], color='red', marker='*', s=300, zorder=10, label='True Integer Optimum')
 
     # Formatting
