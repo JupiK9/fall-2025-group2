@@ -18,9 +18,13 @@ from component.popularity import (
     get_leftover_rate_by_school, get_net_consumption_by_school
 )
 from component.optimization import (
-    run_all_optimizations
+    draw_branch_and_cut_visualization,
+    run_all_optimizations,
+    draw_branch_and_cut_visualization
 )
 from component.EDA import run_eda
+
+
 
 
 def html_csv_pipeline():
@@ -143,3 +147,6 @@ def eda_pipeline():
     results_path = DATA / "results" / "EDA"
 
     run_eda(bf_df, l_df, s_df, results_path)
+
+def visualization_pipeline():
+    draw_branch_and_cut_visualization(DATA / "results" / "branch_and_cut_visual.eps")

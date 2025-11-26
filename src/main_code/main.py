@@ -6,18 +6,19 @@ SRC_DIR = CUR_DIR.parent
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from component.pipeline_main import (eda_pipeline, html_csv_pipeline, pdf_pipeline, popularity_pipeline, optimization_pipeline)
+from component.pipeline_main import (eda_pipeline, html_csv_pipeline, pdf_pipeline, popularity_pipeline, optimization_pipeline, visualization_pipeline)
 
 if __name__ == "__main__":
     """
     Main function to run the entire pipeline.
     """
     
-    eda_pipeline()
-    html_csv_pipeline()
-    pdf_pipeline()
-    popularity_pipeline()
-    optimization_pipeline()
+    #eda_pipeline()
+    #html_csv_pipeline()
+    #pdf_pipeline()
+    #popularity_pipeline()
+    #optimization_pipeline()
+    visualization_pipeline()
     print("\nData Analyzing Complete!"
     "\nPlease navigate to the Streamlit app to view the results."
     "\nSet demo / pages as the working directory."
