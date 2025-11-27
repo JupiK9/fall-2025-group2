@@ -5,6 +5,8 @@
 \graphicspath{{./fig/}}
 \usepackage{multirow, indentfirst, cite, verbatim, keyval, textcomp, enumerate, calc, microtype, makecell, booktabs, tabularx }
 \usepackage{xurl}
+\usepackage[T1]{fontenc}
+
 
 
 
@@ -269,7 +271,7 @@ The system-wide budget constraint ensures sustainability. It ensures that the sp
 \begin{figure}[t]
     \centering
     \includegraphics[width=\linewidth]{fig/total_savings_bar_color.eps}
-    \caption{Overall Savings Analysis. This comparison shows the financial impact of the optimization model across the system. The dark gray bar shows the estimated actual annual baseline cost (\$48.94M), and the light gray bar shows the lower cost reached with the optimized menu planning model (\$47.11M).}
+    \caption{Overall Savings Analysis. This comparison shows the financial impact of the optimization model across the system. The red bar shows the estimated actual annual baseline cost (\$48.94M), and the green bar shows the lower cost reached with the optimized menu planning model (\$47.11M).}
     \label{fig:overall_savings}
 \end{figure}
 
@@ -314,12 +316,12 @@ In terms of the FCPS regions, here are key points to describe the savings amount
 
 Fig. \ref{fig:savings_analysis} shows the financial performance of the optimization model. The scatter plot compares each school's actual annual food costs (x-axis) with its optimized annual costs (y-axis). The dashed diagonal line marks the point where optimized costs equal historical spending.
 
-Schools below the line, shown in gray, are where the model found inefficiencies and projected cost savings. The model placed 130 schools in this group. In contrast, 60 schools above the line, shown in black, are expected to have higher costs. This likely happens when past procurement did not meet the model's stricter rules. The size of each marker shows the financial impact.
+Schools below the line, shown in green, are where the model found inefficiencies and projected cost savings. The model placed 130 schools in this group. In contrast, 60 schools above the line, shown in red, are expected to have higher costs. This likely happens when past procurement did not meet the model's stricter rules. The size of each marker shows the financial impact.
 
 \begin{figure*}[t]
     \centering
     \includegraphics[width=0.8\textwidth]{fig/savings_analysis_color.eps}
-    \caption{Savings Analysis: Actual vs. Optimized Cost. Gray circles represent schools achieving savings, while black circles indicate projected losses. The size of the circle corresponds to the magnitude of the financial impact.}
+    \caption{Savings Analysis: Actual vs. Optimized Cost. Green circles represent schools achieving savings, while red circles indicate projected losses. The size of the circle corresponds to the magnitude of the financial impact.}
     \label{fig:savings_analysis}
 \end{figure*}
 
@@ -432,6 +434,66 @@ We faced uncertainty about how much of the county budget goes to breakfast and l
 
 
 %*********************************************************************************************************************************************************************************************************************
+
+\section{REGRESSION ANALYSIS}
+
+To further investigating the factor of the school food service system, we conducted a regression analysis to predict the production cost. This analysis serves as an additional tool to validate cost behaviors descriptively.
+
+\subsection{Methodology: Ordinary Least Squares}
+
+We utilized the Ordinary Least Squares (OLS) regression to estimate the relationship between a dependent variable($Y$) and one or more independent variables ($X$) by minimizing the sum of the squared differences (residuals) between the observed values and the values predicted by the linear model \cite{Wooditch2021}.
+
+
+The general linear model is defined as \cite{James2021ISL}:
+\begin{equation}
+    Y_i = \beta_0 + \sum_{j=1}^{k} \beta_j X_{ij} + \epsilon_i
+\end{equation}
+Where:
+\begin{itemize}
+    \item $Y_i$ represents the dependent variable (e.g., Production Cost) for school $i$.
+    \item $\beta_0$ is the intercept, representing fixed operational baselines.
+    \item $\beta_j$ represents the marginal impact of the $j$-th independent variable.
+    \item $X_{ij}$ represents the independent variables (e.g., student enrollment, waste metrics).
+    \item $\epsilon_i$ is the error term, assumed to be normally distributed $\epsilon \sim N(0, \sigma^2)$.
+\end{itemize}
+
+
+\subsection{Objective Function and Implementation}
+
+The primary goal of OLS method is to determine the optimal values for the coefficients $\hat{\beta_0}$ and $\hat{\beta_1}$ that minimize the Sum of Squared Residuals (SSR). A lower SSR value indicates a better-fitting model that makes more accurate predictions. The objective function is mathematically formulated as \cite{jameslr}:
+
+\begin{equation}
+    \min_{\beta_0, \beta_1} S(\beta_0, \beta_1) = \sum_{i=1}^{n} (y_i - \hat{y}_i)^2 = \sum_{i=1}^{n} (y_i - (\beta_0 + \beta_1 x_i))^2
+    \label{eq:ols_obj}
+\end{equation}
+
+
+To validate the model’s accuracy and reliability on predicting production cost, the methodology strictly incorporates a cross-validation protocol. The dataset is split into a training set (80\%) and a test set (20\%).The algorithm exclusively utilized the training set to derive the coefficients. Then these learned patterns are applied to the test set to generate the prediction model. Finally, the predictions are compared with the original production cost in test set to quantify how accurate and how reliable the model is. By minimizing this function, we ensure that the predicted production costs ($\hat{y}$) are as close as possible to the historical data provided by FCPS.
+
+\subsection{Future Pathway}
+
+Although the regression component operates independently of the MILP optimization presented in Section III, it provides essential statistical validation for the cost parameters utilized in the optimization constraints. Currently this regression framework is \textit{descriptive},providing a statistical explanation of historical costs. In our future research, we can use our regression outputs inside the optimization models to explore decisions or predictions under different constraints \cite{Elmachtoub2017}.
+
+The coefficients derived from the OLS analysis ($\beta_j$)serve as the objective function parameters for a Linear Programming (LP)problem. For example, once the marginal cost of waste ($\beta_{waste}$) is empirically determined, an optimization solver can be formulated to minimize total operational cost $Z$:
+
+\begin{equation}
+    \text{Minimize } Z = \sum_{i=1}^{n} (\beta_{prod} \cdot x_{i,prod} + \beta_{waste} \cdot x_{i,waste})
+\end{equation}
+
+
+Subject to demand and capacity constraints:
+\begin{align}
+    x_{i,prod} &\geq D_{i} \quad \forall i \in \text{Schools} \\
+    x_{i,prod} &\leq C_{cap}
+\end{align}
+
+
+By feeding the empirically derived regression coefficients into the optimization model, the system evolves from merely identifying
+inefficiencies to algorithmically prescribing production quotas that minimize
+waste and maximize budgetary efficiency.
+
+%*********************************************************************************************************************************************************************************************************************
+
 
 \section{CONCLUSION}
 
