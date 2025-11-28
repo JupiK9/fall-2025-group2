@@ -122,7 +122,6 @@ page = st.sidebar.radio(
         "🔍 Exploratory Data Analysis (EDA)",
         "🥪 Popularity Analysis",
         "📈 Optimization",
-        "📉 Regression Modeling",
         "📄 Recommendation"
     ]
 )
@@ -406,12 +405,6 @@ elif page == "📈 Optimization":
             st.write("High Schools (HS)")
             map_path = SCENARIO_RESULTS_DIR / f"fcps_region_choropleth_high{scenario_suffix}.html"
             render_html(map_path)
-
-# Regression Modeling View
-elif page == "📉 Regression Modeling":
-    st.title("Regression Modeling")
-    st.info("This page is under construction. 🏗️")
-    st.write("This section will feature regression models for demand forecasting or waste prediction.")
 
 # Recommendation View
 elif page == "📄 Recommendation":

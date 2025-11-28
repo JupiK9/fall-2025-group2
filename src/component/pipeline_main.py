@@ -8,7 +8,9 @@ if SRC_DIR not in sys.path:
     sys.path.insert(0, SRC_DIR)
 
 ROOT = Path(__file__).resolve().parents[1]  # repo root
+BASE_ROOT = Path(__file__).resolve().parents[2]
 DATA = ROOT / "data"
+RESEARCH_PAPER = BASE_ROOT / "research_paper"
 
 from component.data_transformer_html import generate_csvs_from_folder
 from component.csv_combiner import combine_csvs_from_folder
@@ -149,4 +151,4 @@ def eda_pipeline():
     run_eda(bf_df, l_df, s_df, results_path)
 
 def visualization_pipeline():
-    draw_branch_and_cut_visualization(DATA / "results" / "branch_and_cut_visual.eps")
+    draw_branch_and_cut_visualization(RESEARCH_PAPER / "Latex" / "fig" / "branch_and_cut_visual.eps")

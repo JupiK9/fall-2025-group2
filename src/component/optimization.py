@@ -10,6 +10,7 @@ from shapely.geometry import Point
 import plotly.express as px
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
+from matplotlib.colors import ListedColormap
 import matplotlib.patheffects as patheffects
 import re
 
@@ -998,8 +999,9 @@ def generate_static_choropleth_eps(
     map_title: str = "Overall Savings by Region"
 ):
     """
-    Generates a static EPS choropleth map of savings with Region Labels.
+    Generates a static EPS choropleth map.
     """
+
     if savings_df is None or savings_df.empty:
         print("No savings data provided for static choropleth.")
         return
@@ -1042,41 +1044,63 @@ def generate_static_choropleth_eps(
         
         map_gdf = gdf.merge(regional_data, on="REGION", how="left")
         map_gdf["total_savings"] = map_gdf["total_savings"].fillna(0)
+        
+        # Create a categorical column for plotting distinct colors
+        map_gdf["Region_Cat"] = "Region " + map_gdf["REGION"].astype(str)
+
+
+        custom_colors = ['#FF0000', '#FFA500', '#FFFF00', '#008000', '#0000FF', '#EE82EE']
+        
+        # Create colormap based on the number of actual regions found
+        unique_regions = map_gdf["Region_Cat"].nunique()
+        custom_cmap = ListedColormap(custom_colors[:unique_regions])
 
         # Plotting
-        fig, ax = plt.subplots(figsize=(12, 10))
+        fig, ax = plt.subplots(figsize=(14, 10)) 
+        
         map_gdf.plot(
-            column='total_savings',
-            cmap='RdYlGn',
+            column='Region_Cat',
+            cmap=custom_cmap,           
             linewidth=0.8,
             edgecolor='black',
             legend=True,
-            legend_kwds={'label': "Total Annual Savings ($)", 'orientation': "vertical"},
+            legend_kwds={
+                'title': "FCPS Regions", 
+                'loc': 'center left', 
+                'bbox_to_anchor': (1, 0.5)
+            },
             ax=ax
         )
 
-        # Add Region Labels
+        # Add Savings Labels to the Center of Each Region
         for idx, row in map_gdf.iterrows():
             if row.geometry is None: continue
             center_point = row.geometry.representative_point()
             
+            val = row['total_savings']
+            if abs(val) >= 1_000_000:
+                lbl = f"${val/1e6:.2f}M"
+            else:
+                lbl = f"${val/1e3:.0f}k"
+
             ax.annotate(
-                text=f"Reg {row['REGION']}",
+                text=lbl,
                 xy=(center_point.x, center_point.y),
                 xytext=(0, 0),
                 textcoords="offset points",
                 ha='center', va='center',
-                fontsize=10,
+                fontsize=14, 
                 fontweight='bold',
                 color='black',
                 zorder=10,
-                path_effects=[patheffects.withStroke(linewidth=2, foreground="white")]
+                path_effects=[patheffects.withStroke(linewidth=3, foreground="white")]
             )
 
         ax.set_title(map_title, fontsize=16)
         ax.set_axis_off()
 
         if out_path:
+            # Ensure the directory exists
             Path(out_path).parent.mkdir(parents=True, exist_ok=True)
             plt.savefig(out_path, format='eps', dpi=300, bbox_inches='tight')
             print(f"Saved Static EPS Choropleth to: {out_path}")
@@ -1520,7 +1544,8 @@ def run_monthly_proportional_pipeline(
         
         # Define the output directory for all graphs for this scenario
         graph_output_dir = project_root / "src" / "data" / "results" / folder_name
-        graph_output_dir.mkdir(parents=True, exist_ok=True) # Create the folder
+        graph_output_dir.mkdir(parents=True, exist_ok=True)
+        journal_output_dir = project_root / "research_paper" / "Latex" / "fig"
         
         # Run the optimization
         monthly_results_df, school_budgets_for_this_run, meal_costs = \
@@ -1578,21 +1603,19 @@ def run_monthly_proportional_pipeline(
                     file_suffix=file_suffix
                 )
 
-                # 1. Create the savings dataframe explicitly for the EPS map
                 savings_df_for_eps = prepare_savings_analysis_df(
                     opt_data, 
                     monthly_results_df, 
                     unit_costs_file
                 )
                 
-                # 2. Call the new function
                 generate_static_choropleth_eps(
                     savings_df=savings_df_for_eps,
                     coords_csv_path=coordinates_file,
                     geojson_path=geojson_file,
-                    out_path=graph_output_dir / f"choropleth_overall_savings{file_suffix}.eps",
+                    out_path=journal_output_dir / f"choropleth_overall_savings{file_suffix}.eps",
                     map_title=f"FCPS Regions — Savings ({name.replace('_', ' ').title()})"
-        )
+                )
             
             print(f"\nGenerating size-based bar charts for {name} scenario...")
             generate_savings_by_size_charts(
@@ -1879,7 +1902,7 @@ def draw_branch_and_cut_visualization(output_path=None):
     ax.set_ylabel('Quantity of Item B')
     
     ax.set_title('Visualizing Branch-and-Cut: Optimizing Quantities under Cost Constraints')
-    ax.legend(loc='lower left')
+    ax.legend(loc='upper right')
     ax.grid(True, alpha=0.2)
     
     # Handle output path
