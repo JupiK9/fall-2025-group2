@@ -161,6 +161,22 @@ Let $x_j$ be the integer quantity of menu item $j$ to be produced.
 \
 
 \subsubsection{Parameters}
+A critical component of the MILP model is the accurate definition of cost parameters. A significant challenge in utilizing raw financial data is that school county budget documents of list expenditures as a grand total, no specified expenses that contribute to the grand total. To overcome this lack of granularity and define a usable parameter for the objective function, we derive the effective unit production cost for each item based on historical service data. The unit production cost, denoted as $c_j$ for item $j$ is calculated as the ratio of the total production cost to the total quality served. Utilizing the FCPS dataset provided, this is defined as:
+
+\begin{equation}
+    c_j = \frac{\text{Production Cost Total}_j}{\text{Served Total}_j}
+\end{equation}
+
+Where:
+\begin{itemize}
+    \item $\text{Production Cost Total}_j$: represents the aggregate cost incurred to produce the volume of item $j$ offered.
+    \item $\text{Served Total}_j$: represents the total count of item $j$ actually served to students (reimbursable plus non-reimbursable).
+\end{itemize}
+
+\
+
+Then for the objective function, the parameters are:
+
 \begin{itemize}
     \item $c_j$: The unit production cost for item $j$.
     \item $w_j$: The waste penalty associated with item $j$ (derived from historical leftover rates).
@@ -173,10 +189,10 @@ Let $x_j$ be the integer quantity of menu item $j$ to be produced.
 The objective is to minimize the Total Cost ($C_T$), balancing the financial cost of meals and the environmental cost of waste. In \cite{oliva}, treating environmental factors as objectives to be minimized, rather than as constraints, allows for the identification of solutions where significant environmental savings can be achieved with only marginal increases in cost. Following this logic, our model incorporates a waste penalty ($\lambda$) directly into the objective function to help reduce waste production. From \cite{afshar}, applying the concept of 'Value of Lost Load' to a school cafeteria setting, just as power systems assign a high financial value to preventing outages, our model assigns a penalty weight to unserved meals that exceeds the cost of food waste. This ensures that waste reduction does not come at the expense of student food security. Based on our "Minimized Cost" metric, the objective function is:
 
 \begin{equation}
-    \text{Minimize } Z = \sum_{i=i}^{n} \sum_{j=1}^{m} (c_{ij} + \lambda w_{ij}) x_{ij}
+    \text{Minimize } Z = \sum_{i=1}^{n} \sum_{j=1}^{m} (c_{ij} + \lambda w_{ij}) x_{ij}
 \end{equation}
 
-Comparing our objective function with their function in \cite{py_milp}, we are weighting the financial cost by $\lambda$, which represents the waste penalty weight (set to 0.1 in our analysis) and the waste penalty.
+Comparing our objective function with their function in \cite{py_milp}, we are weighting the financial cost by $\lambda$. The waste penalty parameter $\lambda$ was set to 0.1 based on the rationale that environmental costs should influence but not dominate financial optimization. However, this value was not derived from empirical estimation of actual waste disposal costs or environmental impact valuations. Different $\lambda$ values could yield substantially different optimal production quantities and savings estimates. Stakeholders implementing this model should calibrate $\lambda$ based on their specific waste disposal costs, sustainability priorities, and institutional values.
 
 \
 
@@ -275,7 +291,16 @@ The system-wide budget constraint ensures sustainability. It ensures that the sp
     \label{fig:overall_savings}
 \end{figure}
 
-Fig. \ref{fig:overall_savings} shows a comparison of production costs between actual realized costs from the data and our model’s estimated annual cost. We found that the actual annual cost for the entire school system in May 2025 was \$48.94 million. After adjusting production and budgetary limits, our model estimated an annual cost of \$47.11 million. This means a total savings of about \$1.83 million. These results show that FCPS can achieve significant cost savings without lowering nutritional standards or reducing service.
+Fig. \ref{fig:overall_savings} shows a comparison of production costs between actual realized costs from the data and our model’s estimated annual cost. We found that the actual annual cost for the entire school system in May 2025 was \$48.94 million. After adjusting production and budgetary limits, our model estimated an annual cost of \$47.11 million. The projected annual savings of approximately \$1.83 million represent a theoretical upper bound under several key assumptions: (1) that May production patterns are representative of the full school year, (2) that reduced production would not affect student purchasing behavior, (3) that historical sales accurately reflect student demand without supply constraints, and (4) that the assumed budget allocation by school size reflects actual practice. While the optimization model is mathematically sound, these projections should be treated as indicative of potential savings magnitude rather than as precise forecasts. We recommend pilot implementation at a subset of schools to validate these estimates before system-wide deployment.
+
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=0.5\linewidth]{fig/choropleth_overall_savings_baseline.eps}
+    \caption{Choropleth map of Fairfax County with FCPS regions, where the colors represent the different regions and are labeled by the amount of savings/loss each region has generated by the optimization}
+    \label{fig:choropleth}
+\end{figure*}
+
+The projected cost savings assume that reducing production quantities would proportionally reduce waste while maintaining the same sales volume. This counterfactual assumption may not hold if student purchasing behavior responds to perceived availability, menu variety, or presentation factors that change with production volumes. The optimization results represent potential savings under idealized conditions rather than guaranteed outcomes. Prospective validation through controlled implementation at selected schools would be necessary to confirm these projections.
 
 According to the National Center for Educational Statistics \cite{fcpsdemo}, as of 2022, Fairfax County Public Schools serves:
 
@@ -286,13 +311,6 @@ According to the National Center for Educational Statistics \cite{fcpsdemo}, as 
     \item \textbf{Race/Ethnicity}: 49\% White, 20\% Asian, 17\% Hispanic/Latino, 10\% African American, 5\% Other
     \item \textbf{Households with Internet}: 95.9\%
 \end{itemize}
-
-\begin{figure*}[t]
-    \centering
-    \includegraphics[width=0.5\linewidth]{fig/choropleth_overall_savings_baseline.eps}
-    \caption{Choropleth map of Fairfax County with FCPS regions divided and colored based on savings amount from optimization}
-    \label{fig:choropleth}
-\end{figure*}
 
 In terms of the FCPS regions, here are key points to describe the savings amounts from fig. \ref{fig:choropleth}:
 
@@ -312,6 +330,10 @@ In terms of the FCPS regions, here are key points to describe the savings amount
     \item \textbf{Region 5}: \textit{Average Median Household Income}: \$164,789 \cite{fcps_income}
     
     Being at the heart of Fairfax County, this region has generated the highest amount of savings from our optimization model. Students in this category come from relatively high-income households, allowing their parents to afford lunch for their children. This causes demand volatility, as it is unpredictable to produce an optimal amount of food for the schools in advance.
+    \item \textbf{Region 6}:
+    \textit{Average Median Household Income}: \$148,114 \cite{fcps_income}
+
+    Schools like Annandale High and Lewis High have high student participation of in meal programs, which means that they are in high need. This results in schools producing the amount of food that meets the demand of students. This region also is home to Hayfield Secondary School, where it has a high student population. Given the size, demand volatility is introduced as demand is unpredictable as students have the choice to pack or buy lunch. Altogether, this is a stabilized region as it lacks the extreme peaks of wealth that drive unpredictability.
 \end{itemize}
 
 Fig. \ref{fig:savings_analysis} shows the financial performance of the optimization model. The scatter plot compares each school's actual annual food costs (x-axis) with its optimized annual costs (y-axis). The dashed diagonal line marks the point where optimized costs equal historical spending.
@@ -340,6 +362,64 @@ The optimization model projected a cost increase for a small group of schools, a
 The optimization strictly enforces demand satisfaction constraints ($x_{s,j} \ge L_{s,j}$). This ensures production matches estimated student consumption. The historical "savings" in these schools likely result from under-production, when supply did not meet demand. This may have led to items running out or reduced service levels. The model's projected cost increase should not be seen as inefficiency, but as the \textit{true cost of service assurance}. For these schools, the model shows a gap between past budgeting and the real resources needed to fully serve students.
 
 %*********************************************************************************************************************************************************************************************************************
+
+\section{REGRESSION ANALYSIS}
+
+To further investigating the factor of the school food service system, we conducted a regression analysis to predict the production cost. This analysis serves as an additional tool to validate cost behaviors descriptively.
+
+\subsection{Methodology: Ordinary Least Squares}
+
+We utilized the Ordinary Least Squares (OLS) regression to estimate the relationship between a dependent variable($Y$) and one or more independent variables ($X$) by minimizing the sum of the squared differences (residuals) between the observed values and the values predicted by the linear model \cite{Wooditch2021}.
+
+
+The general linear model is defined as \cite{James2021ISL}:
+\begin{equation}
+    Y_i = \beta_0 + \sum_{j=1}^{k} \beta_j X_{ij} + \epsilon_i
+\end{equation}
+Where:
+\begin{itemize}
+    \item $Y_i$ represents the dependent variable (e.g., Production Cost) for school $i$.
+    \item $\beta_0$ is the intercept, representing fixed operational baselines.
+    \item $\beta_j$ represents the marginal impact of the $j$-th independent variable.
+    \item $X_{ij}$ represents the independent variables (e.g., student enrollment, waste metrics).
+    \item $\epsilon_i$ is the error term, assumed to be normally distributed $\epsilon \sim N(0, \sigma^2)$.
+\end{itemize}
+
+
+\subsection{Objective Function and Implementation}
+
+The primary goal of OLS method is to determine the optimal values for the coefficients $\hat{\beta_0}$ and $\hat{\beta_1}$ that minimize the Sum of Squared Residuals (SSR). A lower SSR value indicates a better-fitting model that makes more accurate predictions. The objective function is mathematically formulated as \cite{jameslr}:
+
+\begin{equation}
+    \min_{\beta_0, \beta_1} S(\beta_0, \beta_1) = \sum_{i=1}^{n} (y_i - \hat{y}_i)^2 = \sum_{i=1}^{n} (y_i - (\beta_0 + \beta_1 x_i))^2
+    \label{eq:ols_obj}
+\end{equation}
+
+
+To validate the model’s accuracy and reliability on predicting production cost, the methodology strictly incorporates a cross-validation protocol. The dataset is split into a training set (80\%) and a test set (20\%).The algorithm exclusively utilized the training set to derive the coefficients. Then these learned patterns are applied to the test set to generate the prediction model. Finally, the predictions are compared with the original production cost in test set to quantify how accurate and how reliable the model is. By minimizing this function, we ensure that the predicted production costs ($\hat{y}$) are as close as possible to the historical data provided by FCPS.
+
+\subsection{Future Pathway}
+
+Although the regression component operates independently of the MILP optimization presented in Section III, it provides essential statistical validation for the cost parameters utilized in the optimization constraints. Currently this regression framework is \textit{descriptive},providing a statistical explanation of historical costs. In our future research, we can use our regression outputs inside the optimization models to explore decisions or predictions under different constraints \cite{Elmachtoub2017}.
+
+The coefficients derived from the OLS analysis ($\beta_j$)serve as the objective function parameters for a Linear Programming (LP)problem. For example, once the marginal cost of waste ($\beta_{waste}$) is empirically determined, an optimization solver can be formulated to minimize total operational cost $Z$:
+
+\begin{equation}
+    \text{Minimize } Z = \sum_{i=1}^{n} (\beta_{prod} \cdot x_{i,prod} + \beta_{waste} \cdot x_{i,waste})
+\end{equation}
+
+
+Subject to demand and capacity constraints:
+\begin{align}
+    x_{i,prod} &\geq D_{i} \quad \forall i \in \text{Schools} \\
+    x_{i,prod} &\leq C_{cap}
+\end{align}
+
+
+By feeding the empirically derived regression coefficients into the optimization model, the system evolves from merely identifying inefficiencies to algorithmically prescribing production quotas that minimize waste and maximize budgetary efficiency.
+
+%*********************************************************************************************************************************************************************************************************************
+
 \section{CHALLENGES AND LIMITATIONS}
 
 \subsection{Challenges}
@@ -428,80 +508,23 @@ In their study of the private school in Columbia, Missouri, Mulhollem found that
 Another problem brought up is the reliance on a single individual to sustain a waste management program. Huber’s article \cite{huber} describes how one teacher, Gerin Hennebaul, initiated the push for change in waste management with her students, which subsequently led to waste-management initiatives. However, if she were the only advocate for this cause and left the school, the program could collapse. In Fairfax County Public Schools, the administration is actively seeking assistance to reduce waste. This approach would require a collective effort from administrative staff and encourage passionate individuals within schools to participate. Though FCPS may be less vulnerable to this issue, it is important that the administration is committed to promoting waste management across the entire school system to ensure widespread adoption.
 
 \subsection{Limitations}
-A limitation encountered by other researchers was the narrow scope of the data. In Mulhollem’s article \cite{mulhollem}, the study observed that this school’s waste percentages align with findings from other U.S. studies. However, these results cannot be generalized to all U.S. public school cafeterias. For our study, we lacked multi-month datasets for analysis. We received food production data only for May. This snapshot did not capture the full extent of the school year’s food production and waste. Consequently, we analyzed May and inferred that the rest of the school year is comparable. Again, this inference does not represent all U.S. public school cafeterias. Additionally, a limitation of the MILP formulation is the need to linearize real-world nonlinear phenomena. While our model assumes linear costs and demands, actual food consumption in school cafeterias may exhibit nonlinear behavior due to social factors or menu variety \cite{urbanucci}.
+A significant limitation of this study is the reliance on production data from a single month (May 2025). May represents an atypical period in the school calendar, characterized by end-of-year activities, standardized testing schedules, senior events, and generally declining attendance patterns. Extrapolating these findings to annual estimates assumes that May consumption patterns are representative of the full academic year, which may not hold. Seasonal variation in food preferences, weather-dependent consumption changes, and academic calendar effects could substantially alter optimal production quantities in other months. The reported annual savings of \$1.83 million should therefore be interpreted as an estimate conditional on May patterns persisting year-round, rather than a validated projection.
 
-We faced uncertainty about how much of the county budget goes to breakfast and lunch production. The budget documents only list unspecified 'Expenditures.' We assumed the budget includes salaries, maintenance, equipment, utilities, and compliance costs. Therefore, the amounts we present might not fit FCPS if most of a school's budget covers food production. We also assumed school budgets are allocated by size, not equally. These may not reflect the true amounts each school receives. Our analysis assumes that the Food and Nutritional Services budget primarily funds food production.
+Our model uses historical sales data as a proxy for student demand; however, this approach carries an inherent limitation. If popular items historically ran out before all interested students could purchase them, observed sales would underestimate true demand. In such cases, our optimization model might recommend further reductions in production, potentially exacerbating supply shortfalls rather than reducing waste. Without explicit data on unmet demand or stockout events, we cannot distinguish between low demand and supply-constrained sales. Future implementations should incorporate stockout tracking to refine demand estimates.
 
-
-%*********************************************************************************************************************************************************************************************************************
-
-\section{REGRESSION ANALYSIS}
-
-To further investigating the factor of the school food service system, we conducted a regression analysis to predict the production cost. This analysis serves as an additional tool to validate cost behaviors descriptively.
-
-\subsection{Methodology: Ordinary Least Squares}
-
-We utilized the Ordinary Least Squares (OLS) regression to estimate the relationship between a dependent variable($Y$) and one or more independent variables ($X$) by minimizing the sum of the squared differences (residuals) between the observed values and the values predicted by the linear model \cite{Wooditch2021}.
-
-
-The general linear model is defined as \cite{James2021ISL}:
-\begin{equation}
-    Y_i = \beta_0 + \sum_{j=1}^{k} \beta_j X_{ij} + \epsilon_i
-\end{equation}
-Where:
-\begin{itemize}
-    \item $Y_i$ represents the dependent variable (e.g., Production Cost) for school $i$.
-    \item $\beta_0$ is the intercept, representing fixed operational baselines.
-    \item $\beta_j$ represents the marginal impact of the $j$-th independent variable.
-    \item $X_{ij}$ represents the independent variables (e.g., student enrollment, waste metrics).
-    \item $\epsilon_i$ is the error term, assumed to be normally distributed $\epsilon \sim N(0, \sigma^2)$.
-\end{itemize}
-
-
-\subsection{Objective Function and Implementation}
-
-The primary goal of OLS method is to determine the optimal values for the coefficients $\hat{\beta_0}$ and $\hat{\beta_1}$ that minimize the Sum of Squared Residuals (SSR). A lower SSR value indicates a better-fitting model that makes more accurate predictions. The objective function is mathematically formulated as \cite{jameslr}:
-
-\begin{equation}
-    \min_{\beta_0, \beta_1} S(\beta_0, \beta_1) = \sum_{i=1}^{n} (y_i - \hat{y}_i)^2 = \sum_{i=1}^{n} (y_i - (\beta_0 + \beta_1 x_i))^2
-    \label{eq:ols_obj}
-\end{equation}
-
-
-To validate the model’s accuracy and reliability on predicting production cost, the methodology strictly incorporates a cross-validation protocol. The dataset is split into a training set (80\%) and a test set (20\%).The algorithm exclusively utilized the training set to derive the coefficients. Then these learned patterns are applied to the test set to generate the prediction model. Finally, the predictions are compared with the original production cost in test set to quantify how accurate and how reliable the model is. By minimizing this function, we ensure that the predicted production costs ($\hat{y}$) are as close as possible to the historical data provided by FCPS.
-
-\subsection{Future Pathway}
-
-Although the regression component operates independently of the MILP optimization presented in Section III, it provides essential statistical validation for the cost parameters utilized in the optimization constraints. Currently this regression framework is \textit{descriptive},providing a statistical explanation of historical costs. In our future research, we can use our regression outputs inside the optimization models to explore decisions or predictions under different constraints \cite{Elmachtoub2017}.
-
-The coefficients derived from the OLS analysis ($\beta_j$)serve as the objective function parameters for a Linear Programming (LP)problem. For example, once the marginal cost of waste ($\beta_{waste}$) is empirically determined, an optimization solver can be formulated to minimize total operational cost $Z$:
-
-\begin{equation}
-    \text{Minimize } Z = \sum_{i=1}^{n} (\beta_{prod} \cdot x_{i,prod} + \beta_{waste} \cdot x_{i,waste})
-\end{equation}
-
-
-Subject to demand and capacity constraints:
-\begin{align}
-    x_{i,prod} &\geq D_{i} \quad \forall i \in \text{Schools} \\
-    x_{i,prod} &\leq C_{cap}
-\end{align}
-
-
-By feeding the empirically derived regression coefficients into the optimization model, the system evolves from merely identifying
-inefficiencies to algorithmically prescribing production quotas that minimize
-waste and maximize budgetary efficiency.
+Our analysis assumes that school budgets are allocated proportionally to student population rather than equally across schools. Additionally, the Food and Nutrition Services budget category labeled 'Expenditures' was assumed to primarily fund food production, though it likely includes personnel costs, equipment, maintenance, and compliance expenses. These assumptions were necessary given available budget documentation but may not reflect actual allocation practices. The magnitude of projected savings could differ substantially under alternative budget allocation models, and future work with access to detailed line-item budgets would improve estimate precision.
 
 %*********************************************************************************************************************************************************************************************************************
-
 
 \section{CONCLUSION}
 
 This study tackled economic and environmental food waste issues in Fairfax County Public Schools using data analysis and an integer linear programming optimization model. The model projected an annual system-wide cost reduction of about \$1.83 million, lowering spending from \$48.94 million to \$47.11 million. This shows the system can reclaim significant economic value without lowering nutritional standards. The graphs show that the impact of optimization varies by school size. Schools with 500–1500 students had the greatest total savings, while larger schools faced a projected cost increase. This increase does not indicate inefficiency; it reveals historical under-production. The model corrects this to ensure resources fully meet student demand.
 
-This study has some limitations related to the data used and the clarity of the budget. The analysis used production data from May to estimate yearly trends, which might not reflect seasonal changes during a full school year. Another limitation brought up was that the exact use of funds in the "Expenditures" budget category is unclear; future research will need more detailed financial data to improve cost-saving estimates. Even with these challenges, the study offers a framework for FCPS to move from its current decision-making methods to a more data-driven approach to sustainability. Therefore, FCPS should follow the recommendations generated by our model to achieve its goal of reducing waste production in its schools.
+We acknowledge that the practical realization of these savings requires validation beyond the scope of this study. The single-month data window, uncertainty in budget allocation, and untested behavioral assumptions collectively suggest that our estimates should be interpreted as demonstrating the feasibility and potential magnitude of optimization-driven improvements rather than as guaranteed outcomes. We recommend that FCPS consider a phased implementation approach: first deploying the model at 5-10 pilot schools across different regions and size categories, measuring actual waste reduction and cost impacts over a full semester, and refining model parameters based on observed outcomes before system-wide adoption.
 
 Future iterations of this study could incorporate additional environmental metrics beyond food waste, such as reducing a school's carbon footprint or water usage. To manage something like this, MILP-based clustering methods could be deployed to facilitate decision-making on environmental objectives for school administrators \cite{oliva}. While our current model uses deterministic constraints, future work could adopt fuzzy inventory modeling techniques, as explored by \cite{kalaiarasi}, to better account for the vagueness and uncertainty in student demand and production costs.
+
+The regression analysis presented in Section V currently operates independently of the MILP optimization and serves a descriptive rather than prescriptive function. While the OLS framework provides statistical validation of cost relationships, the connection between regression outputs and optimization parameters remains conceptual rather than implemented. Future work should formally integrate these components, using regression-derived coefficients directly within the optimization objective function as outlined in Section V.C
 
 %*********************************************************************************************************************************************************************************************************************
 

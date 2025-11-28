@@ -1229,6 +1229,9 @@ def generate_fcps_region_choropleth(
 
     # --- 2. STATIC MAP (PDF/EPS) - BASELINE ONLY ---
     if "baseline" in file_suffix:
+        # Import patheffects for white outline around text
+        import matplotlib.patheffects as patheffects
+
         # Path setup
         current_path = Path(__file__).resolve()
         project_root = current_path.parents[2]
@@ -1236,21 +1239,50 @@ def generate_fcps_region_choropleth(
         latex_fig_dir.mkdir(parents=True, exist_ok=True)
         
         try:
-            fig, ax = plt.subplots(figsize=(8, 6))
+            fig, ax = plt.subplots(figsize=(10, 8))
             
-            # Plot
+            # Create a categorical column for the Legend
+            gdf_merged['Region_Label'] = "Region " + gdf_merged['REGION'].astype(str)
+            
+            # Plot: Color by Region (Categorical)
             gdf_merged.plot(
-                column='total_optimization_savings',
-                cmap='RdYlGn',
+                column='Region_Label',
+                cmap='Pastel1',       # Use distinct colors (Pastel1, Set3, or tab10)
                 linewidth=0.8,
-                edgecolor='0.8',
+                edgecolor='black',
                 legend=True,
-                legend_kwds={'label': "Total Savings ($)", 'orientation': "vertical"},
+                legend_kwds={'title': "FCPS Regions", 'loc': 'lower right'},
                 ax=ax
             )
             
+            # Add Savings Labels to the Center of Each Region
+            for idx, row in gdf_merged.iterrows():
+                # Calculate the center point of the polygon
+                centroid = row.geometry.representative_point()
+                
+                # Format the savings value
+                savings_val = row['total_optimization_savings']
+                if abs(savings_val) >= 1_000_000:
+                    label_text = f"${savings_val/1e6:.2f}M"
+                else:
+                    label_text = f"${savings_val/1e3:.0f}k"
+                
+                # Annotate map
+                ax.annotate(
+                    text=label_text,
+                    xy=(centroid.x, centroid.y),
+                    xytext=(0, 0),
+                    textcoords="offset points",
+                    ha='center', va='center',
+                    fontsize=11,
+                    fontweight='bold',
+                    color='black',
+                    # Add white outline to text for readability against colors
+                    path_effects=[patheffects.withStroke(linewidth=3, foreground="white")]
+                )
+            
             clean_title = map_title.replace("FCPS Regions — ", "").replace(" ", "_").lower() if map_title else "choropleth"
-            ax.set_title(map_title if map_title else "Regional Savings", fontsize=12)
+            ax.set_title(f"{map_title} (Savings/Year)", fontsize=14)
             ax.axis('off')
             
             # Filename
@@ -1258,10 +1290,11 @@ def generate_fcps_region_choropleth(
             fig.savefig(latex_fig_dir / f"{base_name}.pdf", bbox_inches='tight')
             fig.savefig(latex_fig_dir / f"{base_name}.eps", format='eps', bbox_inches='tight')
             plt.close(fig)
-            print(f"Saved static choropleth to {latex_fig_dir / base_name}")
+            print(f"Saved static choropleth (Regions + Labels) to {latex_fig_dir / base_name}")
 
         except Exception as e:
             print(f"Error creating static choropleth: {e}")
+            traceback.print_exc()
 
     return m, regional, out_path
 

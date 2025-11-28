@@ -210,7 +210,7 @@ def run_eda(dfb, dfl, dfs, output_folder):
     # ------------------------------------------------------------------
     print("[EDA] Sales time series...")
     dfs = dfs.copy()
-    dfs["date"] = pd.to_datetime(dfs["date"])
+    dfs["date"] = pd.to_datetime(dfs["date"], format='mixed')
     dfs.sort_values("date", inplace=True)
 
     plt.figure(figsize=(14,5))
