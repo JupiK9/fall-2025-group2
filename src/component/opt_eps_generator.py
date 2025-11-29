@@ -13,46 +13,7 @@ import matplotlib.ticker as mticker
 import re
 import subprocess
 
-# ==============================================================================
 # DATA PREPARATION
-# ==============================================================================
-from pathlib import Path
-#
-# # Current script location:
-# script_path = Path(__file__).resolve()
-#
-# # Base directory (project root) is 2 levels above script_path (src/component → project root)
-# project_root = script_path.parents[2]
-#
-# # PNG directory (Baseline Budget inside src/data/results)
-# base_png_dir = project_root / "src" / "data" / "results" / "Baseline Budget"
-#
-# # PDF/EPS directory
-# latex_fig_dir = project_root / "research_paper" / "Latex" / "fig"
-#
-#
-# def save_all_formats(fig, base_png_path: Path, latex_fig_dir: Path):
-#     """
-#     Saves:
-#       - PNG in original location (base_png_path)
-#       - PDF + EPS in the research_paper/Latex/fig directory
-#     """
-#     base_png_path.parent.mkdir(parents=True, exist_ok=True)
-#     latex_fig_dir.mkdir(parents=True, exist_ok=True)
-#
-#     stem = base_png_path.stem  # filename without extension
-#
-#     # 1. PNG — high-res (stored in original location)
-#     fig.savefig(base_png_path.with_suffix(".png"), dpi=300, bbox_inches="tight")  # <-- added
-#
-#     # 2. PDF — vector (saved to latex_fig_dir)
-#     fig.savefig(latex_fig_dir / f"{stem}.pdf", bbox_inches="tight")  # <-- added
-#
-#     # 3. EPS — vector (saved to latex_fig_dir)
-#     fig.savefig(latex_fig_dir / f"{stem}.eps", format="eps", bbox_inches="tight")  # <-- added
-#
-#     print(f"Saved PNG → {base_png_path.with_suffix('.png')}")
-#     print(f"Saved PDF/EPS → {latex_fig_dir}/{stem}.*")
 
 def prepare_optimization_data(df_breakfast, df_lunch, df_sizes):
     """
@@ -129,7 +90,7 @@ def prepare_optimization_data(df_breakfast, df_lunch, df_sizes):
         else:
             print("Warning: student size dataframe is None.")
 
-        print("Data preparation complete!")
+        print("\nData preparation complete!")
         return {
             "dfb": dfb, "dfl": dfl,
             "schools": schools, "meal_types": meal_types,
@@ -141,9 +102,8 @@ def prepare_optimization_data(df_breakfast, df_lunch, df_sizes):
         traceback.print_exc()
         return None
 
-# ==============================================================================
+
 # OPTIMIZATION MODELS
-# ==============================================================================
 
 def run_meal_optimization(schools_to_optimize, meal_types, meal_costs, demand, school_budgets, total_budget, waste_penalty, bounds):
     """
@@ -277,9 +237,7 @@ def run_meal_optimization_ilp(schools_to_optimize, meal_types, meal_costs,
     
     print("Integer Linear Programming Optimization Complete!")
 
-# ==============================================================================
 # PIPELINE HELPER FUNCTIONS
-# ==============================================================================
 
 def _get_optimized_annual_cost_df(data, results_df, unit_costs_path):
     """
@@ -402,7 +360,7 @@ def analyze_savings_by_school_size(opt_data, results_df, unit_costs_path, df_siz
     dfl = opt_data['dfl']
     MONTHS_IN_SCHOOL_YEAR = 10
 
-    # 1. Calculate Optimized Annual Cost per School (NEW LOGIC)
+    # Calculate Optimized Annual Cost per School
     school_costs = _get_optimized_annual_cost_df(opt_data, results_df, unit_costs_path)
     if school_costs is None:
         print("Error: Could not calculate optimized costs for size analysis.")
@@ -411,20 +369,20 @@ def analyze_savings_by_school_size(opt_data, results_df, unit_costs_path, df_siz
     school_costs.rename(columns={'optimized_annual_cost': 'annual_food_cost'}, inplace=True)
 
 
-    # 2. Calculate Actual Historical Annual Cost per School (Same as before)
+    # Calculate Actual Historical Annual Cost per School
     actual_costs_b = dfb.groupby('school_name')['production_cost_total'].sum()
     actual_costs_l = dfl.groupby('school_name')['production_cost_total'].sum()
     actual_costs = (actual_costs_b.add(actual_costs_l, fill_value=0) * MONTHS_IN_SCHOOL_YEAR).reset_index(name='actual_annual_cost')
     actual_costs.rename(columns={'school_name': 'school'}, inplace=True)
 
-    # 3. Combine and merge with size data
+    # Combine and merge with size data
     analysis_df = pd.merge(actual_costs, school_costs, on='school', how='left')
     analysis_df = pd.merge(analysis_df, df_sizes[['school_name', 'size_category']], left_on='school', right_on='school_name', how='left')
 
-    # 4. Group by size category and sum the totals
+    # Group by size category and sum the totals
     agg_df = analysis_df.groupby('size_category', observed=True)[['actual_annual_cost', 'annual_food_cost']].sum(numeric_only=True).reset_index()
     
-    # 5. Calculate savings
+    # Calculate savings
     agg_df['total_savings'] = agg_df['actual_annual_cost'] - agg_df['annual_food_cost']
     agg_df['percent_savings'] = (agg_df['total_savings'] / agg_df['actual_annual_cost']) * 100
 
@@ -477,7 +435,6 @@ def generate_item_breakdown(optimization_results_df, dfb, dfl, output_filename):
             output_file_path = project_root / 'src' / 'data' / 'optimization-data' / 'school_food_item_optimization.csv'
 
         optimized_df.to_csv(output_file_path, index=False)
-        print(f"Saved item breakdown to {output_file_path}")
 
     else:
         print("Optimization did not produce a result")
@@ -496,9 +453,6 @@ def calculate_actual_annual_cost(data):
     
     # Scale to a 10-month school year
     actual_annual_cost = actual_monthly_cost * 10
-    
-    print(f"Result: Actual cost for the data period (1 month): ${actual_monthly_cost:,.2f}")
-    print(f"Result: Estimated Actual Annual Food Cost: ${actual_annual_cost:,.2f}")
     
     return actual_annual_cost
 
@@ -543,19 +497,6 @@ def analyze_annual_budget(results_df, school_budgets, meal_costs, data, unit_cos
     grand_total_food_cost = budget_analysis_df['annual_food_cost'].sum()
     grand_total_remaining = budget_analysis_df['remaining_annual_balance'].sum()
 
-    print("\nResult: Overall Financial Summary (Annual)")
-    print(f"- Total Allocated Annual Budget: ${total_budget:,.2f}")
-    print(f"- Grand Total Annual Food Expenses: ${grand_total_food_cost:,.2f}")
-    print(f"- Grand Total Remaining for Other Expenses: ${grand_total_remaining:,.2f}")
-
-    if actual_annual_cost is not None:
-        savings = actual_annual_cost - grand_total_food_cost
-        savings_percent = (savings / actual_annual_cost) * 100 if actual_annual_cost > 0 else 0
-        print("\nResult: Savings Analysis")
-        print(f"- Baseline Actual Annual Food Cost: ${actual_annual_cost:,.2f}")
-        print(f"- Optimized Annual Food Cost: ${grand_total_food_cost:,.2f}")
-        print(f"- Total Annual Savings: ${savings:,.2f} ({savings_percent:.2f}%)")
-
     # Format for display
     print("\nCalculating Detailed Breakdown by School (Annual)...")
     print('Saving results as chart...')
@@ -565,16 +506,12 @@ def analyze_annual_budget(results_df, school_budgets, meal_costs, data, unit_cos
 
     return display_df
 
-# ==============================================================================
 # GEOSPATIAL AND PLOTTING FUNCTIONS
-# ==============================================================================
 
 def generate_overall_savings_bar_chart(opt_data, monthly_results_df, unit_costs_path, out_dir=None,
                                        file_suffix: str = ""):
     """
     Generates Total Savings Bar Chart.
-    - Colors: Blue (Actual), Green (Optimized)
-    - Saves PDF/EPS ONLY if it's the baseline run.
     """
 
     if monthly_results_df is None:
@@ -597,13 +534,12 @@ def generate_overall_savings_bar_chart(opt_data, monthly_results_df, unit_costs_
         png_out_dir = Path(out_dir)
     png_out_dir.mkdir(parents=True, exist_ok=True)
 
-    # --- FILENAME LOGIC ---
     if "baseline" in file_suffix:
         latex_filename = "total_savings_bar_color"
     else:
         latex_filename = f"total_savings_bar_color{file_suffix}"
 
-    # --- DATA & PLOTTING ---
+    # DATA & PLOTTING
     actual_annual_cost = calculate_actual_annual_cost(opt_data)
     optimized_cost_df = _get_optimized_annual_cost_df(opt_data, monthly_results_df, unit_costs_path)
 
@@ -626,7 +562,12 @@ def generate_overall_savings_bar_chart(opt_data, monthly_results_df, unit_costs_
     fig, ax = plt.subplots(figsize=(6, 4))
     bars = ax.bar(labels, values, color=colors, width=0.6)
 
-    ax.set_title(f'Total Savings Analysis', fontsize=14)
+    # Dynamic Title based on suffix
+    scenario_title = "Baseline"
+    if "lower" in file_suffix: scenario_title = "Lower Bound"
+    if "upper" in file_suffix: scenario_title = "Upper Bound"
+    
+    ax.set_title(f'Total Savings Analysis ({scenario_title})', fontsize=14)
     ax.set_ylabel('Cost (Millions $)', fontsize=11)
     ax.get_yaxis().set_major_formatter(mticker.FuncFormatter(lambda x, p: f'${x / 1e6:.0f}M'))
     ax.spines['top'].set_visible(False)
@@ -642,25 +583,22 @@ def generate_overall_savings_bar_chart(opt_data, monthly_results_df, unit_costs_
 
     fig.tight_layout()
 
-    # --- SAVE LOGIC (PDF/EPS only for Baseline) ---
-    if "baseline" in file_suffix:
-        fig.savefig(latex_fig_dir / f"{latex_filename}.pdf", format='pdf', bbox_inches='tight')
-        fig.savefig(latex_fig_dir / f"{latex_filename}.eps", format='eps', bbox_inches='tight')
-        print(f"DEBUG: Saved PDF/EPS to: {latex_fig_dir.resolve()}")
+    # --- SAVE LOGIC (UPDATED) ---
+    # 1. Save PDF and EPS to Latex/fig folder (For ALL scenarios)
+    fig.savefig(latex_fig_dir / f"{latex_filename}.pdf", format='pdf', bbox_inches='tight')
+    fig.savefig(latex_fig_dir / f"{latex_filename}.eps", format='eps', bbox_inches='tight')
+    print(f"Saved PDF/EPS to: {latex_fig_dir / latex_filename}")
 
-    # Always save PNG
+    # 2. Save PNG to data/results folder
     png_path = png_out_dir / f"{latex_filename}.png"
     fig.savefig(png_path, format='png', dpi=600, bbox_inches='tight')
 
     plt.close(fig)
     return png_path
 
-
 def generate_savings_analysis_chart(opt_data, monthly_results_df, unit_costs_path, out_dir=None, file_suffix: str = ""):
     """
     Generates Scatter Plot of Savings vs Loss.
-    - Colors: Green (Savings), Red (Loss)
-    - Saves PDF/EPS ONLY if it's the baseline run.
     """
     if monthly_results_df is None:
         return None
@@ -685,19 +623,22 @@ def generate_savings_analysis_chart(opt_data, monthly_results_df, unit_costs_pat
         png_out_dir = Path(out_dir)
     png_out_dir.mkdir(parents=True, exist_ok=True)
 
-    # --- FILENAME LOGIC ---
+    # FILENAME LOGIC
     if "baseline" in file_suffix:
         latex_filename = "savings_analysis_color"
     else:
         latex_filename = f"savings_analysis_color{file_suffix}"
 
-    # --- CHART ---
+    # CHART
     fig_static, ax = plt.subplots(figsize=(12, 6))
 
     savings_group = savings_df[savings_df['outcome'] == 'Savings']
     loss_group = savings_df[savings_df['outcome'] == 'Loss']
 
     max_mag = savings_df['savings_magnitude'].max()
+    # Handle edge case where max_mag is 0
+    if max_mag == 0: max_mag = 1
+        
     s_savings = (savings_group['savings_magnitude'] / max_mag) * 300 + 20
     s_loss = (loss_group['savings_magnitude'] / max_mag) * 300 + 20
 
@@ -711,7 +652,11 @@ def generate_savings_analysis_chart(opt_data, monthly_results_df, unit_costs_pat
     lims = [np.min([ax.get_xlim(), ax.get_ylim()]), np.max([ax.get_xlim(), ax.get_ylim()])]
     ax.plot(lims, lims, 'k--', alpha=0.5, zorder=0, label='Break-even')
 
-    ax.set_title(f"Actual vs. Optimized Cost", fontsize=14)
+    scenario_title = "Baseline"
+    if "lower" in file_suffix: scenario_title = "Lower Bound"
+    if "upper" in file_suffix: scenario_title = "Upper Bound"
+
+    ax.set_title(f"Actual vs. Optimized Cost ({scenario_title})", fontsize=14)
     ax.set_xlabel("Actual Annual Cost ($)", fontsize=11)
     ax.set_ylabel("Optimized Annual Cost ($)", fontsize=11)
     ax.xaxis.set_major_formatter(mticker.FuncFormatter(lambda x, p: f'${x / 1e6:.1f}M'))
@@ -721,18 +666,14 @@ def generate_savings_analysis_chart(opt_data, monthly_results_df, unit_costs_pat
 
     fig_static.tight_layout()
 
-    # --- SAVE LOGIC (PDF/EPS only for Baseline) ---
-    if "baseline" in file_suffix:
-        fig_static.savefig(latex_fig_dir / f"{latex_filename}.pdf", format='pdf', bbox_inches='tight')
-        fig_static.savefig(latex_fig_dir / f"{latex_filename}.eps", format='eps', bbox_inches='tight')
-        print(f"DEBUG: Saved PDF/EPS to: {latex_fig_dir.resolve()}")
+    fig_static.savefig(latex_fig_dir / f"{latex_filename}.pdf", format='pdf', bbox_inches='tight')
+    fig_static.savefig(latex_fig_dir / f"{latex_filename}.eps", format='eps', bbox_inches='tight')
 
-    # Always save PNG
+    # Save PNG
     fig_static.savefig(png_out_dir / f"{latex_filename}.png", format='png', dpi=300, bbox_inches='tight')
     plt.close(fig_static)
 
     return png_out_dir / f"{latex_filename}.png"
-
 
 def generate_savings_by_size_charts(opt_data, monthly_results_df, unit_costs_path, out_dir=None, file_suffix: str = ""):
     """
@@ -743,7 +684,7 @@ def generate_savings_by_size_charts(opt_data, monthly_results_df, unit_costs_pat
     if monthly_results_df is None:
         return None
 
-    # --- PATH SETUP ---
+    # PATH SETUP
     current_path = Path(__file__).resolve()
     project_root = current_path
     while project_root.name != 'src' and project_root.parent != project_root:
@@ -759,7 +700,7 @@ def generate_savings_by_size_charts(opt_data, monthly_results_df, unit_costs_pat
         png_out_dir = Path(out_dir)
     png_out_dir.mkdir(parents=True, exist_ok=True)
 
-    # --- DATA PREP ---
+    # DATA PREP
     try:
         size_map = _compute_size_category(opt_data['df_sizes'], preferred_year="2024-2025")
         df_sizes = opt_data['df_sizes'].copy()
@@ -789,7 +730,7 @@ def generate_savings_by_size_charts(opt_data, monthly_results_df, unit_costs_pat
     except Exception:
         pass
 
-    # --- CHART 1: TOTAL SAVINGS (Color: Blue) ---
+    # CHART 1: TOTAL SAVINGS (Color: Blue)
     fig1, ax1 = plt.subplots(figsize=(7, 4))
     ax1.bar(savings_by_size_df['count_range'], savings_by_size_df['total_savings'], color='#1f77b4')
     ax1.set_title(f'Total Annual Savings by School Size', fontsize=14)
@@ -814,7 +755,7 @@ def generate_savings_by_size_charts(opt_data, monthly_results_df, unit_costs_pat
     fig1.savefig(png_out_dir / f"{base_name1}.png", format='png', dpi=600, bbox_inches='tight')
     plt.close(fig1)
 
-    # --- CHART 2: PERCENT SAVINGS (Color: Green) ---
+    # CHART 2: PERCENT SAVINGS (Color: Green)
     fig2, ax2 = plt.subplots(figsize=(7, 4))
     # CHANGED: Using Green instead of Purple
     ax2.bar(savings_by_size_df['count_range'], savings_by_size_df['percent_savings'], color='#2ca02c')
@@ -866,8 +807,6 @@ def prepare_map_data_from_coordinates(savings_df, coordinates_csv_path):
             print("Error: Could not find 'school_name' or 'school' column in coordinates file.")
             return None
 
-        # Keep only the essential columns and remove duplicates
-        # We keep 'latitude' and 'longitude' specifically
         coords_df = coords_df[['school', 'latitude', 'longitude']].drop_duplicates(subset='school')
         
         # Merge with savings data
@@ -876,7 +815,6 @@ def prepare_map_data_from_coordinates(savings_df, coordinates_csv_path):
         # Drop rows with missing coordinates
         map_df.dropna(subset=['latitude', 'longitude'], inplace=True)
 
-        print(f"Successfully merged coordinate data for {len(map_df)} schools.")
         return map_df
         
     except FileNotFoundError:
@@ -899,141 +837,135 @@ def _load_coords_and_normalize(coords_csv_path):
     coords_df["school"] = coords_df["school"].astype(str).str.strip().str.lower()
     return coords_df
 
-# ==============================================================================
-# GEOSPATIAL AND PLOTTING FUNCTIONS (UPDATED WITH STATIC MAPS)
-# ==============================================================================
+# GEOSPATIAL AND PLOTTING FUNCTIONS
 
-def generate_savings_map(opt_data, monthly_results_df, unit_costs_path, coordinates_file, 
-                         geojson_path=None, out_dir=None, file_suffix: str = ""):
+def generate_savings_map(opt_data, monthly_results_df, unit_costs_path, coordinates_path, 
+                         geojson_path=None, out_dir=None, file_suffix: str = "", 
+                         level_filter=None, custom_filename=None, static_mode=False):
     """
-    1. Builds an interactive Folium bubble map (HTML).
-    2. If Baseline: Generates a static Matplotlib map (PDF/EPS).
+    Generates Choropleth/Scatter maps for savings.
+    - Handles 'overall', 'elementary', 'middle', 'high' school splits.
+    - Saves BOTH .eps and .pdf files.
+    - Can generate a 'static' map style if static_mode=True.
     """
-
     if monthly_results_df is None:
-        print("No monthly optimization results available to map.")
         return None
 
-    # --- DATA PREP ---
+    # PREPARE DATA
     savings_df = prepare_savings_analysis_df(opt_data, monthly_results_df, unit_costs_path)
-    if savings_df is None or savings_df.empty:
-        return None
-
-    map_df = prepare_map_data_from_coordinates(savings_df, coordinates_file)
+    
+    # Merge with coordinates (using the fixed function from previous step)
+    map_df = prepare_map_data_from_coordinates(savings_df, coordinates_path)
     if map_df is None or map_df.empty:
+        print("Map data empty, skipping map generation.")
         return None
 
-    # --- PATH SETUP ---
+    # APPLY LEVEL FILTER (ES, MS, HS)
+    if level_filter:
+        if 'level' in map_df.columns:
+            map_df = map_df[map_df['level'].astype(str).str.upper() == level_filter.upper()]
+        elif 'df_sizes' in opt_data:
+            levels = opt_data['df_sizes'][['school_name', 'level']].copy()
+            levels['school_name'] = levels['school_name'].str.lower().str.strip()
+            # map_df already has normalized 'school'
+            map_df = map_df.merge(levels, left_on='school', right_on='school_name', how='inner')
+            map_df = map_df[map_df['level'].astype(str).str.upper() == level_filter.upper()]
+
+    if map_df.empty:
+        print(f"No data found for level: {level_filter}")
+        return None
+
+    # PATH SETUP
     current_path = Path(__file__).resolve()
     project_root = current_path
     while project_root.name != 'src' and project_root.parent != project_root:
         project_root = project_root.parent
     project_root = project_root.parent
-
+    
     latex_fig_dir = project_root / "research_paper" / "Latex" / "fig"
     latex_fig_dir.mkdir(parents=True, exist_ok=True)
 
-    if out_dir is None:
-        out_dir = project_root / "src" / "data" / "results"
+    # DETERMINE FILENAME
+    if custom_filename:
+        base_name = custom_filename
     else:
-        out_dir = Path(out_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
+        base_name = f"choropleth_overall_savings{file_suffix}"
 
-    # ---------------------------------------------------------
-    # 1. INTERACTIVE MAP (FOLIUM) - HTML
-    # ---------------------------------------------------------
+    # PLOTTING
     try:
-        lat0 = float(map_df['latitude'].mean())
-        lon0 = float(map_df['longitude'].mean())
-        center = [lat0, lon0]
-    except Exception:
-        center = [38.83, -77.27]
+        plt.style.use('seaborn-v0_8-whitegrid')
+    except:
+        pass
 
-    m = folium.Map(location=center, zoom_start=10)
-    max_abs = map_df['savings_magnitude'].max() if 'savings_magnitude' in map_df else None
-    
-    def scale_radius(v):
-        if max_abs and v and v > 0:
-            return (v / max_abs) ** (1 / 3) * 20 + 2
-        return 2
+    fig, ax = plt.subplots(figsize=(10, 8))
 
-    for _, row in map_df.iterrows():
+    if geojson_path:
         try:
-            color = '#2ca02c' if row.get('outcome') == 'Savings' else '#d62728' # Green / Red
-            popup_text = (
-                f"<strong>School:</strong> {str(row.get('school','')).title()}<br>"
-                f"<strong>Annual Savings:</strong> ${float(row.get('savings',0)):,.2f}"
-            )
-            folium.CircleMarker(
-                location=[float(row['latitude']), float(row['longitude'])],
-                radius=scale_radius(row.get('savings_magnitude', 0)),
-                color=color,
-                fill=True,
-                fill_color=color,
-                fill_opacity=0.6,
-                popup=folium.Popup(popup_text, max_width=300)
-            ).add_to(m)
-        except Exception:
-            continue
-
-    html_path = out_dir / f"overall_savings_map{file_suffix}.html"
-    m.save(str(html_path))
-    print(f"Saved interactive savings map to: {html_path}")
-
-    # ---------------------------------------------------------
-    # 2. STATIC MAP (MATPLOTLIB) - PDF/EPS (Baseline Only)
-    # ---------------------------------------------------------
-    if "baseline" in file_suffix:
-        print("Generating static savings map (PDF/EPS)...")
-        try:
-            fig, ax = plt.subplots(figsize=(8, 8))
-            
-            # Plot Background (GeoJSON) if available
-            if geojson_path and Path(geojson_path).exists():
+            if isinstance(geojson_path, str): 
+                geojson_path = Path(geojson_path)
+            if geojson_path.exists():
                 gdf_bg = gpd.read_file(geojson_path)
-                gdf_bg.plot(ax=ax, color='#f0f0f0', edgecolor='#cccccc')
-            
-            # Prepare Data for Scatter
-            # Colors: Green (#2ca02c) for Savings, Red (#d62728) for Loss
-            colors = map_df['outcome'].apply(lambda x: '#2ca02c' if x == 'Savings' else '#d62728')
-            
-            # Size: Scale size for visibility
-            sizes = map_df['savings_magnitude'] / map_df['savings_magnitude'].max() * 200 + 10
-
-            scatter = ax.scatter(
-                map_df['longitude'], 
-                map_df['latitude'], 
-                c=colors, 
-                s=sizes, 
-                alpha=0.7, 
-                edgecolors='white', 
-                linewidth=0.5
-            )
-
-            # Custom Legend
-            from matplotlib.lines import Line2D
-            legend_elements = [
-                Line2D([0], [0], marker='o', color='w', markerfacecolor='#2ca02c', label='Savings', markersize=10),
-                Line2D([0], [0], marker='o', color='w', markerfacecolor='#d62728', label='Loss', markersize=10)
-            ]
-            ax.legend(handles=legend_elements, loc='upper right')
-
-            ax.set_title("Overall Savings by School", fontsize=14)
-            ax.axis('off') # Hide axes for map look
-            
-            # Save
-            latex_filename = "overall_savings_map_static"
-            fig.savefig(latex_fig_dir / f"{latex_filename}.pdf", format='pdf', bbox_inches='tight')
-            fig.savefig(latex_fig_dir / f"{latex_filename}.eps", format='eps', bbox_inches='tight')
-            plt.close(fig)
-            print(f"Saved static savings map to {latex_fig_dir}")
-            
+                # Plot background: light gray fill, darker gray edge
+                gdf_bg.plot(ax=ax, color='#f0f0f0', edgecolor='#999999', linewidth=0.8, zorder=0)
+            else:
+                print(f"Warning: GeoJSON file not found at {geojson_path}")
         except Exception as e:
-            print(f"Failed to create static savings map: {e}")
-            traceback.print_exc()
+            print(f"Error plotting GeoJSON background: {e}")    
 
-    return html_path
+    # Calculate bubble sizes
+    max_savings = map_df['savings_magnitude'].max()
+    if max_savings == 0: max_savings = 1
+    sizes = (map_df['savings_magnitude'] / max_savings) * 500 + 50
 
+    # Plot points
+    # Green for Savings, Red for Loss
+    colors = map_df['outcome'].map({'Savings': '#2ca02c', 'Loss': '#d62728'})
+    
+    sc = ax.scatter(map_df['longitude'], map_df['latitude'], 
+                    s=sizes, c=colors, alpha=0.7, edgecolors='black', linewidth=0.5)
+
+    # Add Title
+    title_text = "Overall Savings Map"
+    if level_filter == 'ES': title_text = "Elementary Schools Savings"
+    if level_filter == 'MS': title_text = "Middle Schools Savings"
+    if level_filter == 'HS': title_text = "High Schools Savings"
+    
+    scenario_label = "Baseline"
+    if "lower" in file_suffix: scenario_label = "Lower Bound"
+    if "upper" in file_suffix: scenario_label = "Upper Bound"
+    
+    ax.set_title(f"{title_text} ({scenario_label})", fontsize=15)
+    ax.set_xlabel("Longitude")
+    ax.set_ylabel("Latitude")
+    ax.grid(True, linestyle=':', alpha=0.6)
+
+    # Create a custom legend
+    from matplotlib.lines import Line2D
+    legend_elements = [
+        Line2D([0], [0], marker='o', color='w', label='Savings', markerfacecolor='#2ca02c', markersize=10, markeredgecolor='k'),
+        Line2D([0], [0], marker='o', color='w', label='Cost Increase', markerfacecolor='#d62728', markersize=10, markeredgecolor='k')
+    ]
+    ax.legend(handles=legend_elements, loc='upper right')
+
+    # Remove axes for cleaner map look if requested
+    if static_mode:
+        ax.set_axis_off()
+
+    fig.tight_layout()
+
+    # SAVE FILES (EPS AND PDF)
+    # Save PDF
+    pdf_path = latex_fig_dir / f"{base_name}.pdf"
+    fig.savefig(pdf_path, format='pdf', bbox_inches='tight')
+    
+    # Save EPS
+    eps_path = latex_fig_dir / f"{base_name}.eps"
+    fig.savefig(eps_path, format='eps', bbox_inches='tight')
+    
+    print(f"Generated Map: {base_name}.pdf & .eps")
+
+    plt.close(fig)
+    return pdf_path
 
 def generate_savings_maps_by_level(opt_data, monthly_results_df, unit_costs_path, coordinates_file, 
                                    geojson_path=None, out_dir=None, file_suffix: str = ""):
@@ -1081,7 +1013,7 @@ def generate_savings_maps_by_level(opt_data, monthly_results_df, unit_costs_path
     results_dir = Path(out_dir) if out_dir else (project_root / "src" / "data" / "results")
     results_dir.mkdir(parents=True, exist_ok=True)
 
-    # --- INTERACTIVE (HTML) ---
+    # INTERACTIVE (HTML)
     out_paths = {}
     level_map = [('ES', 'elementary'), ('MS', 'middle'), ('HS', 'high')]
     
@@ -1119,7 +1051,7 @@ def generate_savings_maps_by_level(opt_data, monthly_results_df, unit_costs_path
         m.save(str(html_file))
         out_paths[label] = html_file
         
-        # --- STATIC MAP (PDF/EPS) - BASELINE ONLY ---
+        # STATIC MAP (PDF/EPS) - BASELINE ONLY
         if "baseline" in file_suffix:
             try:
                 fig, ax = plt.subplots(figsize=(8, 8))
@@ -1166,7 +1098,7 @@ def generate_fcps_region_choropleth(
     if savings_df is None or savings_df.empty:
         return None, None, None
 
-    # --- Data Prep ---
+    # DATA PREP
     coords = pd.read_csv(coords_csv_path, low_memory=False)
     coords.columns = coords.columns.str.lower()
     if "school_name" in coords.columns and "school" not in coords.columns:
@@ -1199,16 +1131,15 @@ def generate_fcps_region_choropleth(
     gdf_merged = gdf.merge(regional, on='REGION', how='left')
     gdf_merged['total_optimization_savings'] = gdf_merged['total_optimization_savings'].fillna(0)
 
-    # --- FIX: Convert Timestamp columns to strings for JSON serialization ---
+    # Convert Timestamp columns to strings for JSON serialization
     for col in gdf_merged.columns:
         if pd.api.types.is_datetime64_any_dtype(gdf_merged[col]):
             gdf_merged[col] = gdf_merged[col].astype(str)
 
-    # --- 1. HTML INTERACTIVE MAP ---
+    # HTML INTERACTIVE MAP
     try:
         m = folium.Map(location=[38.85, -77.30], zoom_start=10, tiles="cartodbpositron")
         
-        # We use gdf_merged.to_json() which should now work since datetimes are strings
         folium.Choropleth(
             geo_data=json.loads(gdf_merged.to_json()),
             data=regional,
@@ -1227,7 +1158,7 @@ def generate_fcps_region_choropleth(
         print(f"Error generating interactive choropleth: {e}")
         traceback.print_exc()
 
-    # --- 2. STATIC MAP (PDF/EPS) - BASELINE ONLY ---
+    # STATIC MAP (PDF/EPS) - BASELINE ONLY
     if "baseline" in file_suffix:
         # Import patheffects for white outline around text
         import matplotlib.patheffects as patheffects
@@ -1247,7 +1178,7 @@ def generate_fcps_region_choropleth(
             # Plot: Color by Region (Categorical)
             gdf_merged.plot(
                 column='Region_Label',
-                cmap='Pastel1',       # Use distinct colors (Pastel1, Set3, or tab10)
+                cmap='Pastel1',
                 linewidth=0.8,
                 edgecolor='black',
                 legend=True,
@@ -1333,7 +1264,7 @@ def generate_all_region_choropleths(
         bins=None,
         out_path=out_dir / f"fcps_region_choropleth_overall{file_suffix}.html",
         map_title="FCPS Regions — Overall Savings",
-        file_suffix=file_suffix  # Pass suffix to trigger PDF gen
+        file_suffix=file_suffix
     )
     results["overall_html"] = path_overall
 
@@ -1364,9 +1295,7 @@ def generate_all_region_choropleths(
 
     return results
 
-# ==============================================================================
 # PIPELINE RUNNERS
-# ==============================================================================
 
 def run_proportional_monthly_optimization_ilp(data, budget_cap_factor: float):
     """
@@ -1529,7 +1458,6 @@ def run_monthly_proportional_pipeline(
 ):
     """
     Runs the monthly ILP optimization for three scenarios and saves all CSVs and maps into their own subfolders.
-    *** MODIFIED to pass unit_costs_file to all chart functions ***
     """
     
     run_maps = coordinates_file and geojson_file
@@ -1602,6 +1530,20 @@ def run_monthly_proportional_pipeline(
                     out_dir=graph_output_dir,
                     file_suffix=file_suffix
                 )
+
+                if name == "baseline":
+                    print("Generating static overall savings map...")
+                    generate_savings_map(
+                        opt_data, 
+                        monthly_results_df, 
+                        unit_costs_file,
+                        coordinates_file,
+                        geojson_path=geojson_file,
+                        out_dir=graph_output_dir,
+                        file_suffix="",
+                        static_mode=True,
+                        custom_filename="overall_savings_map_static"
+                    )
                 
                 generate_savings_maps_by_level(
                     opt_data, 
@@ -1648,7 +1590,6 @@ def run_monthly_proportional_pipeline(
                 file_suffix=file_suffix
             )
             
-            # Generate the item breakdown for *this* specific scenario
             print(f"\nGenerating item breakdown for {name} scenario...")
             item_breakdown_path = csv_output_dir / f'monthly_items_breakdown{file_suffix}.csv'
             
@@ -1677,7 +1618,7 @@ def run_monthly_proportional_pipeline(
         baseline_results.get('meal_costs')
     )
 
-def run_all_optimizations(
+def run_all_optimizations_eps(
     breakfast_file: str | Path,
     lunch_file: str | Path,
     student_counts_file: str | Path,
@@ -1711,6 +1652,15 @@ def run_all_optimizations(
         coordinates_file=coordinates_file,
         geojson_file=geojson_file
     )
+
+    print("\nGenerating Branch and Cut Visualization...")
+    script_dir = Path(__file__).resolve().parent
+    project_root = script_dir.parent.parent
+    latex_fig_dir = project_root / "research_paper" / "Latex" / "fig"
+    # Ensure directory exists
+    latex_fig_dir.mkdir(parents=True, exist_ok=True)
+    
+    draw_branch_and_cut_visualization(str(latex_fig_dir / "branch_and_cut_visual.eps"))
     
     return {
         'opt_data': opt_data,
@@ -1724,7 +1674,7 @@ def run_all_optimizations(
 
 def run_size_based_optimization(schools_to_optimize, meal_types, meal_costs, demand, school_budgets, total_budget, waste_penalty, all_school_lists, dfb, dfl):
     """
-    (Legacy) Runs the linear programming model using predefined school size lists
+    Runs the linear programming model using predefined school size lists
     and saves the output to a separate CSV file.
     (Accepts dfb and dfl as arguments)
     """
@@ -1757,7 +1707,7 @@ def run_size_based_optimization(schools_to_optimize, meal_types, meal_costs, dem
     print("Production bounds have been set based on custom school sizes.")
 
     print("Warning: run_size_based_optimization is a legacy function.")
-    results_df = None # Bypassing
+    results_df = None
 
     # Generate the Food Item Breakdown and Save to a CSV file
     if results_df is not None:
@@ -1860,3 +1810,67 @@ def _daily_bounds_from_demand(opt_data, lo=0.90, hi=1.10):
             d = opt_data['demand'][school][i]
             bounds.append((d * lo, d * hi))
     return bounds
+
+def draw_branch_and_cut_visualization(output_path=None):
+    """
+    Generates a visualization of the Branch-and-Cut algorithm.
+    Saves as an EPS file using only Red, Green, and Blue colors.
+    """
+
+    # Create figure
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    # Define the feasible region (LP Relaxation) Constraints modeled: 2x + 2y <= 17, -x + 2y <= 6
+    x = np.linspace(-1, 10, 400)
+    y1 = (17 - 2*x) / 2
+    y2 = (6 + x) / 2
+    y_upper = np.minimum(y1, y2)
+    
+    # Feasible Region (Green) Represents the area allowed by your Budget/Cost constraints
+    ax.fill_between(x, 0, y_upper, where=(x>=0) & (y_upper>=0), 
+                    color='green', alpha=0.1, label='Feasible Region (Budget Constraints)')
+
+    # Integer Points (Blue) Represents valid combinations of meals
+    integers_x = []
+    integers_y = []
+    for i in range(10):
+        for j in range(10):
+            if (2*i + 2*j <= 17) and (-i + 2*j <= 6):
+                integers_x.append(i)
+                integers_y.append(j)
+    ax.scatter(integers_x, integers_y, color='blue', s=50, alpha=0.6, label='Valid Integer Solutions')
+
+    # LP Optimum (Red X) The mathematical best cost, but impossible because it's fractional
+    ax.scatter([3.66], [4.83], color='red', marker='x', s=200, linewidth=3, zorder=10, label='LP Relaxation (Fractional/Invalid)')
+    
+    # The cut (Blue Dashed Line) A new constraint added to slice off the Red X without losing Green dots
+    ax.hlines(y=4, xmin=-1, xmax=10, colors='blue', linestyles='--', linewidth=2, label='Branch-and-Cut "Cut"')
+    
+    # True Optimum (Red Star) The best valid solution after the cut
+    ax.scatter([3], [4], color='red', marker='*', s=300, zorder=10, label='True Integer Optimum')
+
+    # Formatting
+    ax.set_xlim(-0.5, 9)
+    ax.set_ylim(-0.5, 7)
+    
+    # Correct Axis Labels for your context
+    ax.set_xlabel('Quantity of Item A')
+    ax.set_ylabel('Quantity of Item B')
+    
+    ax.set_title('Visualizing Branch-and-Cut: Optimizing Quantities under Cost Constraints')
+    ax.legend(loc='upper right')
+    ax.grid(True, alpha=0.2)
+    
+    # Handle output path
+    if output_path is None:
+        output_path = Path(__file__).resolve().parents[2] / "src" / "data" / "results" / "branch_and_cut_visual.eps"
+    else:
+        output_path = Path(output_path)
+    
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    # Save as EPS
+    plt.tight_layout()
+    plt.savefig(output_path, format='eps')
+    plt.close(fig)
+    print(f"Saved Branch-and-Cut visualization to {output_path}")
