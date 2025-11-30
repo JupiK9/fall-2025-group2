@@ -6,6 +6,7 @@
 \usepackage{multirow, indentfirst, cite, verbatim, keyval, textcomp, enumerate, calc, microtype, makecell, booktabs, tabularx }
 \usepackage{xurl}
 \usepackage[T1]{fontenc}
+\usepackage{marvosym}
 
 
 
@@ -29,7 +30,7 @@
 
 \author{
 \IEEEauthorblockN{
-Jupiter Kang\IEEEauthorrefmark{1},
+Jupiter Kang\textsuperscript{*/\;\Letter}\IEEEauthorrefmark{1},
 Crystal Kao\IEEEauthorrefmark{1},
 Alonso Romero\IEEEauthorrefmark{1},
 Amir Jafari\IEEEauthorrefmark{2}
@@ -526,6 +527,15 @@ Future iterations of this study could incorporate additional environmental metri
 
 The regression analysis presented in Section V currently operates independently of the MILP optimization and serves a descriptive rather than prescriptive function. While the OLS framework provides statistical validation of cost relationships, the connection between regression outputs and optimization parameters remains conceptual rather than implemented. Future work should formally integrate these components, using regression-derived coefficients directly within the optimization objective function as outlined in Section V.C
 
+%*********************************************************************************************************************************************************************************************************************
+\section{Declarations}
+
+\subsection*{Data Availability}
+
+The datasets used and analyzed during the current study are publicly available in the "fall-2025-group2 repository", accessible at: \url{https://github.com/JupiK9/fall-2025-group2.git}. The repository includes the raw data, processed data, and code necessary to reproduce the results presented in this study.
+
+\subsection*{Conflict of Interest}
+The authors declare that they have no competing interests.
 %*********************************************************************************************************************************************************************************************************************
 
 \bibliographystyle{IEEEtran}
