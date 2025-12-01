@@ -885,7 +885,6 @@ def generate_savings_map(opt_data, monthly_results_df, unit_costs_path, coordina
     latex_fig_dir = project_root / "research_paper" / "Latex" / "fig"
     latex_fig_dir.mkdir(parents=True, exist_ok=True)
 
-    # DETERMINE FILENAME
     if custom_filename:
         base_name = custom_filename
     else:
@@ -910,7 +909,7 @@ def generate_savings_map(opt_data, monthly_results_df, unit_costs_path, coordina
             else:
                 print(f"Warning: GeoJSON file not found at {geojson_path}")
         except Exception as e:
-            print(f"Error plotting GeoJSON background: {e}")    
+            print(f"Error plotting GeoJSON background: {e}")   
 
     # Calculate bubble sizes
     max_savings = map_df['savings_magnitude'].max()
@@ -1094,6 +1093,9 @@ def generate_fcps_region_choropleth(
 ):
     """
     Generates Choropleth (HTML) AND Static Map (PDF/EPS) if baseline.
+    UPDATED:
+    - Static map now uses Red->Violet color scheme for Regions 1-6.
+    - Legend is moved to the right side.
     """
     if savings_df is None or savings_df.empty:
         return None, None, None
@@ -1162,6 +1164,8 @@ def generate_fcps_region_choropleth(
     if "baseline" in file_suffix:
         # Import patheffects for white outline around text
         import matplotlib.patheffects as patheffects
+        from matplotlib.colors import ListedColormap
+        from matplotlib.lines import Line2D
 
         # Path setup
         current_path = Path(__file__).resolve()
@@ -1170,50 +1174,64 @@ def generate_fcps_region_choropleth(
         latex_fig_dir.mkdir(parents=True, exist_ok=True)
         
         try:
-            fig, ax = plt.subplots(figsize=(10, 8))
+            # Increase width to accommodate side legend
+            fig, ax = plt.subplots(figsize=(12, 8))
             
-            # Create a categorical column for the Legend
+            # Create a categorical column for plotting
             gdf_merged['Region_Label'] = "Region " + gdf_merged['REGION'].astype(str)
             
-            # Plot: Color by Region (Categorical)
+            # Sort by Region so colors map correctly (Region 1 -> Red, etc.)
+            gdf_merged = gdf_merged.sort_values('REGION')
+            
+            # Define Custom 6-Color Spectrum (Red -> Violet)
+            region_colors = ['#d62728', '#ff7f0e', '#bcbd22', '#2ca02c', '#1f77b4', '#9467bd']
+            custom_cmap = ListedColormap(region_colors)
+            
+            # Plot Regions
             gdf_merged.plot(
                 column='Region_Label',
-                cmap='Pastel1',
+                cmap=custom_cmap,
                 linewidth=0.8,
-                edgecolor='black',
-                legend=True,
-                legend_kwds={'title': "FCPS Regions", 'loc': 'lower right'},
+                edgecolor='white',
+                alpha=0.8,
                 ax=ax
             )
             
+            # Add Legend to the Right
+            legend_elements = []
+            for i, region_name in enumerate(gdf_merged['Region_Label'].unique()):
+                color = region_colors[i % len(region_colors)]
+                legend_elements.append(Line2D([0], [0], marker='s', color='w', label=region_name,
+                                              markerfacecolor=color, markersize=12))
+            
+            ax.legend(handles=legend_elements, title="FCPS Regions", 
+                      bbox_to_anchor=(1.02, 1), loc='upper left', borderaxespad=0.,
+                      fontsize=11, title_fontsize=13)
+            
             # Add Savings Labels to the Center of Each Region
             for idx, row in gdf_merged.iterrows():
-                # Calculate the center point of the polygon
                 centroid = row.geometry.representative_point()
-                
-                # Format the savings value
                 savings_val = row['total_optimization_savings']
+                
                 if abs(savings_val) >= 1_000_000:
                     label_text = f"${savings_val/1e6:.2f}M"
                 else:
                     label_text = f"${savings_val/1e3:.0f}k"
                 
-                # Annotate map
                 ax.annotate(
                     text=label_text,
                     xy=(centroid.x, centroid.y),
                     xytext=(0, 0),
                     textcoords="offset points",
                     ha='center', va='center',
-                    fontsize=11,
+                    fontsize=12,
                     fontweight='bold',
                     color='black',
-                    # Add white outline to text for readability against colors
                     path_effects=[patheffects.withStroke(linewidth=3, foreground="white")]
                 )
             
             clean_title = map_title.replace("FCPS Regions — ", "").replace(" ", "_").lower() if map_title else "choropleth"
-            ax.set_title(f"{map_title} (Savings/Year)", fontsize=14)
+            ax.set_title(f"{map_title} (Savings/Year)", fontsize=16)
             ax.axis('off')
             
             # Filename
