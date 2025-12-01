@@ -1602,20 +1602,6 @@ def run_monthly_proportional_pipeline(
                     out_dir=graph_output_dir,
                     file_suffix=file_suffix
                 )
-
-                savings_df_for_eps = prepare_savings_analysis_df(
-                    opt_data, 
-                    monthly_results_df, 
-                    unit_costs_file
-                )
-                
-                generate_static_choropleth_eps(
-                    savings_df=savings_df_for_eps,
-                    coords_csv_path=coordinates_file,
-                    geojson_path=geojson_file,
-                    out_path=journal_output_dir / f"choropleth_overall_savings{file_suffix}.eps",
-                    map_title=f"FCPS Regions — Savings ({name.replace('_', ' ').title()})"
-                )
             
             print(f"\nGenerating size-based bar charts for {name} scenario...")
             generate_savings_by_size_charts(
@@ -1854,67 +1840,3 @@ def _daily_bounds_from_demand(opt_data, lo=0.90, hi=1.10):
             d = opt_data['demand'][school][i]
             bounds.append((d * lo, d * hi))
     return bounds
-
-def draw_branch_and_cut_visualization(output_path=None):
-    """
-    Generates a visualization of the Branch-and-Cut algorithm.
-    Saves as an EPS file using only Red, Green, and Blue colors.
-    """
-
-    # Create figure
-    fig, ax = plt.subplots(figsize=(10, 6))
-
-    # Define the feasible region (LP Relaxation) Constraints modeled: 2x + 2y <= 17, -x + 2y <= 6
-    x = np.linspace(-1, 10, 400)
-    y1 = (17 - 2*x) / 2
-    y2 = (6 + x) / 2
-    y_upper = np.minimum(y1, y2)
-    
-    # Feasible Region (Green) Represents the area allowed by your Budget/Cost constraints
-    ax.fill_between(x, 0, y_upper, where=(x>=0) & (y_upper>=0), 
-                    color='green', alpha=0.1, label='Feasible Region (Budget Constraints)')
-
-    # Integer Points (Blue) Represents valid combinations of meals (you can't make 0.5 meals)
-    integers_x = []
-    integers_y = []
-    for i in range(10):
-        for j in range(10):
-            if (2*i + 2*j <= 17) and (-i + 2*j <= 6):
-                integers_x.append(i)
-                integers_y.append(j)
-    ax.scatter(integers_x, integers_y, color='blue', s=50, alpha=0.6, label='Valid Integer Solutions')
-
-    # LP Optimum (Red X) The mathematical best cost, but impossible because it's fractional (e.g., 3.66 meals)
-    ax.scatter([3.66], [4.83], color='red', marker='x', s=200, linewidth=3, zorder=10, label='LP Relaxation (Fractional/Invalid)')
-    
-    # The cut (Blue Dashed Line) A new constraint added to slice off the Red X without losing Green dots
-    ax.hlines(y=4, xmin=-1, xmax=10, colors='blue', linestyles='--', linewidth=2, label='Branch-and-Cut "Cut"')
-    
-    # True Optimum (Red Star) The best valid solution after the cut
-    ax.scatter([3], [4], color='red', marker='*', s=300, zorder=10, label='True Integer Optimum')
-
-    # Formatting
-    ax.set_xlim(-0.5, 9)
-    ax.set_ylim(-0.5, 7)
-    
-    # Correct Axis Labels for your context
-    ax.set_xlabel('Quantity of Item A')
-    ax.set_ylabel('Quantity of Item B')
-    
-    ax.set_title('Visualizing Branch-and-Cut: Optimizing Quantities under Cost Constraints')
-    ax.legend(loc='upper right')
-    ax.grid(True, alpha=0.2)
-    
-    # Handle output path
-    if output_path is None:
-        output_path = Path(__file__).resolve().parents[2] / "src" / "data" / "results" / "branch_and_cut_visual.eps"
-    else:
-        output_path = Path(output_path)
-    
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    
-    # Save as EPS
-    plt.tight_layout()
-    plt.savefig(output_path, format='eps')
-    plt.close(fig)
-    print(f"Saved Branch-and-Cut visualization to {output_path}")
