@@ -63,26 +63,26 @@ demo/
 
 ## 📸 Dashboard Preview
 
-1. __Exploratory Data Analysis__
+1. ### __Exploratory Data Analysis__
 
 _Visualizes key exploratory data analysis, across costs and time series._
 
 ![EDA Page](images/main_eda.png)
 
-2. __Popularity Analysis__
+2. ### __Popularity Analysis__
 
 _Visualizes top 15 popular foods for each meal type and the top 15 most leftover items for each meal type_
 
 ![Popularity Page](images/main_pop.png)
 
-3. __Optimization__
+3. ### __Optimization__
 
 _Visualizes results from our optimization model_
 
 ![Optimization Page](images/main_opt.png)
 
-4. __Recommendation__
+4. ### __Recommendation__
 
-_Allows the user to download a recommendation form for optimized food item quantities to order
+_Allows the user to download a recommendation form for optimized food item quantities to order_
 
 ![Recommendation Page](images/main_rec.png)
