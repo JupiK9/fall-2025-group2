@@ -211,14 +211,18 @@ streamlit run demo/streamlit_app.py
 │
 └── src
     ├── component
+    │           ├── __init__.py
     │           ├── csv_combiner.py
-    │           ├── data_transformer.py
+    │           ├── data_transformer_html.py
+    │           ├── EDA.py
     │           ├── optimization.py
     │           ├── pdf_generator.py
     │           ├── pdf_processor.py
-    │           ├── pipeline_main.py
+    │           ├── pipelines.py
     │           ├── popularity.py
-    │           └── regression_analysis.py
+    │           ├── regression 1114.py
+    │           ├── regression_analysis.py
+    │           └── TS_LSTM_V2.py
     ├── data
     │      ├── clean-data
     │      │            ├── data_breakfast.csv
@@ -250,20 +254,21 @@ streamlit run demo/streamlit_app.py
     │      │                   ├── data_breakfast_with_coordinates.csv
     │      │                   ├── data_lunch_with_coordinates.csv
     │      │                   ├── fcps_nutrition_values.csv
-    │      │                   └── School_Regions.geojson
-    │      ├── results
-    │      │         ├── Baseline Budget
-    │      │         ├── EDA
-    │      │         ├── Lower Budget Bounds
-    │      │         └── Upper Budget Bounds
-    │      │
-    │      └── data-downloader.sh
+    │      │                   ├── School_Regions.geojson
+    │      │                   └── unit_costs.csv
+    │      └── results
+    │                ├── Baseline Budget
+    │                ├── EDA
+    │                ├── Lower Budget Bounds
+    │                └── Upper Budget Bounds
     ├── docs
     ├── main_code
     │           └── main.py
     ├── preprocess
     │            ├── html-processing
     │            └── pdf-processing
+    ├── shellscripts
+    │              └── data-downloader.sh
     ├── tests
     │       ├── test_html_csv_combiner.py
     │       ├── test_optimization.py
