@@ -440,6 +440,8 @@ def generate_item_breakdown(optimization_results_df, dfb, dfl, output_filename):
             project_root = src_dir.parent
             output_file_path = project_root / 'src' / 'data' / 'optimization-data' / 'school_food_item_optimization.csv'
 
+        output_file_path.parent.mkdir(parents=True, exist_ok=True)
+
         optimized_df.to_csv(output_file_path, index=False)
         print(f"Saved item breakdown to {output_file_path}")
 
@@ -1540,11 +1542,16 @@ def run_monthly_proportional_pipeline(
         
         # Define the output directory for CSVs
         csv_output_dir = project_root / 'src' / 'data' / 'optimization-data'
+
+        csv_output_dir.mkdir(parents=True, exist_ok=True)
+
         analysis_breakdown_path = csv_output_dir / f'annual_school_breakdown{file_suffix}.csv'
         
         # Define the output directory for all graphs for this scenario
         graph_output_dir = project_root / "src" / "data" / "results" / folder_name
+        
         graph_output_dir.mkdir(parents=True, exist_ok=True)
+        
         journal_output_dir = project_root / "research_paper" / "Latex" / "fig"
         
         # Run the optimization
@@ -1704,9 +1711,7 @@ def run_all_optimizations(
 
 def run_size_based_optimization(schools_to_optimize, meal_types, meal_costs, demand, school_budgets, total_budget, waste_penalty, all_school_lists, dfb, dfl):
     """
-    (Legacy) Runs the linear programming model using predefined school size lists
-    and saves the output to a separate CSV file.
-    (Accepts dfb and dfl as arguments)
+    Runs the linear programming model using predefined school size lists and saves the output to a separate CSV file.
     """
 
     # Create the school_sizes dictionary
@@ -1763,6 +1768,8 @@ def run_size_based_optimization(schools_to_optimize, meal_types, meal_costs, dem
         src_dir = script_dir.parent
         project_root = src_dir.parent
         output_filename = project_root / 'src' / 'data' / 'school_food_item_optimization_by_size.csv'
+
+        output_filename.parent.mkdir(parents=True, exist_ok=True)
         
         optimized_df.to_csv(output_filename, index=False)
         print(f"\nSaved the size-based optimization results to '{output_filename}'")
