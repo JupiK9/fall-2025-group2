@@ -88,12 +88,8 @@ def process_all_pdfs(pdf_folder, output_file):
     if all_clean_dfs:
         final_df = pd.concat(all_clean_dfs, ignore_index=True)
         
-        # Create preprocessed-data folder if it doesn't exist
-        preprocessed_folder = "preprocessed-data"
-        if not os.path.exists(preprocessed_folder):
-            os.makedirs(preprocessed_folder)
-        
-        output_file = os.path.join(preprocessed_folder, f"sales.csv")
+        os.makedirs(os.path.dirname(output_file), exist_ok=True)
+
         final_df.to_csv(output_file, index=False)
         
         print(f"\n✅ Final DataFrame saved to {output_file}")

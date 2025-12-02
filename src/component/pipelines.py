@@ -39,6 +39,9 @@ def html_csv_pipeline():
     bf_clean = DATA / "clean-data" / "data_breakfast.csv"
     ln_clean = DATA / "clean-data" / "data_lunch.csv"
 
+    bf_clean.parent.mkdir(parents=True, exist_ok=True)
+    ln_clean.parent.mkdir(parents=True, exist_ok=True)
+
     if bf_clean.exists() and ln_clean.exists():
         print("[HTML/CSV] Clean breakfast & lunch already exist. Skipping HTML transform + CSV combine.")
         return
@@ -69,6 +72,9 @@ def pdf_pipeline():
 
     print("\n[PDF] Starting PDF to CSV Processing...")
     sales_csv = DATA / "clean-data" / "sales.csv"
+
+    sales_csv.parent.mkdir(parents=True, exist_ok=True)
+    
     if sales_csv.exists():
         print("[PDF] sales.csv already exists. Skipping PDF processing.")
         return

@@ -253,6 +253,9 @@ def get_net_consumption_by_school(df, meal_type):
     # Save the output file
     ROOT = Path(__file__).resolve().parents[1]
     OUT_DIR = ROOT / "data" / "popularity-data"
+
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+
     filename = f"{meal_type.lower()}_net_consumption_by_school.csv"
     item_summary.to_csv(OUT_DIR / filename, index=False)
 
@@ -286,6 +289,9 @@ def get_leftover_rate_by_school(df, meal_type):
 
     ROOT = Path(__file__).resolve().parents[1]
     OUT_DIR = ROOT / "data" / "leftover-data"
+
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+
     filename = f"{meal_type.lower()}_leftover_rate_by_school.csv"
     item_summary.to_csv(OUT_DIR / filename, index=False)
     

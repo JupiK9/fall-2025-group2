@@ -12,6 +12,9 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import re
 import subprocess
+from matplotlib.lines import Line2D
+import matplotlib.patheffects as patheffects
+from matplotlib.colors import ListedColormap
 
 # DATA PREPARATION
 
@@ -939,7 +942,6 @@ def generate_savings_map(opt_data, monthly_results_df, unit_costs_path, coordina
     ax.grid(True, linestyle=':', alpha=0.6)
 
     # Create a custom legend
-    from matplotlib.lines import Line2D
     legend_elements = [
         Line2D([0], [0], marker='o', color='w', label='Savings', markerfacecolor='#2ca02c', markersize=10, markeredgecolor='k'),
         Line2D([0], [0], marker='o', color='w', label='Cost Increase', markerfacecolor='#d62728', markersize=10, markeredgecolor='k')
@@ -1066,7 +1068,6 @@ def generate_savings_maps_by_level(opt_data, monthly_results_df, unit_costs_path
                 ax.axis('off')
 
                 # Legend
-                from matplotlib.lines import Line2D
                 legend_elements = [
                     Line2D([0], [0], marker='o', color='w', markerfacecolor='#2ca02c', label='Savings'),
                     Line2D([0], [0], marker='o', color='w', markerfacecolor='#d62728', label='Loss')
@@ -1162,11 +1163,6 @@ def generate_fcps_region_choropleth(
 
     # STATIC MAP (PDF/EPS) - BASELINE ONLY
     if "baseline" in file_suffix:
-        # Import patheffects for white outline around text
-        import matplotlib.patheffects as patheffects
-        from matplotlib.colors import ListedColormap
-        from matplotlib.lines import Line2D
-
         # Path setup
         current_path = Path(__file__).resolve()
         project_root = current_path.parents[2]
