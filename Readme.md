@@ -56,6 +56,9 @@ The script will install the following modules required for the program to run:
 - `streamlit`
 - `streamlit-folium`
 - `geojson`
+- `Piilow`
+- `scikit-learn`
+- `tensorflow`
 
 ### Download Required Data
 The raw data for this project (HTML, PDF, GEOJSON) is hosted on Box and can be downloaded using the provided script.
