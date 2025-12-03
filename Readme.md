@@ -171,9 +171,6 @@ streamlit run demo/streamlit_app.py
 ## Folder Structure
 ```
 .
-├── cookbooks
-│   └── Capstone.ipynb
-│
 ├── demo
 │   ├── fig
 │   ├── images
@@ -183,7 +180,6 @@ streamlit run demo/streamlit_app.py
 │           ├── 2📊Sales EDA.py
 │           ├── 3🔮Future Ideas.py
 │           ├── 4📊Results.py
-│           ├── coates_app.py
 │           └── streamlit_app.py
 │
 ├── presentation
