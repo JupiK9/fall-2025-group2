@@ -20,14 +20,15 @@ from component.popularity import (
     get_leftover_rate_by_school, get_net_consumption_by_school
 )
 from component.optimization import (
-    draw_branch_and_cut_visualization,
-    run_all_optimizations,
+    run_all_optimizations
+)
+
+from component.opt_eps_generator import (
+    run_all_optimizations_eps,
     draw_branch_and_cut_visualization
 )
+
 from component.EDA import run_eda
-
-
-
 
 def html_csv_pipeline():
     """
@@ -37,6 +38,9 @@ def html_csv_pipeline():
     print("\n[HTML/CSV] Starting HTML to CSV Processing...")
     bf_clean = DATA / "clean-data" / "data_breakfast.csv"
     ln_clean = DATA / "clean-data" / "data_lunch.csv"
+
+    bf_clean.parent.mkdir(parents=True, exist_ok=True)
+    ln_clean.parent.mkdir(parents=True, exist_ok=True)
 
     if bf_clean.exists() and ln_clean.exists():
         print("[HTML/CSV] Clean breakfast & lunch already exist. Skipping HTML transform + CSV combine.")
@@ -68,6 +72,9 @@ def pdf_pipeline():
 
     print("\n[PDF] Starting PDF to CSV Processing...")
     sales_csv = DATA / "clean-data" / "sales.csv"
+
+    sales_csv.parent.mkdir(parents=True, exist_ok=True)
+    
     if sales_csv.exists():
         print("[PDF] sales.csv already exists. Skipping PDF processing.")
         return
@@ -134,6 +141,34 @@ def optimization_pipeline():
         print("[Optimization] Monthly ILP results missing; charts skipped.")
         return
     
+def eps_generation_pipeline():
+    """
+    EPS Generation analysis + exports all charts/maps. 
+    """
+
+    print("\n[EPS Generation] Initializing EPS Generation Analysis...")
+
+    BF_PATH = DATA / "clean-data" / "data_breakfast.csv"
+    LN_PATH = DATA / "clean-data" / "data_lunch.csv"
+    SC_PATH = DATA / "preprocessed-data" / "2022-2025 Fairfax County School Student Count.csv"
+    UNIT_COSTS_PATH = DATA / "preprocessed-data" / "unit_costs.csv"
+    COORDINATES_PATH = DATA / "preprocessed-data" / "data_breakfast_with_coordinates.csv"
+    GEOJSON_PATH = DATA / "preprocessed-data" / "School_Regions.geojson"
+
+    out = run_all_optimizations_eps(
+        breakfast_file=BF_PATH,
+        lunch_file=LN_PATH,
+        student_counts_file=SC_PATH,
+        unit_costs_file=UNIT_COSTS_PATH,
+        coordinates_file=COORDINATES_PATH,
+        geojson_file=GEOJSON_PATH,
+        total_budget=139144760
+    )
+
+    if not (out and out.get("monthly_ilp") is not None):
+        print("[EPS Generation] Monthly ILP results missing; charts skipped.")
+        return
+    
 
 def eda_pipeline():
     print("\n[EDA] Starting EDA...")
@@ -151,4 +186,6 @@ def eda_pipeline():
     run_eda(bf_df, l_df, s_df, results_path)
 
 def visualization_pipeline():
-    draw_branch_and_cut_visualization(RESEARCH_PAPER / "Latex" / "fig" / "branch_and_cut_visual.eps")
+    out_path = RESEARCH_PAPER / "Latex" / "fig" / "branch_and_cut_visual.eps"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    draw_branch_and_cut_visualization(str(out_path))

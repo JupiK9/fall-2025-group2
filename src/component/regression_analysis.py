@@ -6,6 +6,7 @@ from sklearn.linear_model import LinearRegression
 import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
+import traceback
 
 # --- Helper: Clean Numeric Columns ---
 def clean_numeric_cols(df, cols_to_clean):
@@ -193,7 +194,6 @@ def perform_regression_analysis(df_breakfast, df_lunch, student_counts_df):
 
     except Exception as e:
         print(f"Error in perform_regression_analysis: {e}")
-        import traceback
         traceback.print_exc()
 
     return results
