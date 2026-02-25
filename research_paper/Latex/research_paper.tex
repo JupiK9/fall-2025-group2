@@ -195,6 +195,8 @@ The objective is to minimize the Total Cost ($C_T$), balancing the financial cos
 
 Comparing our objective function with their function in \cite{py_milp}, we are weighting the financial cost by $\lambda$. The waste penalty parameter $\lambda$ was set to 0.1 based on the rationale that environmental costs should influence but not dominate financial optimization. However, this value was not derived from empirical estimation of actual waste disposal costs or environmental impact valuations. Different $\lambda$ values could yield substantially different optimal production quantities and savings estimates. Stakeholders implementing this model should calibrate $\lambda$ based on their specific waste disposal costs, sustainability priorities, and institutional values.
 
+The waste penalty parameter ($\lambda$ = 0.1) is a heuristic weight used to internalize the environmental and logistical costs of food waste. We selected $\lambda$ = 0.1 as it places the model within the 'Service-Primary' stability zone. As demonstrated in our sensitivity analysis, the cost of production (including the waste penalty) does not outweigh the socio-economic penalty of an unserved meal until $\lambda$ exceeds 1.50. By choosing 0.1, the optimization remains focused on maximizing student food security and dietary equity while providing a minor 'nudge' toward producing high-efficiency, low-waste menu items.
+
 \
 
 \subsubsection{Constraints}
@@ -303,6 +305,19 @@ Fig. \ref{fig:overall_savings} shows a comparison of production costs between ac
 
 The projected cost savings assume that reducing production quantities would proportionally reduce waste while maintaining the same sales volume. This counterfactual assumption may not hold if student purchasing behavior responds to perceived availability, menu variety, or presentation factors that change with production volumes. The optimization results represent potential savings under idealized conditions rather than guaranteed outcomes. Prospective validation through controlled implementation at selected schools would be necessary to confirm these projections.
 
+\begin{table*}[h]
+\centering
+\caption{Sensitivity Analysis of Waste Penalty ($\lambda$) on Production Strategy}
+\label{tab:lambda_sensitivity}
+\begin{tabular}{@{}cccc@{}}
+\toprule
+\textbf{$\lambda$ Range} & \textbf{Total Monthly Units} & \textbf{Strategy Profile} & \textbf{Service Priority} \\ \midrule
+\textbf{0.01 -- 1.49 (Selected: 0.1)} & \textbf{12,931,708} & \textbf{Service-Optimized} & \textbf{High (115\%)} \\
+1.50 -- 1.90 & 12,360,530 & Transitional & Moderate \\
+1.91 -- 2.00 & 9,558,220 & Waste-Conservative & Low (85\%) \\ \bottomrule
+\end{tabular}
+\end{table*}
+
 According to the National Center for Educational Statistics \cite{fcpsdemo}, as of 2022, Fairfax County Public Schools serves:
 
 \begin{itemize}
@@ -339,6 +354,13 @@ In terms of the FCPS regions, here are key points to describe the savings amount
 
 Fig. \ref{fig:savings_analysis} shows the financial performance of the optimization model. The scatter plot compares each school's actual annual food costs (x-axis) with its optimized annual costs (y-axis). The dashed diagonal line marks the point where optimized costs equal historical spending.
 
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{fig/sensitivity_plot.eps}
+    \caption{Sensitivity Analysis of the Waste Penalty. The plot illustrates the robustness of production strategy across a range of $\lambda$ values (0.01 to 2.0). Total production remains stable at the upper bound (115\% of demand) for $\lambda$ $\le$ 1.50, prioritizing service assurance. The chosen value of $\lambda$ is situated well within this stability zone. A transition toward a waste-conservative strategy occurs only after the critical threshold of $\lambda$ $\approx$ 1.50.}
+    \label{fig:sensitivity_plot}
+\end{figure}
+
 Schools below the line, shown in green, are where the model found inefficiencies and projected cost savings. The model placed 130 schools in this group. In contrast, 60 schools above the line, shown in red, are expected to have higher costs. This likely happens when past procurement did not meet the model's stricter rules. The size of each marker shows the financial impact.
 
 \begin{figure*}[t]
@@ -361,6 +383,9 @@ There is a clear correlation between school size and optimization results. The m
 The optimization model projected a cost increase for a small group of schools, as indicated by data points above the break-even line in Fig. \ref{fig:savings_analysis}. While reverting these schools to historical production patterns may appear financially prudent, this perspective fails to account for the model's embedded constraint logic.
 
 The optimization strictly enforces demand satisfaction constraints ($x_{s,j} \ge L_{s,j}$). This ensures production matches estimated student consumption. The historical "savings" in these schools likely result from under-production, when supply did not meet demand. This may have led to items running out or reduced service levels. The model's projected cost increase should not be seen as inefficiency, but as the \textit{true cost of service assurance}. For these schools, the model shows a gap between past budgeting and the real resources needed to fully serve students.
+
+\subsection{Sensitivity Analysis of Waste Penalty ($\lambda$)}
+To validate the empirical robustness of our chosen parameter, we conducted a sensitivity analysis by varying $\lambda$ from 0.01 to 2.0. The results (see fig. \ref{fig:sensitivity_plot} and \autoref{tab:lambda_sensitivity}) reveal a significant stability zone between 0.01 and 1.50. Within this range, the total monthly production quantity remains constant at 12.93 million units (representing 115\% upper bound of demand). This confirms that for values of $\lambda$ up to 1.50, the 'cost' of food waste is mathematically secondary to the mission of service assurance. A critical threshold is reached at $\lambda$ $\approx$ 1.50, where the model begins to shift toward a 'Waste-Conservative' strategy, reducing production to minimize the financial penalty of leftovers. Our selection of $\lambda$ = 0.1 ensures the system is resilient to data fluctuations and consistently prioritizes the nutritional needs of the Fairfax County student population.
 
 %*********************************************************************************************************************************************************************************************************************
 
